@@ -156,6 +156,7 @@ _register(SourceConfig(
     dedupe_key="url",
     api_key_env_var="FINNHUB_API_KEY",
     rate_limit_per_second=1.0,
+    enabled=False,  # registered but no connector built yet — v2
     notes="Free tier: 60 req/min. /company-news endpoint filters by ticker natively. 1-year archive.",
 ))
 

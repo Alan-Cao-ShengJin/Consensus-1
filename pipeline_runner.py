@@ -16,8 +16,8 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import Base, Claim, Thesis, Document, SourceType
-from connectors.base import DocumentPayload, DocumentConnector, NonDocumentUpdater
+from models import Thesis
+from connectors.base import DocumentConnector, NonDocumentUpdater
 from connectors.sec_edgar import SECEdgarConnector
 from connectors.google_rss import GoogleRSSConnector
 from connectors.pr_rss import PRRSSConnector
@@ -26,7 +26,7 @@ from connectors.yfinance_prices import YFinancePriceUpdater
 from connectors.yfinance_calendar import YFinanceCalendarUpdater
 from connectors.yfinance_ticker_info import YFinanceTickerInfoUpdater
 from dedupe import is_duplicate_document
-from document_parser import parse_document
+from document_ingestion_service import ingest_document_payload
 from crud import get_or_create_company
 
 logger = logging.getLogger(__name__)
@@ -136,98 +136,6 @@ def _build_non_document_updaters(source_filter: Optional[list[str]] = None) -> l
 
 
 # ---------------------------------------------------------------------------
-# Document insertion helper
-# ---------------------------------------------------------------------------
-
-def _insert_document(session: Session, payload: DocumentPayload) -> int:
-    """Insert a DocumentPayload as a Document row. Returns the new document ID."""
-    clean_text = parse_document(payload.raw_text) if payload.raw_text else ""
-
-    doc = Document(
-        source_type=payload.source_type,
-        source_tier=payload.source_tier,
-        title=payload.title,
-        url=payload.url,
-        published_at=payload.published_at,
-        publisher=payload.author,
-        primary_company_ticker=payload.ticker,
-        raw_text=clean_text,
-        hash=payload.content_hash,
-        source_key=payload.source_key,
-        external_id=payload.external_id,
-    )
-    session.add(doc)
-    session.flush()
-    return doc.id
-
-
-def _extract_claims_for_document(session: Session, doc_id: int, ticker: str, use_llm: bool = False) -> list[int]:
-    """Run claim extraction on a document and return claim IDs."""
-    from claim_extractor import StubClaimExtractor, LLMClaimExtractor
-    from ingest import ingest_document_with_claims
-    from schemas import ExtractedClaim
-
-    doc = session.get(Document, doc_id)
-    if not doc or not doc.raw_text:
-        return []
-
-    extractor = LLMClaimExtractor() if use_llm else StubClaimExtractor()
-    metadata = {
-        "primary_company_ticker": ticker,
-        "title": doc.title or "",
-        "source_type": doc.source_type.value,
-    }
-    claims = extractor.extract_claims(doc.raw_text, metadata)
-
-    # Create Claim rows linked to this document
-    from models import Claim as ClaimModel, ClaimCompanyLink, ClaimThemeLink
-    from crud import get_or_create_company, get_or_create_theme
-
-    claim_ids = []
-    for item in claims:
-        claim = ClaimModel(
-            document_id=doc_id,
-            claim_text_normalized=item.claim_text_normalized,
-            claim_text_short=item.claim_text_short,
-            claim_type=item.claim_type,
-            economic_channel=item.economic_channel,
-            direction=item.direction,
-            strength=item.strength,
-            time_horizon=item.time_horizon,
-            novelty_type=item.novelty_type,
-            confidence=item.confidence,
-            published_at=item.published_at or doc.published_at,
-            is_structural=item.is_structural,
-            is_ephemeral=item.is_ephemeral,
-        )
-        session.add(claim)
-        session.flush()
-        claim_ids.append(claim.id)
-
-        for t in item.affected_tickers:
-            get_or_create_company(session, t)
-            session.add(ClaimCompanyLink(claim_id=claim.id, company_ticker=t, relation_type="affects"))
-
-        for theme_name in item.themes:
-            theme = get_or_create_theme(session, theme_name)
-            session.add(ClaimThemeLink(claim_id=claim.id, theme_id=theme.id))
-
-    session.flush()
-
-    # Post-extraction novelty classification
-    if claim_ids:
-        from novelty_classifier import classify_novelty
-        db_claims = session.scalars(
-            select(ClaimModel).where(ClaimModel.id.in_(claim_ids))
-        ).all()
-        if db_claims:
-            classify_novelty(session, db_claims, company_ticker=ticker)
-            session.flush()
-
-    return claim_ids
-
-
-# ---------------------------------------------------------------------------
 # Main pipeline runner
 # ---------------------------------------------------------------------------
 
@@ -313,12 +221,10 @@ def run_ticker_pipeline(
                     continue
 
                 try:
-                    doc_id = _insert_document(session, payload)
+                    result = ingest_document_payload(session, payload, ticker, use_llm=use_llm)
                     src_summary.docs_inserted += 1
-
-                    claim_ids = _extract_claims_for_document(session, doc_id, ticker, use_llm=use_llm)
-                    src_summary.claims_extracted += len(claim_ids)
-                    all_new_claim_ids.extend(claim_ids)
+                    src_summary.claims_extracted += len(result.claim_ids)
+                    all_new_claim_ids.extend(result.claim_ids)
                 except Exception as e:
                     logger.error("Failed to process document from %s for %s: %s", connector.source_key, ticker, e)
                     src_summary.errors.append(str(e))

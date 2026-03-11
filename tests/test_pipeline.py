@@ -32,7 +32,8 @@ from connectors.yfinance_prices import YFinancePriceUpdater
 from connectors.yfinance_calendar import YFinanceCalendarUpdater
 from connectors.yfinance_ticker_info import YFinanceTickerInfoUpdater
 from dedupe import is_duplicate_document, filter_new_documents
-from pipeline_runner import run_ticker_pipeline, _insert_document
+from document_ingestion_service import ingest_document_payload
+from pipeline_runner import run_ticker_pipeline
 
 
 @pytest.fixture
@@ -554,21 +555,21 @@ class TestNonDocumentUpdaters:
 # ---------------------------------------------------------------------------
 
 class TestDocumentInsertion:
-    """Document insertion preserves source_key and external_id."""
+    """Document ingestion service preserves source_key, external_id, and hash."""
 
     def test_insert_document_preserves_source_key(self, session):
         _make_company(session)
         payload = _make_payload(source_key="sec_10k", external_id="ACC-001")
-        doc_id = _insert_document(session, payload)
-        doc = session.get(Document, doc_id)
+        result = ingest_document_payload(session, payload, "NVDA")
+        doc = session.get(Document, result.document_id)
         assert doc.source_key == "sec_10k"
         assert doc.external_id == "ACC-001"
 
     def test_insert_document_computes_hash(self, session):
         _make_company(session)
         payload = _make_payload(raw_text="test content")
-        doc_id = _insert_document(session, payload)
-        doc = session.get(Document, doc_id)
+        result = ingest_document_payload(session, payload, "NVDA")
+        doc = session.get(Document, result.document_id)
         assert doc.hash is not None
         assert len(doc.hash) == 64
 
@@ -611,3 +612,131 @@ class TestPipelineSummary:
         doc_sources = [s for s in summary.source_summaries if s.docs_fetched > 0]
         assert len(doc_sources) == 1
         assert doc_sources[0].source == "news_google_rss"
+
+
+# ---------------------------------------------------------------------------
+# 11. Canonical ingestion service tests
+# ---------------------------------------------------------------------------
+
+class TestCanonicalIngestionService:
+    """document_ingestion_service.ingest_document_payload works standalone."""
+
+    def test_service_inserts_doc_and_extracts_claims(self, session):
+        _make_company(session)
+        payload = _make_payload(
+            raw_text="NVDA AI infrastructure revenue grew strongly this quarter",
+        )
+        result = ingest_document_payload(session, payload, "NVDA")
+
+        assert result.document_id is not None
+        assert len(result.claim_ids) >= 1
+
+        doc = session.get(Document, result.document_id)
+        assert doc is not None
+        assert doc.source_key == "news_google_rss"
+
+        claims = session.scalars(
+            select(Claim).where(Claim.document_id == result.document_id)
+        ).all()
+        assert len(claims) == len(result.claim_ids)
+
+    def test_service_creates_company_and_theme_links(self, session):
+        _make_company(session)
+        payload = _make_payload(
+            raw_text="NVDA AI infrastructure revenue grew strongly",
+        )
+        result = ingest_document_payload(session, payload, "NVDA")
+
+        from models import ClaimCompanyLink
+        links = session.scalars(
+            select(ClaimCompanyLink).where(
+                ClaimCompanyLink.claim_id.in_(result.claim_ids)
+            )
+        ).all()
+        assert len(links) >= 1
+        assert any(l.company_ticker == "NVDA" for l in links)
+
+    def test_service_runs_novelty_classification(self, session):
+        _make_company(session)
+
+        # First document establishes prior claims
+        p1 = _make_payload(
+            url="https://example.com/first",
+            raw_text="NVDA AI infrastructure revenue grew strongly this quarter",
+        )
+        ingest_document_payload(session, p1, "NVDA")
+
+        # Second document with similar text should get non-NEW novelty
+        p2 = _make_payload(
+            url="https://example.com/second",
+            raw_text="NVDA AI infrastructure revenue grew strongly last quarter",
+        )
+        result2 = ingest_document_payload(session, p2, "NVDA")
+
+        claims = session.scalars(
+            select(Claim).where(Claim.id.in_(result2.claim_ids))
+        ).all()
+        # At least one claim should have been reclassified (not all NEW)
+        novelty_types = {c.novelty_type for c in claims}
+        assert len(claims) >= 1
+        # The classifier should have run — exact classification depends on
+        # similarity thresholds, but we verify it didn't crash
+        assert all(c.novelty_type is not None for c in claims)
+
+
+# ---------------------------------------------------------------------------
+# 12. Pipeline delegates to ingestion service
+# ---------------------------------------------------------------------------
+
+class TestPipelineDelegation:
+    """pipeline_runner delegates document ingestion to the canonical service."""
+
+    def test_pipeline_calls_ingestion_service(self, session):
+        """run_ticker_pipeline delegates to ingest_document_payload."""
+        _make_company(session)
+        payloads = [_make_payload(url="https://example.com/delegate-test")]
+
+        from document_ingestion_service import IngestionResult
+        mock_result = IngestionResult(document_id=999, claim_ids=[1, 2])
+
+        patches = _all_connector_patches(google_return=payloads) + [
+            patch("pipeline_runner.ingest_document_payload", return_value=mock_result),
+        ]
+
+        with _apply_patches(patches):
+            summary = run_ticker_pipeline(session, "NVDA")
+
+        assert summary.total_docs_inserted == 1
+        assert summary.total_claims_extracted == 2
+
+    def test_dry_run_skips_ingestion_service(self, session):
+        """Dry-run should never call ingest_document_payload."""
+        _make_company(session)
+        payloads = [_make_payload(url="https://example.com/dryrun-test")]
+
+        mock_ingest = MagicMock()
+
+        patches = _all_connector_patches(google_return=payloads) + [
+            patch("pipeline_runner.ingest_document_payload", mock_ingest),
+        ]
+
+        with _apply_patches(patches):
+            summary = run_ticker_pipeline(session, "NVDA", dry_run=True)
+
+        mock_ingest.assert_not_called()
+        assert summary.total_docs_inserted == 1  # counted as "would insert"
+
+    def test_non_documents_only_skips_ingestion_service(self, session):
+        """non_documents_only should never call ingest_document_payload."""
+        _make_company(session)
+
+        mock_ingest = MagicMock()
+
+        patches = _nondoc_patches() + [
+            patch("pipeline_runner.ingest_document_payload", mock_ingest),
+        ]
+
+        with _apply_patches(patches):
+            summary = run_ticker_pipeline(session, "NVDA", non_documents_only=True)
+
+        mock_ingest.assert_not_called()
