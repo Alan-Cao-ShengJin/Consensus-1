@@ -1,0 +1,27 @@
+NVIDIA Corporation Q4 Fiscal 2025 Earnings Call Transcript
+
+Operator: Good afternoon. Welcome to the NVIDIA Q4 Fiscal Year 2025 Earnings Conference Call.
+
+Jensen Huang, CEO:
+
+Thank you. Q4 was an outstanding quarter for NVIDIA. Data-center revenue grew 93% year-over-year to $18.4 billion, driven by strong demand for Hopper GPUs across hyperscale and enterprise customers.
+
+Our gross margin expanded to 76%, up from 73% in the prior quarter, reflecting favorable mix and strong pricing power in the AI accelerator market.
+
+Looking ahead, we expect Q1 fiscal 2026 revenue guidance above consensus at $24 billion, plus or minus 2%, reflecting continued strength in AI infrastructure spending. Our outlook remains strong as customers race to build out AI capacity.
+
+Key highlights:
+- Gaming revenue increased 15% year-over-year
+- Automotive revenue rose 10% sequentially
+- We announced Blackwell B200 general availability for H2 2025
+- Inference workloads now represent over 40% of data-center revenue
+
+We believe we are in the early innings of a multi-year AI infrastructure build-out that will drive sustained demand for our platforms.
+
+Colette Kress, CFO:
+
+Operating expenses were $3.2 billion, up 12% sequentially. We returned $2.8 billion to shareholders through buybacks. Free cash flow was $11.2 billion for the quarter.
+
+We expect margin improvement to continue through fiscal 2026 as Blackwell ramps.
+
+Q&A session followed with analysts from Morgan Stanley, Goldman Sachs, and Bank of America.
