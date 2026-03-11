@@ -1,11 +1,46 @@
-from datetime import datetime
+"""Thesis update engine: classify claims against a thesis, update conviction + state."""
+from __future__ import annotations
 
+import json
+import logging
+from datetime import datetime
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import Thesis, ThesisClaimLink, ThesisStateHistory, ThesisState, SourceTier
+from models import (
+    Claim, Thesis, ThesisClaimLink, ThesisStateHistory,
+    ThesisState, SourceTier,
+)
+
+logger = logging.getLogger(__name__)
 
 
-# ---- Conviction scoring ----
+# ---------------------------------------------------------------------------
+# Pydantic models for structured LLM output
+# ---------------------------------------------------------------------------
+
+class ClaimAssessment(BaseModel):
+    claim_id: int
+    impact: Literal["supports", "weakens", "neutral", "conflicting"]
+    rationale: str
+    materiality: float = Field(ge=0, le=1)
+
+
+class ThesisUpdateResponse(BaseModel):
+    overall_state_recommendation: Literal[
+        "forming", "strengthening", "stable", "weakening",
+        "probation", "broken", "achieved",
+    ]
+    summary_note: str
+    claim_assessments: List[ClaimAssessment]
+
+
+# ---------------------------------------------------------------------------
+# Conviction scoring (code-controlled, not LLM)
+# ---------------------------------------------------------------------------
 
 SOURCE_TIER_WEIGHTS = {
     SourceTier.TIER_1: 1.0,
@@ -14,111 +49,287 @@ SOURCE_TIER_WEIGHTS = {
 }
 
 
-def apply_claim_to_conviction(
-    current_score: float,
+def compute_claim_delta(
+    impact: str,
+    materiality: float,
     novelty_type: str,
-    link_type: str,
-    source_tier_weight: float,
     confidence: float,
+    source_tier_weight: float,
 ) -> float:
-    delta = 0.0
+    base = 0.0
+    if impact == "supports":
+        base = 5.0
+    elif impact == "weakens":
+        base = -6.0
+    elif impact == "conflicting":
+        base = -9.0
+    elif impact == "neutral":
+        base = 0.0
 
-    if link_type == "supports":
-        delta += 4.0
-    elif link_type == "weakens":
-        delta -= 5.0
+    novelty_mult = {
+        "new": 1.25,
+        "confirming": 1.0,
+        "repetitive": 0.4,
+        "conflicting": 1.1,
+    }.get(novelty_type, 1.0)
 
-    if novelty_type == "new":
-        delta *= 1.25
-    elif novelty_type == "repetitive":
-        delta *= 0.4
-    elif novelty_type == "conflicting":
-        delta *= 1.1
-
-    delta *= source_tier_weight
-    delta *= confidence
-
-    new_score = max(0.0, min(100.0, current_score + delta))
-    return new_score
+    return base * materiality * novelty_mult * confidence * source_tier_weight
 
 
-# ---- State derivation ----
+def apply_conviction_update(current_score: float, deltas: list[float]) -> float:
+    new_score = current_score + sum(deltas)
+    return max(0.0, min(100.0, new_score))
 
-def derive_thesis_state(
-    current_state: ThesisState,
-    old_score: float,
+
+# ---------------------------------------------------------------------------
+# State transitions (code-controlled guardrails)
+# ---------------------------------------------------------------------------
+
+def resolve_state(
+    current_state: str,
+    recommended_state: str,
     new_score: float,
 ) -> ThesisState:
-    if new_score <= 10.0:
+    if new_score <= 15:
         return ThesisState.BROKEN
-    if new_score >= 90.0:
-        return ThesisState.ACHIEVED
-
-    diff = new_score - old_score
-    if diff > 2.0:
-        return ThesisState.STRENGTHENING
-    elif diff < -2.0:
-        if new_score < 30.0:
-            return ThesisState.PROBATION
+    if new_score <= 30:
+        return ThesisState.PROBATION
+    if recommended_state == "broken":
+        return ThesisState.BROKEN
+    if recommended_state == "probation":
+        return ThesisState.PROBATION
+    if recommended_state == "weakening":
         return ThesisState.WEAKENING
+    if recommended_state == "strengthening":
+        return ThesisState.STRENGTHENING
+    if recommended_state == "achieved":
+        return ThesisState.ACHIEVED
+    return ThesisState.STABLE
+
+
+# ---------------------------------------------------------------------------
+# LLM classification
+# ---------------------------------------------------------------------------
+
+def classify_claims_against_thesis(
+    thesis: Thesis,
+    claims: list[Claim],
+) -> ThesisUpdateResponse:
+    """Call the LLM to classify each claim's impact on the thesis."""
+    from llm_client import call_openai_json_object
+    from prompts import build_thesis_update_messages
+
+    claims_data = [
+        {
+            "claim_id": c.id,
+            "claim_text": c.claim_text_normalized,
+            "claim_type": c.claim_type.value,
+            "direction": c.direction.value,
+            "strength": c.strength,
+            "novelty_type": c.novelty_type.value,
+        }
+        for c in claims
+    ]
+
+    messages = build_thesis_update_messages(
+        thesis_title=thesis.title,
+        company_ticker=thesis.company_ticker,
+        current_state=thesis.state.value,
+        conviction_score=thesis.conviction_score or 50.0,
+        thesis_summary=thesis.summary or "",
+        claims_json=json.dumps(claims_data, indent=2),
+    )
+
+    raw = call_openai_json_object(messages)
+    return ThesisUpdateResponse.model_validate(raw)
+
+
+def _build_stub_response(
+    claims: list[Claim],
+) -> ThesisUpdateResponse:
+    """Deterministic fallback when use_llm=False."""
+    assessments = []
+    for c in claims:
+        if c.direction.value == "positive":
+            impact = "supports"
+        elif c.direction.value == "negative":
+            impact = "weakens"
+        elif c.direction.value == "mixed":
+            impact = "conflicting"
+        else:
+            impact = "neutral"
+
+        assessments.append(ClaimAssessment(
+            claim_id=c.id,
+            impact=impact,
+            rationale=f"Stub: direction={c.direction.value}",
+            materiality=c.strength or 0.5,
+        ))
+
+    # Simple recommendation based on majority impact
+    support_count = sum(1 for a in assessments if a.impact == "supports")
+    weaken_count = sum(1 for a in assessments if a.impact in ("weakens", "conflicting"))
+    if support_count > weaken_count:
+        rec = "strengthening"
+    elif weaken_count > support_count:
+        rec = "weakening"
     else:
-        if current_state == ThesisState.FORMING and new_score >= 40.0:
-            return ThesisState.STABLE
-        return current_state
+        rec = "stable"
+
+    return ThesisUpdateResponse(
+        overall_state_recommendation=rec,
+        summary_note="Stub assessment based on claim directions.",
+        claim_assessments=assessments,
+    )
 
 
-# ---- Service ----
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-class ThesisUpdateService:
+def _find_assessment(
+    response: ThesisUpdateResponse,
+    claim_id: int,
+) -> Optional[ClaimAssessment]:
+    for a in response.claim_assessments:
+        if a.claim_id == claim_id:
+            return a
+    return None
 
-    def __init__(self, session: Session):
-        self.session = session
 
-    def apply_new_claim(
-        self,
-        thesis_id: int,
-        claim_id: int,
-        link_type: str,
-        novelty_type: str,
-        source_tier: SourceTier,
-        confidence: float,
-    ) -> Thesis:
-        thesis = self.session.get(Thesis, thesis_id)
-        if thesis is None:
-            raise ValueError(f"Thesis {thesis_id} not found")
+def _source_tier_weight(claim: Claim) -> float:
+    """Get source tier weight from the claim's document."""
+    if claim.document and claim.document.source_tier:
+        return SOURCE_TIER_WEIGHTS.get(claim.document.source_tier, 0.5)
+    return 0.5
 
-        old_score = thesis.conviction_score or 50.0
-        source_tier_weight = SOURCE_TIER_WEIGHTS.get(source_tier, 0.5)
 
-        new_score = apply_claim_to_conviction(
-            current_score=old_score,
-            novelty_type=novelty_type,
-            link_type=link_type,
-            source_tier_weight=source_tier_weight,
-            confidence=confidence,
+def _ensure_thesis_claim_link(
+    session: Session,
+    thesis_id: int,
+    claim_id: int,
+    link_type: str,
+) -> None:
+    """Create or update a ThesisClaimLink row."""
+    existing = session.scalars(
+        select(ThesisClaimLink).where(
+            ThesisClaimLink.thesis_id == thesis_id,
+            ThesisClaimLink.claim_id == claim_id,
         )
-
-        new_state = derive_thesis_state(thesis.state, old_score, new_score)
-
-        # Record state change
-        if new_state != thesis.state or new_score != old_score:
-            self.session.add(ThesisStateHistory(
-                thesis_id=thesis.id,
-                state=new_state,
-                conviction_score=new_score,
-                note=f"claim {claim_id}: {link_type} ({novelty_type})",
-            ))
-
-        thesis.conviction_score = new_score
-        thesis.state = new_state
-        thesis.updated_at = datetime.utcnow()
-
-        # Link claim to thesis
-        self.session.add(ThesisClaimLink(
-            thesis_id=thesis.id,
+    ).first()
+    if existing:
+        existing.link_type = link_type
+    else:
+        session.add(ThesisClaimLink(
+            thesis_id=thesis_id,
             claim_id=claim_id,
             link_type=link_type,
         ))
 
-        self.session.flush()
-        return thesis
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+def update_thesis_from_claims(
+    session: Session,
+    thesis_id: int,
+    claim_ids: list[int],
+    use_llm: bool = True,
+) -> dict:
+    """Update a thesis based on newly ingested claims.
+
+    Returns a dict with before/after state, score, and per-claim assessments.
+    """
+    thesis = session.get(Thesis, thesis_id)
+    if not thesis:
+        raise ValueError(f"Thesis {thesis_id} not found")
+
+    claims = session.scalars(
+        select(Claim).where(Claim.id.in_(claim_ids))
+    ).all()
+
+    if not claims:
+        return {"status": "no_claims", "thesis_id": thesis_id}
+
+    before_state = thesis.state
+    before_score = thesis.conviction_score or 50.0
+
+    # --- LLM classification (or stub fallback) ---
+    if use_llm:
+        try:
+            llm_result = classify_claims_against_thesis(thesis, claims)
+        except Exception as e:
+            logger.error("LLM classification failed, falling back to stub: %s", e)
+            llm_result = _build_stub_response(claims)
+    else:
+        llm_result = _build_stub_response(claims)
+
+    # --- Compute conviction deltas (code decides, not LLM) ---
+    deltas: list[float] = []
+    assessments: list[dict] = []
+    for claim in claims:
+        assessment = _find_assessment(llm_result, claim.id)
+        impact = assessment.impact if assessment else "neutral"
+        materiality = assessment.materiality if assessment else 0.5
+
+        stw = _source_tier_weight(claim)
+        confidence = claim.confidence or 0.7
+        novelty = claim.novelty_type.value
+
+        delta = compute_claim_delta(
+            impact=impact,
+            materiality=materiality,
+            novelty_type=novelty,
+            confidence=confidence,
+            source_tier_weight=stw,
+        )
+        deltas.append(delta)
+        assessments.append({
+            "claim_id": claim.id,
+            "impact": impact,
+            "materiality": materiality,
+            "delta": round(delta, 4),
+        })
+
+        # Map impact to link_type for the DB
+        link_type_map = {
+            "supports": "supports",
+            "weakens": "weakens",
+            "neutral": "context",
+            "conflicting": "weakens",
+        }
+        _ensure_thesis_claim_link(
+            session, thesis.id, claim.id, link_type_map.get(impact, "context")
+        )
+
+    new_score = apply_conviction_update(before_score, deltas)
+    new_state = resolve_state(
+        before_state.value,
+        llm_result.overall_state_recommendation,
+        new_score,
+    )
+
+    # --- Apply DB updates ---
+    thesis.conviction_score = new_score
+    thesis.state = new_state
+    thesis.updated_at = datetime.utcnow()
+
+    session.add(ThesisStateHistory(
+        thesis_id=thesis.id,
+        state=new_state,
+        conviction_score=new_score,
+        note=llm_result.summary_note,
+    ))
+
+    session.flush()
+
+    return {
+        "thesis_id": thesis.id,
+        "before_state": before_state.value,
+        "after_state": new_state.value,
+        "before_score": round(before_score, 2),
+        "after_score": round(new_score, 2),
+        "summary_note": llm_result.summary_note,
+        "assessments": assessments,
+    }

@@ -67,3 +67,75 @@ def build_extraction_messages(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_content},
     ]
+
+
+# ---------------------------------------------------------------------------
+# Thesis update prompts
+# ---------------------------------------------------------------------------
+
+THESIS_UPDATE_SYSTEM_PROMPT = """\
+You are an investment thesis analyst engine for a structured research platform.
+
+Your job: given an existing investment thesis and a set of newly ingested claims, assess how each claim affects the thesis.
+
+Rules:
+- Classify each claim's impact as: supports, weakens, neutral, or conflicting.
+- Assign a materiality score (0-1) for how significant the claim is to the thesis.
+- Provide a brief rationale for each classification.
+- Recommend an overall thesis state based on the cumulative evidence.
+- Output ONLY valid JSON matching the schema provided. No prose, no markdown.
+"""
+
+THESIS_UPDATE_USER_TEMPLATE = """\
+## Current thesis snapshot
+- Title: {thesis_title}
+- Company: {company_ticker}
+- Current state: {current_state}
+- Current conviction score: {conviction_score}
+- Summary: {thesis_summary}
+
+## New claims to assess
+{claims_json}
+
+## Output schema
+Return a single JSON object with:
+- overall_state_recommendation (string): One of: forming, strengthening, stable, weakening, probation, broken, achieved
+- summary_note (string): 1-2 sentence summary of how these claims collectively affect the thesis.
+- claim_assessments (array): One object per claim:
+  - claim_id (int): The claim's ID.
+  - impact (string): One of: supports, weakens, neutral, conflicting
+  - rationale (string): Brief explanation.
+  - materiality (float 0-1): How material this claim is to the thesis.
+
+Example:
+{{
+  "overall_state_recommendation": "strengthening",
+  "summary_note": "Strong revenue beat and raised guidance reinforce the AI demand thesis.",
+  "claim_assessments": [
+    {{"claim_id": 1, "impact": "supports", "rationale": "Revenue growth confirms demand.", "materiality": 0.8}}
+  ]
+}}
+"""
+
+
+def build_thesis_update_messages(
+    thesis_title: str,
+    company_ticker: str,
+    current_state: str,
+    conviction_score: float,
+    thesis_summary: str,
+    claims_json: str,
+) -> list[dict]:
+    """Build the messages list for a thesis-update LLM call."""
+    user_content = THESIS_UPDATE_USER_TEMPLATE.format(
+        thesis_title=thesis_title,
+        company_ticker=company_ticker,
+        current_state=current_state,
+        conviction_score=conviction_score,
+        thesis_summary=thesis_summary or "(no summary)",
+        claims_json=claims_json,
+    )
+    return [
+        {"role": "system", "content": THESIS_UPDATE_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]

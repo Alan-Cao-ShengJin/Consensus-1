@@ -75,6 +75,53 @@ def call_openai_json(
     )
 
 
+def call_openai_json_object(
+    messages: list[dict],
+    model: str | None = None,
+    temperature: float = 0.2,
+) -> dict[str, Any]:
+    """Call OpenAI and parse the response as a single JSON object.
+
+    Unlike call_openai_json (which expects an array), this returns the
+    top-level dict directly.  Used for thesis-update responses.
+    """
+    client = get_openai_client()
+    model = model or os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
+    backoff = RETRY_BACKOFF
+
+    last_error: Exception | None = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                response_format={"type": "json_object"},
+            )
+            raw_text = response.choices[0].message.content or ""
+            data = json.loads(raw_text)
+            if not isinstance(data, dict):
+                raise json.JSONDecodeError(
+                    f"Expected JSON object, got {type(data).__name__}", raw_text, 0
+                )
+            return data
+        except json.JSONDecodeError as e:
+            logger.error("LLM returned unparseable JSON (attempt %d): %s", attempt, e)
+            raise
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "OpenAI API error (attempt %d/%d): %s", attempt, MAX_RETRIES, e
+            )
+            if attempt < MAX_RETRIES:
+                time.sleep(backoff)
+                backoff *= 2
+
+    raise RuntimeError(
+        f"OpenAI API failed after {MAX_RETRIES} retries: {last_error}"
+    )
+
+
 def _parse_json_array(raw: str) -> list[dict[str, Any]]:
     """Parse LLM output into a list of dicts.
 
