@@ -11,7 +11,7 @@ from models import (
     Direction, NoveltyType,
 )
 from schemas import ExtractedClaim
-from injest import ingest_document_with_claims
+from ingest import ingest_document_with_claims
 
 
 @pytest.fixture
