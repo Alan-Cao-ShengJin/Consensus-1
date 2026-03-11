@@ -76,13 +76,14 @@ def build_extraction_messages(
 THESIS_UPDATE_SYSTEM_PROMPT = """\
 You are an investment thesis analyst engine for a structured research platform.
 
-Your job: given an existing investment thesis and a set of newly ingested claims, assess how each claim affects the thesis.
+Your job: given an existing investment thesis, its prior memory context, and a set of newly ingested claims, assess how each claim affects the thesis.
 
 Rules:
 - CRITICAL: First assess whether each claim is RELEVANT to the specific thesis. A claim about retail competition is NOT relevant to a cloud/AWS thesis. A claim about a competitor is only relevant if it directly affects the thesis company's competitive position in the thesis domain.
 - If a claim is NOT relevant to the thesis, set impact to "neutral" and materiality to 0.0.
 - For relevant claims, classify impact as: supports, weakens, neutral, or conflicting.
 - Assign a materiality score (0-1) for how significant the claim is to the thesis. Only relevant claims should have materiality > 0.
+- Use the PRIOR MEMORY CONTEXT to calibrate your assessment: a claim that merely repeats what prior claims already established is less material than genuinely new evidence. A claim that contradicts established prior evidence is more significant.
 - Provide a brief rationale for each classification, including why the claim is or is not relevant.
 - Recommend an overall thesis state based on the cumulative RELEVANT evidence only.
 - Output ONLY valid JSON matching the schema provided. No prose, no markdown.
@@ -95,6 +96,9 @@ THESIS_UPDATE_USER_TEMPLATE = """\
 - Current state: {current_state}
 - Current conviction score: {conviction_score}
 - Summary: {thesis_summary}
+
+## Prior memory context
+{memory_context}
 
 ## New claims to assess
 {claims_json}
@@ -127,6 +131,7 @@ def build_thesis_update_messages(
     conviction_score: float,
     thesis_summary: str,
     claims_json: str,
+    memory_context: str = "",
 ) -> list[dict]:
     """Build the messages list for a thesis-update LLM call."""
     user_content = THESIS_UPDATE_USER_TEMPLATE.format(
@@ -135,6 +140,7 @@ def build_thesis_update_messages(
         current_state=current_state,
         conviction_score=conviction_score,
         thesis_summary=thesis_summary or "(no summary)",
+        memory_context=memory_context or "(No prior memory available.)",
         claims_json=claims_json,
     )
     return [

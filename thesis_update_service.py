@@ -174,6 +174,7 @@ def resolve_state(
 def classify_claims_against_thesis(
     thesis: Thesis,
     claims: list[Claim],
+    memory_context: str = "",
 ) -> ThesisUpdateResponse:
     """Call the LLM to classify each claim's impact on the thesis."""
     from llm_client import call_openai_json_object
@@ -198,6 +199,7 @@ def classify_claims_against_thesis(
         conviction_score=thesis.conviction_score or 50.0,
         thesis_summary=thesis.summary or "",
         claims_json=json.dumps(claims_data, indent=2),
+        memory_context=memory_context,
     )
 
     raw = call_openai_json_object(messages)
@@ -368,10 +370,23 @@ def update_thesis_from_claims(
     before_state = thesis.state
     before_score = thesis.conviction_score or 50.0
 
+    # --- Retrieve temporal memory for context ---
+    memory_context = ""
+    try:
+        from memory_retrieval import retrieve_memory
+        snapshot = retrieve_memory(
+            session, thesis_id, exclude_claim_ids=claim_ids,
+        )
+        memory_context = snapshot.to_prompt_text()
+    except Exception as e:
+        logger.warning("Memory retrieval failed (continuing without): %s", e)
+
     # --- LLM classification (or stub fallback) ---
     if use_llm:
         try:
-            llm_result = classify_claims_against_thesis(thesis, claims)
+            llm_result = classify_claims_against_thesis(
+                thesis, claims, memory_context=memory_context,
+            )
         except Exception as e:
             logger.error("LLM classification failed, falling back to stub: %s", e)
             llm_result = _build_stub_response(claims, thesis)
