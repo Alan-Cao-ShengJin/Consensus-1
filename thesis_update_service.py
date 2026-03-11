@@ -49,6 +49,9 @@ SOURCE_TIER_WEIGHTS = {
 }
 
 
+MAX_PER_DOCUMENT_DELTA = 15.0  # cap total absolute move from one document
+
+
 def compute_claim_delta(
     impact: str,
     materiality: float,
@@ -62,7 +65,7 @@ def compute_claim_delta(
     elif impact == "weakens":
         base = -6.0
     elif impact == "conflicting":
-        base = -9.0
+        base = -2.0   # mixed evidence is less punitive than outright negative
     elif impact == "neutral":
         base = 0.0
 
@@ -77,23 +80,80 @@ def compute_claim_delta(
 
 
 def apply_conviction_update(current_score: float, deltas: list[float]) -> float:
-    new_score = current_score + sum(deltas)
-    return max(0.0, min(100.0, new_score))
+    """Apply deltas with dampening near extremes and per-document cap.
+
+    Uses sigmoid-inspired dampening: as score approaches 0 or 100, the
+    effective delta shrinks, preventing instant saturation and ensuring
+    conviction can always move back on meaningful counter-evidence.
+    """
+    raw_total = sum(deltas)
+
+    # Per-document cap: limit total absolute move
+    if abs(raw_total) > MAX_PER_DOCUMENT_DELTA:
+        raw_total = MAX_PER_DOCUMENT_DELTA if raw_total > 0 else -MAX_PER_DOCUMENT_DELTA
+
+    # Dampening near extremes: reduce effective delta as score approaches bounds
+    # The "headroom" is how far we are from the boundary we're moving toward
+    if raw_total > 0:
+        headroom = 100.0 - current_score
+    elif raw_total < 0:
+        headroom = current_score
+    else:
+        return current_score
+
+    # Dampening factor: full effect in the middle, reduced at extremes
+    # At score=50, factor ~1.0; at score=90 moving up, factor ~0.4; at score=95, ~0.2
+    dampening = min(1.0, headroom / 50.0)
+    dampening = max(0.05, dampening)  # floor: always allow at least 5% of delta through
+
+    effective_delta = raw_total * dampening
+    new_score = current_score + effective_delta
+    return max(0.0, min(100.0, round(new_score, 2)))
 
 
 # ---------------------------------------------------------------------------
 # State transitions (code-controlled guardrails)
 # ---------------------------------------------------------------------------
 
+# States grouped by sentiment direction for inertia checks
+_BULLISH_STATES = {"strengthening", "stable", "achieved"}
+_BEARISH_STATES = {"weakening", "probation", "broken"}
+
+# Minimum score delta magnitude to justify a state flip between bullish/bearish
+STATE_FLIP_MIN_DELTA = 3.0
+
+
 def resolve_state(
     current_state: str,
     recommended_state: str,
     new_score: float,
+    score_delta: float = 0.0,
 ) -> ThesisState:
+    """Resolve the new thesis state with inertia against rapid flips.
+
+    Score guardrails always apply (broken <= 15, probation <= 30).
+    But for sentiment-direction flips (bullish <-> bearish), we require
+    the score delta to exceed STATE_FLIP_MIN_DELTA to avoid oscillation
+    from a single contradictory document.
+    """
+    # Hard score guardrails always take priority
     if new_score <= 15:
         return ThesisState.BROKEN
     if new_score <= 30:
         return ThesisState.PROBATION
+
+    # Determine if this is a sentiment-direction flip
+    current_is_bullish = current_state in _BULLISH_STATES or current_state == "forming"
+    current_is_bearish = current_state in _BEARISH_STATES
+    rec_is_bullish = recommended_state in _BULLISH_STATES
+    rec_is_bearish = recommended_state in _BEARISH_STATES
+
+    # Inertia: resist flips between bullish and bearish on small deltas
+    if current_is_bullish and rec_is_bearish and abs(score_delta) < STATE_FLIP_MIN_DELTA:
+        return ThesisState.STABLE  # hold steady instead of flipping
+    if current_is_bearish and rec_is_bullish and abs(score_delta) < STATE_FLIP_MIN_DELTA:
+        return ThesisState(current_state)  # stay in current bearish state
+
     if recommended_state == "broken":
         return ThesisState.BROKEN
     if recommended_state == "probation":
@@ -144,12 +204,64 @@ def classify_claims_against_thesis(
     return ThesisUpdateResponse.model_validate(raw)
 
 
+def _claim_is_relevant_to_thesis(claim: Claim, thesis: Thesis) -> bool:
+    """Basic keyword-based relevance check for stub mode.
+
+    Returns True if the claim text shares meaningful domain terms with the
+    thesis title or summary. Generic business/financial terms don't count.
+    This prevents unrelated claims (e.g., retail competition) from affecting
+    a thesis about cloud computing.
+
+    Deliberately generous: defaults to relevant unless clearly unrelated.
+    """
+    import re
+
+    def _tokenize(text: str) -> set[str]:
+        return {w.lower() for w in re.findall(r"[a-zA-Z]+", text) if len(w) > 3}
+
+    # Generic financial/business terms that don't indicate domain relevance
+    generic_terms = {
+        "this", "that", "with", "from", "will", "have", "been", "their",
+        "than", "more", "also", "about", "into", "over", "said", "were",
+        "which", "some", "year", "company", "quarter", "billion", "million",
+        "percent", "growth", "revenue", "increased", "decreased", "reported",
+        "expects", "expected", "strong", "analyst", "investors", "shares",
+        "market", "price", "stock", "fiscal", "annual", "quarterly",
+        "spending", "demand", "business", "operating", "income", "margin",
+    }
+
+    thesis_text = f"{thesis.title} {thesis.summary or ''} {thesis.company_ticker or ''}"
+    thesis_tokens = _tokenize(thesis_text) - generic_terms
+    claim_tokens = _tokenize(claim.claim_text_normalized) - generic_terms
+
+    if not thesis_tokens:
+        return True  # can't determine thesis domain, assume relevant
+
+    if not claim_tokens:
+        return True  # generic claim, let it through
+
+    overlap = thesis_tokens & claim_tokens
+    # Require at least 1 domain-specific shared term
+    return len(overlap) >= 1
+
+
 def _build_stub_response(
     claims: list[Claim],
+    thesis: Thesis | None = None,
 ) -> ThesisUpdateResponse:
     """Deterministic fallback when use_llm=False."""
     assessments = []
     for c in claims:
+        # Relevance gating: if thesis provided and claim is not relevant, mark neutral
+        if thesis and not _claim_is_relevant_to_thesis(c, thesis):
+            assessments.append(ClaimAssessment(
+                claim_id=c.id,
+                impact="neutral",
+                rationale=f"Stub: claim not relevant to thesis '{thesis.title}'",
+                materiality=0.0,
+            ))
+            continue
+
         if c.direction.value == "positive":
             impact = "supports"
         elif c.direction.value == "negative":
@@ -166,9 +278,10 @@ def _build_stub_response(
             materiality=c.strength or 0.5,
         ))
 
-    # Simple recommendation based on majority impact
-    support_count = sum(1 for a in assessments if a.impact == "supports")
-    weaken_count = sum(1 for a in assessments if a.impact in ("weakens", "conflicting"))
+    # Simple recommendation based on majority impact (only relevant claims)
+    relevant = [a for a in assessments if a.materiality > 0]
+    support_count = sum(1 for a in relevant if a.impact == "supports")
+    weaken_count = sum(1 for a in relevant if a.impact in ("weakens", "conflicting"))
     if support_count > weaken_count:
         rec = "strengthening"
     elif weaken_count > support_count:
@@ -261,9 +374,9 @@ def update_thesis_from_claims(
             llm_result = classify_claims_against_thesis(thesis, claims)
         except Exception as e:
             logger.error("LLM classification failed, falling back to stub: %s", e)
-            llm_result = _build_stub_response(claims)
+            llm_result = _build_stub_response(claims, thesis)
     else:
-        llm_result = _build_stub_response(claims)
+        llm_result = _build_stub_response(claims, thesis)
 
     # --- Compute conviction deltas (code decides, not LLM) ---
     deltas: list[float] = []
@@ -304,10 +417,12 @@ def update_thesis_from_claims(
         )
 
     new_score = apply_conviction_update(before_score, deltas)
+    score_delta = new_score - before_score
     new_state = resolve_state(
         before_state.value,
         llm_result.overall_state_recommendation,
         new_score,
+        score_delta=score_delta,
     )
 
     # --- Apply DB updates ---

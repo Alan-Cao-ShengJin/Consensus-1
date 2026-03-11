@@ -1,0 +1,23 @@
+EU Hits Meta With Record $1.8 Billion Fine Over Data Privacy Violations, Orders Ad Targeting Changes
+
+By Emilia Perez | March 4, 2025 | Reuters
+
+BRUSSELS — The European Commission imposed a record 1.7 billion euro ($1.8 billion) fine on Meta Platforms on Tuesday and ordered the company to fundamentally change how it uses personal data for advertising in the European Union.
+
+The ruling, issued under the Digital Markets Act, found that Meta violated rules around "self-preferencing" by combining user data across Facebook, Instagram, and WhatsApp for advertising purposes without obtaining proper separate consent from users.
+
+Key requirements imposed on Meta:
+- Separate consent required for cross-platform data sharing within 6 months
+- Users must be given a genuine "free choice" option with no degradation of service
+- Third-party advertisers must receive equal access to advertising targeting capabilities
+- Annual compliance audits by an independent monitor
+
+Meta said it would appeal the decision, calling it "legally flawed and economically harmful to European businesses who rely on personalized advertising."
+
+The financial impact extends beyond the fine. Analysts estimate that if Meta is forced to unbundle its data pools across platforms in Europe, ad targeting effectiveness could decline by 15-25%, potentially reducing European revenue by $3-5 billion annually. Europe represented approximately 24% of Meta's total revenue in 2024.
+
+"This is the biggest regulatory risk event for Meta's advertising model we've seen," said Brian Wieser, media analyst at Madison and Wall. "If other jurisdictions follow the EU's approach, the impact could be much larger."
+
+However, Meta has historically adapted well to privacy restrictions. Following Apple's App Tracking Transparency changes in 2021, Meta invested heavily in on-device AI models that have largely restored ad performance. Some analysts believe Meta can similarly adapt to EU requirements.
+
+Meta shares fell 3.4% on the news.

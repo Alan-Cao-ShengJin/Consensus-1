@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from models import (
     Base, Company, Document, Claim, Thesis,
-    ThesisClaimLink, ThesisStateHistory,
+    ThesisClaimLink, ThesisStateHistory, ClaimCompanyLink,
     SourceType, SourceTier, ClaimType, EconomicChannel,
     Direction, NoveltyType, ThesisState,
 )
@@ -49,7 +49,8 @@ def _seed_thesis(session, state=ThesisState.FORMING, score=50.0):
 
 def _seed_claim(session, doc, direction=Direction.POSITIVE, strength=0.8,
                 novelty=NoveltyType.NEW, confidence=0.85,
-                claim_type=ClaimType.DEMAND, text="Revenue grew 93% YoY"):
+                claim_type=ClaimType.DEMAND,
+                text="AI infrastructure spending drove 93% revenue growth"):
     """Create a claim attached to a document."""
     claim = Claim(
         document_id=doc.id,
@@ -113,9 +114,30 @@ class TestConvictionScoring:
         rep_delta = compute_claim_delta("supports", 0.8, "repetitive", 0.85, 1.0)
         assert abs(rep_delta) < abs(new_delta)
 
-    def test_apply_conviction_clamped(self):
-        assert apply_conviction_update(95.0, [10.0, 10.0]) == 100.0
-        assert apply_conviction_update(5.0, [-10.0, -10.0]) == 0.0
+    def test_apply_conviction_dampened_at_extremes(self):
+        # At 95, moving up is dampened (headroom=5, dampening=5/50=0.1)
+        result_high = apply_conviction_update(95.0, [10.0, 10.0])
+        assert result_high > 95.0  # still moves up
+        assert result_high < 100.0  # but dampened, doesn't reach 100
+        # At 5, moving down is dampened
+        result_low = apply_conviction_update(5.0, [-10.0, -10.0])
+        assert result_low < 5.0  # still moves down
+        assert result_low > 0.0  # but dampened, doesn't reach 0
+
+    def test_apply_conviction_per_doc_cap(self):
+        # 20 deltas of +5 each = 100 raw, but capped at MAX_PER_DOCUMENT_DELTA (15)
+        result = apply_conviction_update(50.0, [5.0] * 20)
+        assert result <= 65.0  # capped at 15 * dampening(1.0) = 15 max
+
+    def test_conflicting_less_punitive_than_weakens(self):
+        weak = compute_claim_delta("weakens", 0.8, "new", 0.85, 1.0)
+        conf = compute_claim_delta("conflicting", 0.8, "new", 0.85, 1.0)
+        assert abs(conf) < abs(weak)  # conflicting is now less punitive
+
+    def test_high_conviction_can_still_decline(self):
+        # Even at 90, a strong negative signal should push score down
+        result = apply_conviction_update(90.0, [-10.0])
+        assert result < 90.0
 
 
 class TestResolveState:
@@ -127,13 +149,27 @@ class TestResolveState:
         assert resolve_state("stable", "stable", 25.0) == ThesisState.PROBATION
 
     def test_strengthening(self):
-        assert resolve_state("stable", "strengthening", 60.0) == ThesisState.STRENGTHENING
+        assert resolve_state("stable", "strengthening", 60.0, score_delta=5.0) == ThesisState.STRENGTHENING
 
     def test_weakening(self):
-        assert resolve_state("stable", "weakening", 40.0) == ThesisState.WEAKENING
+        assert resolve_state("stable", "weakening", 40.0, score_delta=-5.0) == ThesisState.WEAKENING
 
     def test_stable_default(self):
         assert resolve_state("stable", "stable", 50.0) == ThesisState.STABLE
+
+    def test_inertia_resists_small_flip_bullish_to_bearish(self):
+        # Small delta should NOT flip from strengthening to weakening
+        result = resolve_state("strengthening", "weakening", 55.0, score_delta=-2.0)
+        assert result == ThesisState.STABLE  # holds steady
+
+    def test_inertia_allows_large_flip(self):
+        # Large delta SHOULD allow the flip
+        result = resolve_state("strengthening", "weakening", 45.0, score_delta=-10.0)
+        assert result == ThesisState.WEAKENING
+
+    def test_inertia_resists_small_flip_bearish_to_bullish(self):
+        result = resolve_state("weakening", "strengthening", 48.0, score_delta=2.0)
+        assert result == ThesisState.WEAKENING  # stays in current bearish state
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +183,7 @@ class TestThesisUpdateStub:
         doc = _seed_document(session)
         c1 = _seed_claim(session, doc, direction=Direction.POSITIVE, strength=0.9)
         c2 = _seed_claim(session, doc, direction=Direction.POSITIVE, strength=0.8,
-                         text="Guidance raised above consensus")
+                         text="AI infrastructure guidance raised above consensus")
 
         result = update_thesis_from_claims(
             session, thesis.id, [c1.id, c2.id], use_llm=False,
@@ -161,7 +197,7 @@ class TestThesisUpdateStub:
         doc = _seed_document(session)
         c1 = _seed_claim(session, doc, direction=Direction.NEGATIVE, strength=0.9)
         c2 = _seed_claim(session, doc, direction=Direction.NEGATIVE, strength=0.85,
-                         text="Margins compressed significantly")
+                         text="AI infrastructure margins compressed significantly")
 
         result = update_thesis_from_claims(
             session, thesis.id, [c1.id, c2.id], use_llm=False,
@@ -174,7 +210,7 @@ class TestThesisUpdateStub:
         doc = _seed_document(session)
         c1 = _seed_claim(session, doc, direction=Direction.POSITIVE, strength=0.8)
         c2 = _seed_claim(session, doc, direction=Direction.MIXED, strength=0.7,
-                         text="Mixed signals on demand outlook")
+                         text="Mixed signals on AI infrastructure demand outlook")
 
         result = update_thesis_from_claims(
             session, thesis.id, [c1.id, c2.id], use_llm=False,
@@ -203,7 +239,7 @@ class TestThesisUpdateStub:
         doc = _seed_document(session)
         c1 = _seed_claim(session, doc, direction=Direction.NEGATIVE, strength=0.95)
         c2 = _seed_claim(session, doc, direction=Direction.NEGATIVE, strength=0.9,
-                         text="Company lost key contract")
+                         text="NVIDIA lost key AI infrastructure contract")
 
         result = update_thesis_from_claims(
             session, thesis.id, [c1.id, c2.id], use_llm=False,
@@ -234,7 +270,7 @@ class TestThesisUpdateStub:
         doc = _seed_document(session)
         c1 = _seed_claim(session, doc, direction=Direction.POSITIVE)
         c2 = _seed_claim(session, doc, direction=Direction.NEGATIVE,
-                         text="Competition intensifying")
+                         text="AI infrastructure competition intensifying from AMD")
 
         update_thesis_from_claims(session, thesis.id, [c1.id, c2.id], use_llm=False)
 
@@ -312,3 +348,157 @@ class TestThesisUpdateWithLLM:
 
         result = update_thesis_from_claims(session, thesis.id, [c1.id], use_llm=True)
         assert result["after_state"] in ("broken", "probation")
+
+
+# ---------------------------------------------------------------------------
+# Tests for novelty classification (Fix 1)
+# ---------------------------------------------------------------------------
+
+class TestNoveltyClassification:
+
+    def test_repeated_claim_becomes_repetitive(self, session):
+        """A second doc with the same claim text should be marked repetitive."""
+        from novelty_classifier import classify_novelty
+
+        company = Company(ticker="NVDA", name="NVIDIA")
+        session.add(company)
+        session.flush()
+
+        doc1 = _seed_document(session)
+        c1 = _seed_claim(session, doc1, text="Revenue grew 93% year-over-year to $18.4 billion")
+        session.add(ClaimCompanyLink(claim_id=c1.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        doc2 = _seed_document(session)
+        c2 = _seed_claim(session, doc2, text="Revenue grew 93% year-over-year to $18.4 billion")
+        session.add(ClaimCompanyLink(claim_id=c2.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        results = classify_novelty(session, [c2], company_ticker="NVDA")
+        assert len(results) == 1
+        assert results[0][1] == NoveltyType.REPETITIVE
+
+    def test_new_claim_stays_new(self, session):
+        """A genuinely different claim should remain new."""
+        from novelty_classifier import classify_novelty
+
+        company = Company(ticker="NVDA", name="NVIDIA")
+        session.add(company)
+        session.flush()
+
+        doc1 = _seed_document(session)
+        c1 = _seed_claim(session, doc1, text="Revenue grew 93% year-over-year")
+        session.add(ClaimCompanyLink(claim_id=c1.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        doc2 = _seed_document(session)
+        c2 = _seed_claim(session, doc2, text="Cybertruck production ramp delayed to Q3")
+        session.add(ClaimCompanyLink(claim_id=c2.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        results = classify_novelty(session, [c2], company_ticker="NVDA")
+        assert results[0][1] == NoveltyType.NEW
+
+    def test_conflicting_direction_detected(self, session):
+        """Similar text but opposite direction should be classified as conflicting."""
+        from novelty_classifier import classify_novelty
+
+        company = Company(ticker="NVDA", name="NVIDIA")
+        session.add(company)
+        session.flush()
+
+        doc1 = _seed_document(session)
+        c1 = _seed_claim(session, doc1, direction=Direction.POSITIVE,
+                         text="Data center revenue growth remained strong at 40%")
+        session.add(ClaimCompanyLink(claim_id=c1.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        doc2 = _seed_document(session)
+        c2 = _seed_claim(session, doc2, direction=Direction.NEGATIVE,
+                         text="Data center revenue growth slowed to 30%")
+        session.add(ClaimCompanyLink(claim_id=c2.id, company_ticker="NVDA", relation_type="affects"))
+        session.flush()
+
+        results = classify_novelty(session, [c2], company_ticker="NVDA")
+        # Should be either confirming or conflicting (same topic, different direction)
+        assert results[0][1] in (NoveltyType.CONFIRMING, NoveltyType.CONFLICTING)
+
+
+# ---------------------------------------------------------------------------
+# Tests for relevance gating (Fix 5)
+# ---------------------------------------------------------------------------
+
+class TestRelevanceGating:
+
+    def test_irrelevant_claim_does_not_move_score(self, session):
+        """A retail fashion claim should not affect an AI/GPU thesis."""
+        thesis = _seed_thesis(session, score=50.0)
+        thesis.title = "AI Infrastructure Capex Thesis"
+        thesis.summary = "NVIDIA benefits from AI infrastructure spending on GPUs."
+        session.flush()
+
+        doc = _seed_document(session)
+        # Claim about fast fashion retail that has NO keyword overlap with AI/GPU thesis
+        c1 = _seed_claim(session, doc, direction=Direction.NEGATIVE, strength=0.9,
+                         text="Zara launched a new clothing line targeting teen fashion buyers")
+
+        result = update_thesis_from_claims(
+            session, thesis.id, [c1.id], use_llm=False,
+        )
+
+        # The irrelevant claim should have zero impact
+        assert abs(result["after_score"] - result["before_score"]) < 0.01
+
+    def test_relevant_claim_does_move_score(self, session):
+        """A claim about AI infrastructure should affect the AI thesis."""
+        thesis = _seed_thesis(session, score=50.0)
+        thesis.title = "AI Infrastructure Capex Thesis"
+        thesis.summary = "NVIDIA benefits from AI infrastructure spending on GPUs."
+        session.flush()
+
+        doc = _seed_document(session)
+        c1 = _seed_claim(session, doc, direction=Direction.POSITIVE, strength=0.9,
+                         text="AI infrastructure spending accelerated driven by GPU demand")
+
+        result = update_thesis_from_claims(
+            session, thesis.id, [c1.id], use_llm=False,
+        )
+
+        assert result["after_score"] > result["before_score"]
+
+
+# ---------------------------------------------------------------------------
+# Tests for fuzzy enum mapping (Fix 6)
+# ---------------------------------------------------------------------------
+
+class TestFuzzyEnumMapping:
+
+    def test_economic_channel_in_claim_type_is_fixed(self):
+        """If LLM puts 'revenue' in claim_type, it should be mapped to 'demand'."""
+        from claim_extractor import _normalize_enums
+
+        raw = {"claim_type": "revenue", "economic_channel": "revenue"}
+        fixed = _normalize_enums(raw)
+        assert fixed["claim_type"] == "demand"
+
+    def test_sentiment_mapped_to_demand(self):
+        from claim_extractor import _normalize_enums
+
+        raw = {"claim_type": "sentiment", "economic_channel": "sentiment"}
+        fixed = _normalize_enums(raw)
+        assert fixed["claim_type"] == "demand"
+
+    def test_valid_enums_unchanged(self):
+        from claim_extractor import _normalize_enums
+
+        raw = {"claim_type": "demand", "economic_channel": "revenue"}
+        fixed = _normalize_enums(raw)
+        assert fixed["claim_type"] == "demand"
+        assert fixed["economic_channel"] == "revenue"
+
+    def test_claim_type_in_economic_channel_is_fixed(self):
+        from claim_extractor import _normalize_enums
+
+        raw = {"claim_type": "demand", "economic_channel": "competition"}
+        fixed = _normalize_enums(raw)
+        assert fixed["economic_channel"] == "revenue"

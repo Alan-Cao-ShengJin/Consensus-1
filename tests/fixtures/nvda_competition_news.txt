@@ -1,0 +1,17 @@
+AMD's MI350 AI Chip Benchmarks Show Competitive Performance Against NVIDIA H200
+
+By David Park | February 14, 2025 | The Information
+
+Advanced Micro Devices (AMD) released third-party benchmark results for its upcoming MI350 AI accelerator that show it matching or exceeding NVIDIA's H200 GPU in several key inference workloads, potentially disrupting NVIDIA's dominance in the AI chip market.
+
+According to benchmarks conducted by MLPerf, the MI350 achieved 94% of the H200's performance in large language model training tasks while consuming 22% less power. In inference workloads specifically — the fastest-growing segment of AI computing — the MI350 outperformed the H200 by 8% on throughput per watt.
+
+"This is a meaningful competitive development," said Stacy Rasgon, analyst at Bernstein. "NVIDIA has had the AI training market largely to itself, but the inference market is more contestable, and AMD is making real progress."
+
+AMD also announced that Microsoft Azure, Google Cloud, and Oracle Cloud have committed to offering MI350 instances, giving it broad cloud availability. Meta Platforms has agreed to deploy MI350 chips for a portion of its inference workloads beginning Q3 2025.
+
+NVIDIA responded by noting that its Blackwell B200 architecture, expected in volume production by mid-2025, offers 2.5x the inference performance of the H200. "Customers should evaluate the full platform, not just chip-level benchmarks," an NVIDIA spokesperson said.
+
+However, some industry observers note that Blackwell supply remains constrained and that AMD could gain market share during the gap period. NVIDIA's data-center revenue concentration (78% of total) makes it particularly sensitive to any share loss in this segment.
+
+AMD shares rose 7% on the news. NVIDIA shares declined 2.3%.

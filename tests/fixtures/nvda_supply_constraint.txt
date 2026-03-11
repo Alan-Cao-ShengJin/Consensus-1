@@ -1,0 +1,19 @@
+NVIDIA Blackwell Supply Constraints Worse Than Expected, Pushing Deliveries to Late 2025
+
+By Kevin Lam | March 6, 2025 | Semiconductor Engineering
+
+NVIDIA's next-generation Blackwell B200 GPU is facing more severe supply constraints than previously communicated, according to multiple industry sources familiar with TSMC's production schedule.
+
+Initial Blackwell volume production, originally targeted for Q2 2025, has been pushed back by approximately 2-3 months due to yield issues with TSMC's CoWoS-L advanced packaging technology. Sources indicate current yields are running at 50-60%, below the 70%+ target needed for volume production.
+
+The delay means that several hyperscale customers including Microsoft, Google, and Amazon will receive their initial Blackwell orders later than planned, potentially impacting their AI infrastructure deployment timelines for 2025.
+
+"Supply constraints create a double-edged sword for NVIDIA," said Chris Caso, analyst at Wolfe Research. "On one hand, it limits near-term revenue upside. On the other hand, it means there's a massive pent-up demand backlog that extends revenue visibility well into 2026."
+
+NVIDIA has not officially confirmed the delay but acknowledged during its Q4 earnings call that "demand significantly exceeds supply" for Blackwell. The company reportedly has over $30 billion in Blackwell orders that have not yet been fulfilled.
+
+Some customers are reportedly extending their purchases of the current-generation H200 GPU to bridge the gap, which could help maintain NVIDIA's data-center revenue in the interim but at potentially lower margins than Blackwell.
+
+TSMC is investing $2.8 billion to expand CoWoS packaging capacity at its new Kumamoto, Japan facility, but the additional capacity is not expected to come online until early 2026.
+
+NVIDIA shares fell 1.5% on the report. AMD shares rose 2.8% as investors bet that supply constraints could accelerate customer interest in the MI350 as an alternative.

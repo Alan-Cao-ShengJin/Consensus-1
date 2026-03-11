@@ -6,11 +6,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from sqlalchemy import select
+
 from document_loader import LoadedDocument, load_document
 from document_parser import parse_document
 from claim_extractor import ClaimExtractorBase, StubClaimExtractor, LLMClaimExtractor
 from ingest import ingest_document_with_claims
-from models import SourceType
+from novelty_classifier import classify_novelty
+from models import Claim, SourceType
 
 
 @dataclass
@@ -81,6 +84,14 @@ def run_ingestion(
 
     # 5. Ingest
     doc_id = ingest_document_with_claims(session, doc_payload, claims, thesis_id=thesis_id)
+
+    # 5b. Post-extraction novelty classification against existing DB claims
+    db_claims = session.scalars(
+        select(Claim).where(Claim.document_id == doc_id)
+    ).all()
+    if db_claims:
+        classify_novelty(session, db_claims, company_ticker=ticker)
+        session.flush()
 
     # 6. Collect summary
     all_tickers: set[str] = set()

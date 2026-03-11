@@ -1,0 +1,19 @@
+Apple Issues Rare Revenue Warning Citing Accelerating China Weakness
+
+By Tom Warren | March 7, 2025 | Financial Times
+
+Apple Inc. issued a rare revenue warning on Friday, saying it now expects fiscal Q2 2025 revenue to come in at $87-89 billion, below the prior guidance range of $92-96 billion and well below the Wall Street consensus of $94.2 billion.
+
+The company attributed the shortfall primarily to "significantly weaker than expected" demand in Greater China, where iPhone shipments declined an estimated 25% year-over-year in the January-March quarter, according to data from Counterpoint Research.
+
+"Competitive dynamics in China have shifted materially," Apple said in a filing. "Local competitors have introduced AI-enabled smartphones at significantly lower price points, and consumer sentiment has been impacted by broader economic conditions including weak real estate markets and rising youth unemployment."
+
+Huawei's Mate 70 Pro, powered by the domestically produced Kirin 9100 chip, has been outselling iPhone 16 in China by a 3:1 ratio since its December launch. Xiaomi and Vivo have also gained share with AI-integrated devices priced 40-60% below comparable iPhones.
+
+The warning also cited delayed rollout of Apple Intelligence features in China due to regulatory requirements around AI content generation, putting Apple at a feature disadvantage in the market.
+
+Apple shares fell 5.2% in after-hours trading. The warning also dragged down shares of Apple suppliers including TSMC (-2.1%), Foxconn (-3.8%), and Qualcomm (-1.5%).
+
+"This is the most significant China deterioration we've seen from Apple," said Samik Chatterjee, analyst at JPMorgan. "The question is whether this is cyclical or structural. If Huawei's chip capability continues to improve, Apple's China premium could permanently erode."
+
+JPMorgan cut its price target from $245 to $215 while maintaining a Neutral rating.

@@ -1,0 +1,32 @@
+Tesla, Inc. Form 10-Q for the Quarter Ended March 31, 2025
+
+PART I — FINANCIAL INFORMATION
+
+Item 1. Financial Statements
+
+Selected Financial Data (Unaudited):
+- Total revenue: $21.3 billion (down 9% year-over-year)
+- Automotive revenue: $17.4 billion (down 13% year-over-year)
+- Energy generation and storage revenue: $2.5 billion (up 67% year-over-year)
+- Automotive gross margin: 16.3% (down from 19.4% a year ago)
+- GAAP net income: $1.1 billion (down 55% year-over-year)
+- Free cash flow: $0.4 billion
+
+Item 2. Management's Discussion and Analysis
+
+Automotive Segment:
+Vehicle deliveries decreased 13% to 386,810 units compared to Q1 2024. Average selling price declined approximately 6% due to pricing actions taken across all models to maintain demand in an increasingly competitive EV market. We experienced particular pricing pressure in China, where BYD and other domestic manufacturers continued to gain market share.
+
+Model Y refresh ("Juniper") began initial deliveries in late March, and we expect a production ramp in Q2 that will reverse the delivery decline trend.
+
+Energy Segment:
+Energy storage deployments grew to 10.4 GWh, a record quarter, driven by Megapack demand from utility customers. Energy margins expanded to 24.6%, up from 18.2% a year ago. We view energy as a significant long-term growth driver that is currently underappreciated by the market.
+
+Regulatory Credits:
+Regulatory credit revenue was $0.6 billion, down from $0.9 billion in Q1 2024, as more automakers achieve compliance with emission standards independently.
+
+Risk Factors:
+We face risks from potential changes to EV tax credits and subsidies under current U.S. administration policy. Additionally, our Full Self-Driving (FSD) technology faces increasing regulatory scrutiny in multiple jurisdictions following several high-profile incidents.
+
+Liquidity:
+Cash and short-term investments totaled $26.9 billion as of March 31, 2025.

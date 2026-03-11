@@ -1,0 +1,15 @@
+Google's AI Overviews Now Generate 40% of Search Results, Boosting Ad Revenue Per Query
+
+By Rachel Kim | February 20, 2025 | The Verge
+
+Google's AI-powered search overviews — the AI-generated summaries that appear at the top of search results — are now triggering on approximately 40% of all search queries in the United States, up from 15% when the feature launched in May 2024.
+
+Contrary to early fears that AI summaries would cannibalize click-through rates and advertising revenue, Google reported that queries with AI overviews actually generate 8-12% higher ad revenue per query than traditional results. Users spend more time on the search results page and click on more diverse links, increasing ad impression opportunities.
+
+"The AI overview acts as a discovery mechanism," said Philipp Schindler, Google's chief business officer. "Users who see an AI overview conduct 15% more follow-up queries on average, which creates a virtuous cycle for engagement and ad revenue."
+
+Alphabet's search advertising revenue grew 13% year-over-year in Q4 2024 to $54.8 billion, accelerating from 11% growth in Q3. The company attributed the acceleration partly to AI overview monetization improvements.
+
+Not all analysts are convinced the trend will continue. "Google is benefiting now because AI overviews are novel and users are exploring them," wrote Mark Mahaney at Evercore ISI. "The real test comes when novelty wears off and users learn to extract what they need from the overview without clicking further."
+
+Google also noted that its Gemini model, which powers AI overviews, has reduced compute costs per query by 60% since launch through optimization and custom TPU v5p deployment, improving the margins of AI-powered search.

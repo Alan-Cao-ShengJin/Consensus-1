@@ -1,0 +1,30 @@
+UNITED STATES SECURITIES AND EXCHANGE COMMISSION
+Washington, D.C. 20549
+
+FORM 8-K
+CURRENT REPORT
+
+Pursuant to Section 13 or 15(d) of the Securities Exchange Act of 1934
+
+Date of Report: March 3, 2025
+
+TESLA, INC.
+
+Item 8.01 Other Events
+
+Tesla, Inc. today announced that it has received conditional approval from the California Public Utilities Commission (CPUC) to operate its autonomous ride-hailing service in select areas of the San Francisco Bay Area and Los Angeles metropolitan area, beginning June 1, 2025.
+
+The approval covers operation of Tesla vehicles equipped with Hardware 4.0 and Full Self-Driving (FSD) software version 13.2 or later. Operations will initially be limited to predefined geofenced zones during daylight hours (6:00 AM to 10:00 PM) with a maximum of 500 vehicles per market.
+
+Key conditions of the approval include:
+- Mandatory human safety operator present in the vehicle for the first 6 months
+- Real-time telemetry reporting to CPUC
+- Minimum $5 million insurance coverage per incident
+- Quarterly safety audits by independent third parties
+- Immediate suspension authority for CPUC in case of safety concerns
+
+Tesla CEO Elon Musk commented: "This is a historic milestone. We expect to expand to 10 additional states by end of 2025 and remove the safety operator requirement within 12 months based on our safety data."
+
+Industry analysts note that the approval, while significant, is more limited than Waymo's existing permits which allow fully driverless operation in San Francisco. The requirement for a human safety operator substantially changes the unit economics of the service.
+
+Morgan Stanley analyst Adam Jonas maintained his $350 price target, noting: "This is a positive development but the near-term revenue impact is minimal. The real value unlocks when and if Tesla can remove the safety driver."

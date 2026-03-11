@@ -1,0 +1,19 @@
+Microsoft Azure AI Revenue Hits $15B Annualized Run Rate, Copilot Adoption Accelerates
+
+By Katherine Ross | March 1, 2025 | CNBC
+
+Microsoft disclosed for the first time that its Azure AI services have reached a $15 billion annualized revenue run rate, making it one of the fastest-growing product lines in the company's history. The figure was shared by CEO Satya Nadella at an investor event in Redmond.
+
+"Azure AI revenue has more than doubled in the past 12 months," Nadella said. "Every major enterprise is now running AI workloads, and Azure is their platform of choice." The company reported that Azure OpenAI Service is now used by over 100,000 organizations globally.
+
+Microsoft also shared new metrics on Copilot for Microsoft 365:
+- Paid Copilot seats surpassed 5 million, up from 1.3 million six months ago
+- Average revenue per Copilot seat is $30/month
+- Enterprise customers report 25-30% productivity gains in document creation and meeting summarization
+- Retention rates exceed 95% after the first 90 days
+
+However, some analysts noted that Azure's overall growth rate of 31% (including 13 points from AI) suggests the non-AI portion of Azure is growing at only 18%, a deceleration from 22% a year ago. "The AI narrative is real, but we shouldn't ignore that traditional cloud growth is slowing," said Brent Thill at Jefferies.
+
+Microsoft's capital expenditure of $22.6 billion for the quarter also drew attention, with some investors questioning the sustainability of returns. CFO Amy Hood addressed this at the event: "The payback period on AI infrastructure is shorter than traditional cloud because the revenue per compute hour is significantly higher."
+
+Microsoft shares were up 1.8% following the disclosures.

@@ -1,0 +1,25 @@
+EQUITY RESEARCH — Meta Platforms, Inc. (META)
+Goldman Sachs — Initiation of Coverage
+Rating: BUY | Price Target: $720 (from N/A)
+Date: February 18, 2025
+
+INVESTMENT THESIS:
+We initiate coverage of Meta Platforms with a Buy rating and $720 price target, representing 28% upside from current levels. Our thesis centers on three pillars:
+
+1. AI-Driven Advertising Efficiency: Meta's Advantage+ AI advertising platform has driven a measurable improvement in ad ROAS (return on ad spend) for advertisers. We estimate AI-powered ad optimization contributed ~3 percentage points of the 24% revenue growth in Q4 2024. This is structural and sustainable.
+
+2. Reels Monetization Inflection: Instagram Reels is now monetizing at approximately 75% of feed ad rates, up from 50% a year ago. We model Reels reaching parity by Q3 2025, which represents a $4-6 billion incremental revenue opportunity.
+
+3. Reality Labs Losses Narrowing: While still significant at $4.6 billion per quarter, we see a path to loss reduction as Quest 3 gains consumer traction and enterprise AR/VR applications begin to scale. We model Reality Labs losses declining to $3.2 billion per quarter by end of 2025.
+
+KEY RISKS:
+- Regulatory risk from EU Digital Markets Act enforcement could limit data usage for ad targeting
+- TikTok competition remains intense despite potential U.S. ban resolution
+- Reality Labs could prove to be a capital destruction engine if consumer VR adoption stalls
+- Apple's App Tracking Transparency continues to create headwinds, though Meta has largely adapted
+
+VALUATION:
+We value META at 25x our 2026E EPS of $28.80, a premium to the S&P 500 but deserved given the AI-driven margin expansion story. Our DCF yields a similar $710-730 range.
+
+Revenue estimates: 2025E $180.2B (+17%), 2026E $206.4B (+14.5%)
+EPS estimates: 2025E $24.20, 2026E $28.80

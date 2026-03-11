@@ -1,0 +1,24 @@
+FOR IMMEDIATE RELEASE
+
+Microsoft Reports Record Second Quarter Revenue of $69.6 Billion
+
+REDMOND, Wash. — January 29, 2025 — Microsoft Corp. today announced the following results for the quarter ended December 31, 2024:
+
+- Revenue was $69.6 billion and increased 12% year-over-year
+- Operating income was $31.7 billion and increased 17%
+- Net income was $24.1 billion and increased 10%
+- Diluted earnings per share was $3.23 and increased 10%
+
+"We are innovating across our tech stack to help every customer and partner transform with AI," said Satya Nadella, chairman and chief executive officer of Microsoft. "From our AI platform to our AI-first applications, we are picking up new customers and winning new workloads across every layer."
+
+Intelligent Cloud revenue was $25.5 billion and increased 19%. Azure and other cloud services revenue grew 31%, including 13 percentage points of growth from AI services. Azure AI customers now exceed 60,000.
+
+Productivity and Business Processes revenue was $29.4 billion and increased 14%. Microsoft 365 Commercial cloud revenue grew 16%, with Copilot for Microsoft 365 now used by more than 70% of Fortune 500 companies.
+
+More Personal Computing revenue was $14.7 billion and increased 2%. Windows OEM revenue declined 3% as PC market recovery remained sluggish. Xbox content and services revenue grew 61% primarily from the Activision Blizzard acquisition.
+
+Capital expenditure was $22.6 billion for the quarter, with the majority directed toward cloud and AI infrastructure. Microsoft expects capex to remain elevated through fiscal 2026.
+
+Free cash flow was $18.9 billion, down 11% year-over-year primarily due to increased capital investments.
+
+Microsoft returned $9.7 billion to shareholders in the form of share repurchases and dividends.

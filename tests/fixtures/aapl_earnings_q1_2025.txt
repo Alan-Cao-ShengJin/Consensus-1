@@ -1,0 +1,26 @@
+Apple Inc. Q1 Fiscal 2025 Earnings Call Transcript
+
+Operator: Good afternoon. Welcome to Apple's Q1 Fiscal Year 2025 Earnings Conference Call.
+
+Tim Cook, CEO:
+
+Thank you. We are pleased to report record first-quarter revenue of $124.3 billion, up 4% year-over-year. iPhone revenue was $69.1 billion, essentially flat as the smartphone market remained saturated in key markets.
+
+Services revenue reached a new all-time high of $23.1 billion, growing 14% year-over-year, driven by advertising, App Store, and Apple TV+. This is our fastest-growing segment and carries significantly higher margins than hardware.
+
+We are seeing strong traction with Apple Intelligence, our on-device AI platform. However, the rollout has been slower than expected in key international markets due to regulatory requirements in the EU and China.
+
+Greater China revenue declined 11% year-over-year to $20.8 billion, marking the third consecutive quarter of declines in the region. Competition from Huawei's Mate 70 series with Kirin 9100 chip has intensified significantly.
+
+Luca Maestri, CFO:
+
+Gross margin was 46.9%, up from 45.9% a year ago, driven by favorable Services mix. We returned $25 billion to shareholders through dividends and buybacks.
+
+Operating expenses were $15.4 billion, up 8% year-over-year, largely driven by AI and machine learning R&D investments. We expect OpEx to continue rising as we invest in Apple Intelligence.
+
+Inventory days were 8, consistent with our lean inventory management approach. We see no signs of channel stuffing or excess inventory.
+
+Q&A highlights:
+- Analyst from JPMorgan asked about Vision Pro trajectory — Cook noted "early innings" but did not provide unit sales figures
+- Goldman Sachs asked about AI monetization timeline — management indicated meaningful revenue contribution expected by fiscal 2026
+- Morgan Stanley asked about China strategy — Cook emphasized long-term commitment but acknowledged competitive headwinds

@@ -94,6 +94,59 @@ class StubClaimExtractor(ClaimExtractorBase):
         return claims
 
 
+# ---------------------------------------------------------------------------
+# Fuzzy enum mapping: salvage claims when LLM swaps claim_type / economic_channel
+# ---------------------------------------------------------------------------
+
+_ECONOMIC_CHANNEL_TO_CLAIM_TYPE = {
+    "revenue": "demand",
+    "gross_margin": "margin",
+    "opex": "margin",
+    "earnings": "margin",
+    "multiple": "pricing",
+    "sentiment": "demand",
+    "liquidity": "capital_allocation",
+    "timing": "guidance",
+}
+
+_CLAIM_TYPE_TO_ECONOMIC_CHANNEL = {
+    "demand": "revenue",
+    "pricing": "multiple",
+    "margin": "gross_margin",
+    "capacity": "revenue",
+    "guidance": "earnings",
+    "regulation": "sentiment",
+    "competition": "revenue",
+    "capital_allocation": "liquidity",
+    "inventory": "revenue",
+    "customer_behavior": "revenue",
+    "supply_chain": "revenue",
+}
+
+_VALID_CLAIM_TYPES = {ct.value for ct in ClaimType}
+_VALID_ECONOMIC_CHANNELS = {ec.value for ec in EconomicChannel}
+
+
+def _normalize_enums(raw: dict) -> dict:
+    """Fix common LLM enum swaps between claim_type and economic_channel."""
+    ct = raw.get("claim_type", "")
+    ec = raw.get("economic_channel", "")
+
+    if ct not in _VALID_CLAIM_TYPES and ct in _VALID_ECONOMIC_CHANNELS:
+        mapped = _ECONOMIC_CHANNEL_TO_CLAIM_TYPE.get(ct, "demand")
+        logger.info("Fuzzy fix: claim_type '%s' -> '%s' (was economic_channel value)", ct, mapped)
+        raw["claim_type"] = mapped
+        if ec not in _VALID_ECONOMIC_CHANNELS:
+            raw["economic_channel"] = ct
+
+    if ec not in _VALID_ECONOMIC_CHANNELS and ec in _VALID_CLAIM_TYPES:
+        mapped = _CLAIM_TYPE_TO_ECONOMIC_CHANNEL.get(ec, "revenue")
+        logger.info("Fuzzy fix: economic_channel '%s' -> '%s' (was claim_type value)", ec, mapped)
+        raw["economic_channel"] = mapped
+
+    return raw
+
+
 class LLMClaimExtractor(ClaimExtractorBase):
     """Production extractor that calls OpenAI to extract structured claims.
 
@@ -113,6 +166,7 @@ class LLMClaimExtractor(ClaimExtractorBase):
         validated: list[ExtractedClaim] = []
         for i, raw in enumerate(raw_claims):
             try:
+                raw = _normalize_enums(raw)
                 claim = ExtractedClaim.model_validate(raw)
                 validated.append(claim)
             except Exception as e:

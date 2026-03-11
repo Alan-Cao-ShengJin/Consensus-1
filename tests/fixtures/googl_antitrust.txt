@@ -1,0 +1,23 @@
+DOJ Proposes Forcing Google to Sell Chrome Browser in Landmark Antitrust Remedy
+
+By Sarah Mitchell | March 5, 2025 | New York Times
+
+WASHINGTON — The U.S. Department of Justice on Wednesday proposed a sweeping set of remedies in its antitrust case against Alphabet Inc.'s Google, including the forced divestiture of the Chrome web browser and restrictions on default search agreements with Apple and device manufacturers.
+
+The proposed remedies, filed in U.S. District Court in Washington, D.C., also include:
+- A 10-year prohibition on Google paying to be the default search engine on any device or browser
+- Requirements to share search index data with competitors at reasonable rates
+- Restrictions on using Android to preference Google Search
+- Mandatory interoperability requirements for advertising technology
+
+Judge Amit Mehta, who ruled in August 2024 that Google holds an illegal monopoly in the search market, is expected to rule on the remedies by September 2025.
+
+Google's chief legal officer Kent Walker called the proposals "extreme and unprecedented" and said the company would vigorously appeal. "These remedies would harm consumers and U.S. technological leadership," Walker said.
+
+The financial impact could be substantial. Google's search advertising revenue was $198 billion in 2024, representing 57% of Alphabet's total revenue. The Traffic Acquisition Costs (TAC) paid to Apple alone were estimated at $20 billion annually — if those default agreements are prohibited, Google could lose meaningful search market share.
+
+Alphabet shares fell 6.8% on the news, their largest single-day decline since 2022.
+
+Wall Street analysts were divided. "This creates a wide range of outcomes," wrote Eric Sheridan at Goldman Sachs. "The bear case involves a 15-20% revenue impact, while the base case is more moderate remedies on appeal."
+
+Some analysts noted potential beneficiaries: Microsoft's Bing could gain 5-10 percentage points of search share if default agreements are banned, while smaller search engines like DuckDuckGo and Brave Search could see significant user growth.

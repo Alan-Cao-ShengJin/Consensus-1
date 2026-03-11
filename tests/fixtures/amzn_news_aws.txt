@@ -1,0 +1,17 @@
+Amazon Web Services Revenue Surges 19%, Beats Expectations on AI Workload Growth
+
+By Michael Torres | March 2, 2025 | Reuters
+
+SEATTLE — Amazon.com Inc. (AMZN) reported that its cloud computing division, Amazon Web Services (AWS), generated $24.2 billion in revenue during Q4 2024, a 19% increase year-over-year that exceeded analyst estimates of $23.6 billion.
+
+AWS operating income surged to $10.6 billion, representing a 37% operating margin — the highest in the segment's history. The improvement was driven by higher-margin AI-related workloads, including demand for custom Trainium and Inferentia chips.
+
+CEO Andy Jassy highlighted that AWS's AI business is on a "multi-billion dollar annualized revenue run rate" and growing at triple-digit percentages. "We're still in the very early stages of what will be a massive shift of IT spending to the cloud, and AI is accelerating that shift," Jassy said.
+
+However, capital expenditure for the quarter was $22.6 billion, up 62% year-over-year, raising concerns among some investors about the return on these massive AI infrastructure investments. Amazon guided for $100 billion in total capex for fiscal 2025.
+
+"The capex is eye-watering but the revenue trajectory supports it," said Mark Moerdler, analyst at Bernstein. "The key question is whether margins can hold as they scale AI infrastructure."
+
+Amazon's overall revenue was $187.8 billion, up 10%, with North American retail margins improving to 7.1%. International losses narrowed to $0.3 billion from $1.2 billion a year ago.
+
+Shares rose 3.2% in after-hours trading.
