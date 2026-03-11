@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from document_loader import LoadedDocument, load_document
 from document_parser import parse_document
-from claim_extractor import ClaimExtractorBase, StubClaimExtractor
+from claim_extractor import ClaimExtractorBase, StubClaimExtractor, LLMClaimExtractor
 from ingest import ingest_document_with_claims
 from models import SourceType
 
@@ -21,6 +21,16 @@ class IngestResult:
     themes_linked: list[str]
 
 
+def _make_extractor(extractor_type: str) -> ClaimExtractorBase:
+    """Instantiate an extractor by name."""
+    if extractor_type == "stub":
+        return StubClaimExtractor()
+    elif extractor_type == "llm":
+        return LLMClaimExtractor()
+    else:
+        raise ValueError(f"Unknown extractor_type: {extractor_type!r}. Use 'stub' or 'llm'.")
+
+
 def run_ingestion(
     session: Session,
     file_path: str,
@@ -28,9 +38,15 @@ def run_ingestion(
     ticker: Optional[str] = None,
     thesis_id: Optional[int] = None,
     extractor: Optional[ClaimExtractorBase] = None,
+    extractor_type: str = "stub",
     **loader_overrides,
 ) -> IngestResult:
-    """Load, parse, extract, and ingest a document in one call."""
+    """Load, parse, extract, and ingest a document in one call.
+
+    Args:
+        extractor: Explicit extractor instance (takes priority).
+        extractor_type: "stub" or "llm" — used when extractor is None.
+    """
 
     # 1. Load
     loaded = load_document(file_path, source_type, **loader_overrides)
@@ -42,7 +58,7 @@ def run_ingestion(
 
     # 3. Extract claims
     if extractor is None:
-        extractor = StubClaimExtractor()
+        extractor = _make_extractor(extractor_type)
 
     metadata = {
         "primary_company_ticker": loaded.primary_company_ticker,

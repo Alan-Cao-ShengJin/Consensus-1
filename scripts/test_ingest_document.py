@@ -28,6 +28,8 @@ def main():
                         help="Document source type")
     parser.add_argument("--ticker", default=None, help="Primary company ticker")
     parser.add_argument("--thesis-id", type=int, default=None, help="Thesis ID to link claims to")
+    parser.add_argument("--extractor", choices=["stub", "llm"], default="stub",
+                        help="Claim extractor to use (default: stub)")
     parser.add_argument("--db-url", default="sqlite:///consensus.db",
                         help="Database URL (default: sqlite:///consensus.db)")
     args = parser.parse_args()
@@ -48,6 +50,7 @@ def main():
             source_type=source_type,
             ticker=args.ticker,
             thesis_id=args.thesis_id,
+            extractor_type=args.extractor,
         )
         session.commit()
 

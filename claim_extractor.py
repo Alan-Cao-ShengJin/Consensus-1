@@ -1,12 +1,15 @@
-"""Claim extraction interface and stub implementation for v1 testing."""
+"""Claim extraction interface, stub implementation, and LLM-backed extractor."""
 from __future__ import annotations
 
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Optional
 
 from models import ClaimType, EconomicChannel, Direction, NoveltyType
 from schemas import ExtractedClaim
+
+logger = logging.getLogger(__name__)
 
 
 class ClaimExtractorBase(ABC):
@@ -89,3 +92,36 @@ class StubClaimExtractor(ClaimExtractorBase):
             ))
 
         return claims
+
+
+class LLMClaimExtractor(ClaimExtractorBase):
+    """Production extractor that calls OpenAI to extract structured claims.
+
+    Requires OPENAI_API_KEY env var. Optionally set OPENAI_MODEL (default: gpt-4o-mini).
+    """
+
+    def __init__(self, model: str | None = None):
+        self._model = model
+
+    def extract_claims(self, clean_text: str, metadata: dict) -> list[ExtractedClaim]:
+        from llm_client import call_openai_json
+        from prompts import build_extraction_messages
+
+        messages = build_extraction_messages(clean_text, metadata)
+        raw_claims = call_openai_json(messages, model=self._model)
+
+        validated: list[ExtractedClaim] = []
+        for i, raw in enumerate(raw_claims):
+            try:
+                claim = ExtractedClaim.model_validate(raw)
+                validated.append(claim)
+            except Exception as e:
+                logger.warning("Skipping claim %d: validation failed: %s", i, e)
+                continue
+
+        if not validated:
+            logger.warning(
+                "LLM returned %d raw claims but none passed validation", len(raw_claims)
+            )
+
+        return validated
