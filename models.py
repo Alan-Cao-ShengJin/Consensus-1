@@ -104,6 +104,16 @@ class PositionStatus(str, Enum):
     CLOSED = "closed"
 
 
+class ActionType(str, Enum):
+    INITIATE = "initiate"
+    ADD = "add"
+    HOLD = "hold"
+    TRIM = "trim"
+    PROBATION = "probation"
+    EXIT = "exit"
+    NO_ACTION = "no_action"
+
+
 # ---------- Core Tables ----------
 
 class Company(Base):
@@ -285,8 +295,14 @@ class PortfolioPosition(Base):
 
     status: Mapped[PositionStatus] = mapped_column(SAEnum(PositionStatus), default=PositionStatus.ACTIVE, nullable=False)
     probation_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    probation_start_date: Mapped[Optional[date]] = mapped_column(Date)
+    probation_reviews_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cooldown_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cooldown_until: Mapped[Optional[date]] = mapped_column(Date)
     hold_through_earnings_allowed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    exit_date: Mapped[Optional[date]] = mapped_column(Date)
+    exit_reason: Mapped[Optional[str]] = mapped_column(String(100))
 
     take_profit_zone_low: Mapped[Optional[float]] = mapped_column(Float)
     hold_zone_low: Mapped[Optional[float]] = mapped_column(Float)
@@ -306,6 +322,42 @@ class Candidate(Base):
     watch_reason: Mapped[Optional[str]] = mapped_column(Text)
     last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     cooldown_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cooldown_until: Mapped[Optional[date]] = mapped_column(Date)
+
+
+class PortfolioReview(Base):
+    __tablename__ = "portfolio_reviews"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    review_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    review_type: Mapped[str] = mapped_column(String(50), nullable=False)  # weekly / immediate / ad_hoc
+    holdings_reviewed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    candidates_reviewed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    turnover_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    decisions = relationship("PortfolioDecision", back_populates="review", cascade="all, delete-orphan")
+
+
+class PortfolioDecision(Base):
+    __tablename__ = "portfolio_decisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    review_id: Mapped[int] = mapped_column(ForeignKey("portfolio_reviews.id"), nullable=False, index=True)
+    ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
+    action: Mapped[ActionType] = mapped_column(SAEnum(ActionType), nullable=False)
+    action_score: Mapped[float] = mapped_column(Float, nullable=False)
+    target_weight_change: Mapped[Optional[float]] = mapped_column(Float)
+    suggested_weight: Mapped[Optional[float]] = mapped_column(Float)
+    reason_codes: Mapped[Optional[str]] = mapped_column(Text)  # JSON list of reason codes
+    rationale: Mapped[Optional[str]] = mapped_column(Text)
+    blocking_conditions: Mapped[Optional[str]] = mapped_column(Text)  # JSON list
+    required_followup: Mapped[Optional[str]] = mapped_column(Text)
+    was_executed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    review = relationship("PortfolioReview", back_populates="decisions")
 
 
 # ---------- Link Tables ----------
