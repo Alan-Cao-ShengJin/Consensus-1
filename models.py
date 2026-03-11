@@ -125,7 +125,10 @@ class Company(Base):
 
 class Document(Base):
     __tablename__ = "documents"
-    __table_args__ = (UniqueConstraint("url", name="uq_documents_url"),)
+    __table_args__ = (
+        UniqueConstraint("url", name="uq_documents_url"),
+        UniqueConstraint("source_key", "external_id", name="uq_source_external"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_type: Mapped[SourceType] = mapped_column(SAEnum(SourceType), nullable=False)
@@ -140,6 +143,8 @@ class Document(Base):
     hash: Mapped[Optional[str]] = mapped_column(String(128), index=True)
     language: Mapped[Optional[str]] = mapped_column(String(20))
     raw_text: Mapped[Optional[str]] = mapped_column(Text)
+    source_key: Mapped[Optional[str]] = mapped_column(String(100), index=True)
+    external_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
 
     primary_company = relationship("Company", back_populates="documents")
     claims = relationship("Claim", back_populates="document", cascade="all, delete-orphan")
@@ -203,6 +208,22 @@ class Checkpoint(Base):
     importance: Mapped[Optional[float]] = mapped_column(Float)  # 0-1
     linked_company_ticker: Mapped[Optional[str]] = mapped_column(ForeignKey("companies.ticker"))
     status: Mapped[Optional[str]] = mapped_column(String(50))
+
+
+class Price(Base):
+    __tablename__ = "prices"
+    __table_args__ = (UniqueConstraint("ticker", "date", name="uq_price_ticker_date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
+    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    open: Mapped[Optional[float]] = mapped_column(Float)
+    high: Mapped[Optional[float]] = mapped_column(Float)
+    low: Mapped[Optional[float]] = mapped_column(Float)
+    close: Mapped[Optional[float]] = mapped_column(Float)
+    adj_close: Mapped[Optional[float]] = mapped_column(Float)
+    volume: Mapped[Optional[int]] = mapped_column(Integer)
+    source: Mapped[Optional[str]] = mapped_column(String(50))
 
 
 class Thesis(Base):
