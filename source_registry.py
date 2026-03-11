@@ -144,19 +144,19 @@ _register(SourceConfig(
 # --- News ---
 
 _register(SourceConfig(
-    key="news_newsapi",
+    key="news_finnhub",
     source_type=SourceType.NEWS,
     source_tier=SourceTier.TIER_2,
-    provider="newsapi",
+    provider="finnhub",
     pull_frequency=PullFrequency.EVERY_4H,
     automation=AutomationLevel.AUTOMATIC,
     feeds_claims=True,
     creates_checkpoints=False,
-    backfill_depth_days=30,
+    backfill_depth_days=365,
     dedupe_key="url",
-    api_key_env_var="NEWSAPI_KEY",
+    api_key_env_var="FINNHUB_API_KEY",
     rate_limit_per_second=1.0,
-    notes="Free tier: 100 req/day, 30-day archive. Covers Reuters, CNBC, etc.",
+    notes="Free tier: 60 req/min. /company-news endpoint filters by ticker natively. 1-year archive.",
 ))
 
 _register(SourceConfig(
@@ -298,20 +298,18 @@ def get_checkpoint_sources() -> list[SourceConfig]:
 # ---------------------------------------------------------------------------
 
 UNIVERSE_TICKERS: list[str] = [
-    # Mega-cap tech
+    # Mega-cap tech (US-domiciled only)
     "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
     # Semiconductors
-    "AMD", "AVGO", "QCOM", "INTC", "MRVL", "ARM", "MU",
+    "AMD", "AVGO", "QCOM", "INTC", "MRVL", "MU",
     # Cloud / SaaS
     "CRM", "SNOW", "PLTR", "NOW", "DDOG", "NET", "MDB",
     # Fintech / Payments
     "V", "MA", "SQ", "PYPL", "COIN",
-    # E-commerce / Consumer
-    "SHOP", "MELI", "PDD", "BABA",
     # Media / Entertainment
-    "NFLX", "DIS", "SPOT", "RBLX",
+    "NFLX", "DIS", "RBLX",
     # Healthcare / Biotech
-    "LLY", "NVO", "MRNA", "ISRG",
+    "LLY", "MRNA", "ISRG",
     # Energy / Industrial
     "ENPH", "FSLR", "CEG", "VST",
     # Defense / Aerospace

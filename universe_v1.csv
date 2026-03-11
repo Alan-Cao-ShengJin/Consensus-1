@@ -1,0 +1,46 @@
+ticker,company_name,sector,rationale,active_flag
+AAPL,Apple Inc.,Technology,Mega-cap tech; hardware + services ecosystem,TRUE
+MSFT,Microsoft Corp.,Technology,Mega-cap tech; Azure cloud + AI platform,TRUE
+GOOGL,Alphabet Inc.,Technology,Mega-cap tech; search + cloud + AI,TRUE
+AMZN,Amazon.com Inc.,Technology,Mega-cap tech; e-commerce + AWS cloud,TRUE
+META,Meta Platforms Inc.,Technology,Mega-cap tech; social + AI infrastructure,TRUE
+NVDA,NVIDIA Corp.,Semiconductors,Mega-cap; dominant AI/GPU platform,TRUE
+TSLA,Tesla Inc.,Consumer Discretionary,Mega-cap; EV + energy + AI/robotics,TRUE
+AMD,Advanced Micro Devices,Semiconductors,Large-cap; GPU/CPU competitor in AI,TRUE
+AVGO,Broadcom Inc.,Semiconductors,Large-cap; networking + custom AI silicon,TRUE
+QCOM,Qualcomm Inc.,Semiconductors,Large-cap; mobile + edge AI chips,TRUE
+INTC,Intel Corp.,Semiconductors,Large-cap; US foundry + data center,TRUE
+MRVL,Marvell Technology,Semiconductors,Large-cap; custom AI/cloud silicon,TRUE
+MU,Micron Technology,Semiconductors,Large-cap; memory/HBM for AI,TRUE
+CRM,Salesforce Inc.,Software,Large-cap; enterprise SaaS + AI agents,TRUE
+SNOW,Snowflake Inc.,Software,Mid/large-cap; cloud data platform,TRUE
+PLTR,Palantir Technologies,Software,Large-cap; AI/data analytics for govt + enterprise,TRUE
+NOW,ServiceNow Inc.,Software,Large-cap; enterprise workflow + AI,TRUE
+DDOG,Datadog Inc.,Software,Mid/large-cap; cloud observability,TRUE
+NET,Cloudflare Inc.,Software,Mid-cap; edge cloud + security,TRUE
+MDB,MongoDB Inc.,Software,Mid-cap; document database,TRUE
+V,Visa Inc.,Financials,Mega-cap; global payments network,TRUE
+MA,Mastercard Inc.,Financials,Mega-cap; global payments network,TRUE
+SQ,Block Inc.,Financials,Mid/large-cap; fintech payments + Cash App,TRUE
+PYPL,PayPal Holdings,Financials,Large-cap; digital payments,TRUE
+COIN,Coinbase Global,Financials,Mid/large-cap; crypto exchange,TRUE
+NFLX,Netflix Inc.,Communication Services,Large-cap; streaming + content,TRUE
+DIS,Walt Disney Co.,Communication Services,Large-cap; media + streaming + parks,TRUE
+RBLX,Roblox Corp.,Communication Services,Mid-cap; gaming/metaverse platform,TRUE
+LLY,Eli Lilly & Co.,Healthcare,Mega-cap; pharma / GLP-1,TRUE
+MRNA,Moderna Inc.,Healthcare,Large-cap; mRNA therapeutics,TRUE
+ISRG,Intuitive Surgical,Healthcare,Large-cap; robotic surgery,TRUE
+ENPH,Enphase Energy,Energy,Mid-cap; solar microinverters,TRUE
+FSLR,First Solar Inc.,Energy,Mid-cap; solar panels,TRUE
+CEG,Constellation Energy,Energy,Large-cap; nuclear/clean energy,TRUE
+VST,Vistra Corp.,Energy,Large-cap; power generation,TRUE
+LMT,Lockheed Martin,Industrials,Large-cap; defense prime,TRUE
+RTX,RTX Corp.,Industrials,Large-cap; defense + aerospace,TRUE
+GD,General Dynamics,Industrials,Large-cap; defense + business aviation,TRUE
+GS,Goldman Sachs,Financials,Large-cap; investment banking,TRUE
+JPM,JPMorgan Chase,Financials,Mega-cap; diversified banking,TRUE
+BRK-B,Berkshire Hathaway,Financials,Mega-cap; diversified conglomerate,TRUE
+UBER,Uber Technologies,Technology,Large-cap; mobility + delivery platform,TRUE
+ABNB,Airbnb Inc.,Consumer Discretionary,Large-cap; travel marketplace,TRUE
+CRWD,CrowdStrike Holdings,Technology,Large-cap; endpoint cybersecurity,TRUE
+ZS,Zscaler Inc.,Technology,Mid/large-cap; zero-trust security,TRUE

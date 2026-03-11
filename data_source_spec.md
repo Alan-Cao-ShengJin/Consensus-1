@@ -50,7 +50,7 @@ into the schema, and what level of automation applies in v1.
 
 | # | source_type | Provider                   | Pull Method                          | Frequency      | Backfill Depth | Source Tier | Dest Table(s)             | Dedupe Key | Automation     | Feeds Claims? | Creates Checkpoints? | Notes |
 |---|-------------|----------------------------|--------------------------------------|----------------|----------------|-------------|---------------------------|------------|----------------|---------------|----------------------|-------|
-| 12 | news       | NewsAPI.org                | REST API (`/everything` endpoint)    | Every 4 hours  | 30 days        | tier_2      | `documents`, `claims`     | URL        | automatic      | Yes           | No                   | Free tier: 100 req/day, 1-month archive. Covers Reuters, Bloomberg excerpts, CNBC, etc. Good for sentiment + event detection. Upgrade to paid ($449/mo) if needed. |
+| 12 | news       | Finnhub                    | REST API (`/company-news` endpoint)  | Every 4 hours  | 1 year         | tier_2      | `documents`, `claims`     | URL        | automatic      | Yes           | No                   | Free tier: 60 req/min. Native ticker filtering. 1-year archive. Covers major financial publishers. API key required (free at finnhub.io). |
 | 13 | news       | Google News RSS            | RSS via `feedparser`                 | Every 4 hours  | 7 days         | tier_3      | `documents`, `claims`     | URL        | automatic      | Yes           | No                   | Free, no API key. Lower quality, more noise. Good supplementary source. tier_3 because it aggregates without editorial filter. |
 | 14 | news       | Financial Times / WSJ      | Manual paste                         | As encountered | N/A            | tier_2      | `documents`, `claims`     | URL        | manual         | Yes           | No                   | Paywalled. User pastes article text. High-quality analysis but can't automate without subscription API. |
 
@@ -137,7 +137,7 @@ Checkpoints are forward-looking events that the system tracks. They are created 
 
 ### v1 (current sprint — implement now)
 - SEC EDGAR connector (10-K, 10-Q, 8-K) — automatic
-- NewsAPI connector — automatic
+- Finnhub company news connector — automatic
 - Google News RSS — automatic
 - Press release RSS poller — automatic
 - Earnings calendar scanner (yfinance) — automatic
@@ -161,7 +161,7 @@ Checkpoints are forward-looking events that the system tracks. They are created 
 |----------------|------------------------|-------------------|-------------------------------|
 | SEC EDGAR      | 10 req/s (with UA)     | No (User-Agent required) | Unlimited                |
 | yfinance       | ~2 req/s (unofficial)  | No                | Unlimited (unofficial)        |
-| NewsAPI        | 100 req/day (free)     | Yes               | 1-month archive, 100 req/day |
+| Finnhub        | 60 req/min (free)      | Yes               | 1-year archive, 60 req/min   |
 | Google News RSS| ~1 req/s               | No                | Unlimited                     |
 | PR Newswire RSS| No known limit         | No                | Unlimited                     |
 
