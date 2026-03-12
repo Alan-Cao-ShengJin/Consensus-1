@@ -19,6 +19,7 @@ from models import (
     Claim, ClaimCompanyLink, NoveltyType,
     PortfolioReview, PortfolioDecision,
     ThesisState, PositionStatus, ZoneState, ActionType,
+    ValuationProvenance,
 )
 from portfolio_decision_engine import (
     DecisionInput, HoldingSnapshot, CandidateSnapshot,
@@ -177,12 +178,13 @@ def _get_thesis_state_as_of(
 
 def _get_valuation_as_of(
     session: Session, thesis: Thesis, as_of: date,
-) -> tuple[Optional[float], Optional[float], bool]:
+) -> tuple[Optional[float], Optional[float], bool, str]:
     """Get valuation_gap_pct and base_case_rerating as of a historical date.
 
-    Returns (valuation_gap_pct, base_case_rerating, is_historical).
+    Returns (valuation_gap_pct, base_case_rerating, is_historical, provenance).
     is_historical is True if values came from ThesisStateHistory, False if
     they came from a fallback (live thesis or None).
+    provenance is one of ValuationProvenance values or "current_fallback".
 
     Anti-leakage: checks ThesisStateHistory for the most recent record
     on or before as_of that has valuation fields populated. If no historical
@@ -203,10 +205,11 @@ def _get_valuation_as_of(
     ).first()
 
     if hist is not None:
-        return hist.valuation_gap_pct, hist.base_case_rerating, True
+        provenance = hist.valuation_provenance or ValuationProvenance.HISTORICAL_RECORDED.value
+        return hist.valuation_gap_pct, hist.base_case_rerating, True, provenance
 
     # No historical valuation record — this is an impurity fallback
-    return thesis.valuation_gap_pct, thesis.base_case_rerating, False
+    return thesis.valuation_gap_pct, thesis.base_case_rerating, False, "current_fallback"
 
 
 def build_holding_snapshot(

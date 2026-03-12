@@ -24,6 +24,11 @@ from sqlalchemy.orm import Session
 
 from models import Base
 from replay_runner import run_replay, export_replay_json, format_replay_text
+from replay_engine import generate_review_dates
+from replay_diagnostics import (
+    build_candidate_provenance_report, build_coverage_diagnostics,
+    format_diagnostics_text,
+)
 
 
 def main():
@@ -48,6 +53,8 @@ def main():
                         help="Transaction cost in basis points (default: 10)")
     parser.add_argument("--strict", action="store_true",
                         help="Strict replay: skip impure inputs instead of fallbacks")
+    parser.add_argument("--diagnostics", action="store_true",
+                        help="Show replay coverage diagnostics (Step 8.2)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Verbose logging")
     args = parser.parse_args()
@@ -80,6 +87,15 @@ def main():
         if args.export:
             filepath = export_replay_json(run_result, portfolio, metrics)
             print(f"Exported to {filepath}")
+
+        if args.diagnostics:
+            review_dates = generate_review_dates(start, end, args.cadence)
+            diag = build_coverage_diagnostics(run_result)
+            cand_report = build_candidate_provenance_report(
+                session, review_dates, ticker_filter=args.ticker,
+            )
+            print()
+            print(format_diagnostics_text(diag, cand_report))
 
         if args.json:
             output = {

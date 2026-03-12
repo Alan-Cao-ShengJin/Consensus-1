@@ -392,7 +392,7 @@ class TestHistoricalValuation:
             valuation_gap=12.0, base_case=1.2,
         )
 
-        gap, rerating, is_historical = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
+        gap, rerating, is_historical, provenance = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
         assert is_historical is True
         assert gap == 12.0
         assert rerating == 1.2
@@ -403,10 +403,11 @@ class TestHistoricalValuation:
         thesis = _make_thesis(session, "NVDA", valuation_gap=20.0, base_case=1.5)
 
         # No ThesisStateHistory with valuation fields
-        gap, rerating, is_historical = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
+        gap, rerating, is_historical, provenance = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
         assert is_historical is False
         assert gap == 20.0  # falls back to current
         assert rerating == 1.5
+        assert provenance == "current_fallback"
 
     def test_valuation_uses_most_recent_history_before_as_of(self, session):
         """When multiple history records exist, use the most recent before as_of."""
@@ -433,7 +434,7 @@ class TestHistoricalValuation:
         )
 
         # As of March 10 — should see March 8 record, not March 20
-        gap, rerating, is_historical = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
+        gap, rerating, is_historical, provenance = _get_valuation_as_of(session, thesis, date(2026, 3, 10))
         assert is_historical is True
         assert gap == 15.0
         assert rerating == 1.3

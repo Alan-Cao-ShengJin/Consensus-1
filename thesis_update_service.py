@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from models import (
     Claim, Thesis, ThesisClaimLink, ThesisStateHistory,
-    ThesisState, SourceTier,
+    ThesisState, SourceTier, ValuationProvenance,
 )
 
 logger = logging.getLogger(__name__)
@@ -449,6 +449,13 @@ def update_thesis_from_claims(
         thesis_id=thesis.id,
         state=new_state,
         conviction_score=new_score,
+        valuation_gap_pct=thesis.valuation_gap_pct,
+        base_case_rerating=thesis.base_case_rerating,
+        valuation_provenance=(
+            ValuationProvenance.HISTORICAL_RECORDED.value
+            if thesis.valuation_gap_pct is not None
+            else ValuationProvenance.MISSING.value
+        ),
         note=llm_result.summary_note,
     ))
 

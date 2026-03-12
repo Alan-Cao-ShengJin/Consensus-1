@@ -224,8 +224,8 @@ def _build_shadow_holding_snapshot(
     # Historical thesis state
     thesis_state, thesis_conviction = _get_thesis_state_as_of(session, thesis, review_date)
 
-    # Historical valuation (Step 8.1)
-    val_gap, base_rerating, val_is_historical = _get_valuation_as_of(
+    # Historical valuation (Step 8.1 + 8.2 provenance)
+    val_gap, base_rerating, val_is_historical, val_provenance = _get_valuation_as_of(
         session, thesis, review_date,
     )
 
@@ -234,14 +234,14 @@ def _build_shadow_holding_snapshot(
             # Strict mode: use None valuation → zone defaults to HOLD
             purity.skipped_impure_valuation += 1
             purity.integrity_warnings.append(
-                f"Holding {ticker}: no historical valuation, zone defaulted to HOLD"
+                f"Holding {ticker}: no historical valuation (provenance={val_provenance}), zone defaulted to HOLD"
             )
             val_gap = None
             base_rerating = None
         else:
             purity.impure_valuation_count += 1
             purity.integrity_warnings.append(
-                f"Holding {ticker}: using current valuation (no history)"
+                f"Holding {ticker}: using current valuation (provenance={val_provenance})"
             )
 
     zone = zone_from_thesis_and_price(val_gap, base_rerating, current_price)
@@ -301,8 +301,8 @@ def _build_replay_candidate_snapshot(
             thesis_state = hist_state
             conviction = hist_conviction or cand.conviction_score
 
-            # Historical valuation (Step 8.1)
-            val_gap, base_rerating, val_is_historical = _get_valuation_as_of(
+            # Historical valuation (Step 8.1 + 8.2 provenance)
+            val_gap, base_rerating, val_is_historical, val_provenance = _get_valuation_as_of(
                 session, thesis, review_date,
             )
             if val_is_historical:
@@ -311,14 +311,14 @@ def _build_replay_candidate_snapshot(
             elif strict_replay:
                 purity.skipped_impure_valuation += 1
                 purity.integrity_warnings.append(
-                    f"Candidate {cand.ticker}: no historical valuation, zone defaulted to HOLD"
+                    f"Candidate {cand.ticker}: no historical valuation (provenance={val_provenance}), zone defaulted to HOLD"
                 )
                 valuation_gap = None
                 base_case = None
             else:
                 purity.impure_valuation_count += 1
                 purity.integrity_warnings.append(
-                    f"Candidate {cand.ticker}: using current valuation (no history)"
+                    f"Candidate {cand.ticker}: using current valuation (provenance={val_provenance})"
                 )
                 valuation_gap = val_gap
                 base_case = base_rerating
