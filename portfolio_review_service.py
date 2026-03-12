@@ -14,7 +14,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from models import (
-    PortfolioPosition, Candidate, Thesis, Checkpoint, Price,
+    PortfolioPosition, Candidate, Thesis, ThesisStateHistory,
+    Checkpoint, Price,
     Claim, ClaimCompanyLink, NoveltyType,
     PortfolioReview, PortfolioDecision,
     ThesisState, PositionStatus, ZoneState, ActionType,
@@ -33,25 +34,32 @@ logger = logging.getLogger(__name__)
 # Snapshot builders: load DB state into engine input objects
 # ---------------------------------------------------------------------------
 
-def _get_latest_price(session: Session, ticker: str) -> Optional[float]:
-    """Get most recent closing price for a ticker."""
-    row = session.scalars(
-        select(Price.close)
-        .where(Price.ticker == ticker)
-        .order_by(Price.date.desc())
-        .limit(1)
-    ).first()
+def _get_latest_price(
+    session: Session, ticker: str, as_of: Optional[date] = None,
+) -> Optional[float]:
+    """Get most recent closing price for a ticker on or before as_of.
+
+    Anti-leakage: replay sees only prices knowable on that date.
+    If as_of is None, returns the absolute latest (live mode).
+    """
+    q = select(Price.close).where(Price.ticker == ticker)
+    if as_of is not None:
+        q = q.where(Price.date <= as_of)
+    row = session.scalars(q.order_by(Price.date.desc()).limit(1)).first()
     return row
 
 
-def _get_price_change_5d(session: Session, ticker: str) -> Optional[float]:
-    """Compute 5-day price change percentage."""
-    prices = session.scalars(
-        select(Price.close)
-        .where(Price.ticker == ticker)
-        .order_by(Price.date.desc())
-        .limit(6)
-    ).all()
+def _get_price_change_5d(
+    session: Session, ticker: str, as_of: Optional[date] = None,
+) -> Optional[float]:
+    """Compute 5-day price change percentage using prices on or before as_of.
+
+    Anti-leakage: only uses prices that existed by as_of.
+    """
+    q = select(Price.close).where(Price.ticker == ticker)
+    if as_of is not None:
+        q = q.where(Price.date <= as_of)
+    prices = session.scalars(q.order_by(Price.date.desc()).limit(6)).all()
     if len(prices) >= 2:
         current = prices[0]
         past = prices[-1]
@@ -63,11 +71,14 @@ def _get_price_change_5d(session: Session, ticker: str) -> Optional[float]:
 def _count_novel_claims_7d(
     session: Session, ticker: str, as_of: date,
 ) -> tuple[int, int]:
-    """Count new and confirming claims for a ticker in the last 7 days.
+    """Count new and confirming claims for a ticker in the 7 days ending at as_of.
 
+    Anti-leakage: both lower AND upper bounds enforced.
+    Only counts claims with published_at in [as_of - 7d, as_of].
     Returns (novel_count, confirming_count).
     """
     cutoff = datetime.combine(as_of - timedelta(days=7), datetime.min.time())
+    upper = datetime.combine(as_of, datetime.max.time())
 
     claim_ids_q = (
         select(ClaimCompanyLink.claim_id)
@@ -79,6 +90,7 @@ def _count_novel_claims_7d(
         .where(
             Claim.id.in_(claim_ids_q),
             Claim.published_at >= cutoff,
+            Claim.published_at <= upper,
             Claim.novelty_type == NoveltyType.NEW,
         )
     ) or 0
@@ -88,6 +100,7 @@ def _count_novel_claims_7d(
         .where(
             Claim.id.in_(claim_ids_q),
             Claim.published_at >= cutoff,
+            Claim.published_at <= upper,
             Claim.novelty_type == NoveltyType.CONFIRMING,
         )
     ) or 0
@@ -118,14 +131,51 @@ def _has_checkpoint_ahead(
     return False, None
 
 
+def _get_thesis_state_as_of(
+    session: Session, thesis: Thesis, as_of: date,
+) -> tuple[ThesisState, Optional[float]]:
+    """Get thesis state and conviction as of a historical date.
+
+    Anti-leakage: uses ThesisStateHistory to find the most recent state
+    recorded on or before as_of. Falls back to the live Thesis record only
+    if no history exists before as_of AND the thesis was created on or before
+    as_of. This fallback is a known v1 impurity for theses created before
+    history tracking was enabled.
+    """
+    as_of_dt = datetime.combine(as_of, datetime.max.time())
+    hist = session.scalars(
+        select(ThesisStateHistory)
+        .where(
+            ThesisStateHistory.thesis_id == thesis.id,
+            ThesisStateHistory.created_at <= as_of_dt,
+        )
+        .order_by(ThesisStateHistory.created_at.desc())
+        .limit(1)
+    ).first()
+
+    if hist is not None:
+        return hist.state, hist.conviction_score
+    # Fallback: use live thesis if it existed by as_of
+    if thesis.created_at <= as_of_dt:
+        return thesis.state, thesis.conviction_score
+    # Thesis did not exist yet — return a safe default
+    return ThesisState.FORMING, None
+
+
 def build_holding_snapshot(
     session: Session, position: PortfolioPosition, thesis: Thesis, as_of: date,
 ) -> HoldingSnapshot:
-    """Build a HoldingSnapshot from DB objects."""
-    current_price = _get_latest_price(session, position.ticker)
-    price_change = _get_price_change_5d(session, position.ticker)
+    """Build a HoldingSnapshot from DB objects.
+
+    Anti-leakage: all date-sensitive lookups are bounded by as_of.
+    """
+    current_price = _get_latest_price(session, position.ticker, as_of)
+    price_change = _get_price_change_5d(session, position.ticker, as_of)
     novel, confirming = _count_novel_claims_7d(session, position.ticker, as_of)
     has_cp, days_cp = _has_checkpoint_ahead(session, position.ticker, as_of)
+
+    # Use historical thesis state, not live mutable record
+    thesis_state, thesis_conviction = _get_thesis_state_as_of(session, thesis, as_of)
 
     zone = zone_from_thesis_and_price(
         thesis.valuation_gap_pct,
@@ -137,8 +187,8 @@ def build_holding_snapshot(
         ticker=position.ticker,
         position_id=position.id,
         thesis_id=thesis.id,
-        thesis_state=thesis.state,
-        conviction_score=thesis.conviction_score or position.conviction_score,
+        thesis_state=thesis_state,
+        conviction_score=thesis_conviction or position.conviction_score,
         current_weight=position.current_weight,
         target_weight=position.target_weight,
         avg_cost=position.avg_cost,
@@ -160,7 +210,10 @@ def build_holding_snapshot(
 def build_candidate_snapshot(
     session: Session, candidate: Candidate, as_of: date,
 ) -> CandidateSnapshot:
-    """Build a CandidateSnapshot from DB objects."""
+    """Build a CandidateSnapshot from DB objects.
+
+    Anti-leakage: all date-sensitive lookups are bounded by as_of.
+    """
     thesis = None
     thesis_state = None
     conviction = candidate.conviction_score
@@ -170,12 +223,14 @@ def build_candidate_snapshot(
     if candidate.primary_thesis_id:
         thesis = session.get(Thesis, candidate.primary_thesis_id)
         if thesis:
-            thesis_state = thesis.state
-            conviction = thesis.conviction_score or candidate.conviction_score
+            # Use historical thesis state, not live mutable record
+            hist_state, hist_conviction = _get_thesis_state_as_of(session, thesis, as_of)
+            thesis_state = hist_state
+            conviction = hist_conviction or candidate.conviction_score
             valuation_gap = thesis.valuation_gap_pct
             base_case = thesis.base_case_rerating
 
-    current_price = _get_latest_price(session, candidate.ticker)
+    current_price = _get_latest_price(session, candidate.ticker, as_of)
     novel, confirming = _count_novel_claims_7d(session, candidate.ticker, as_of)
     has_cp, days_cp = _has_checkpoint_ahead(session, candidate.ticker, as_of)
 
