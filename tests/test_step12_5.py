@@ -805,5 +805,270 @@ class TestSerialization(unittest.TestCase):
         self.assertEqual(_ser("hello"), "hello")
 
 
+# ===========================================================================
+# Test: Console API — Demo Subjects
+# ===========================================================================
+
+class TestDemoSubjects(unittest.TestCase):
+    def setUp(self):
+        self.session = _make_session()
+        _seed_basic(self.session)
+
+    def test_returns_all_keys(self):
+        from console_api import get_demo_subjects
+        result = get_demo_subjects(self.session)
+        self.assertIn("latest_thesis_delta", result)
+        self.assertIn("latest_actionable", result)
+        self.assertIn("latest_thesis_trigger", result)
+        self.assertIn("latest_conviction_change", result)
+
+    def test_latest_thesis_delta_found(self):
+        from console_api import get_demo_subjects
+        result = get_demo_subjects(self.session)
+        td = result["latest_thesis_delta"]
+        self.assertIsNotNone(td)
+        self.assertEqual(td["ticker"], "NVDA")
+        self.assertEqual(td["old_state"], "forming")
+        self.assertEqual(td["new_state"], "strengthening")
+        self.assertAlmostEqual(td["conviction_delta"], 22.0)
+
+    def test_latest_actionable_found(self):
+        from console_api import get_demo_subjects
+        result = get_demo_subjects(self.session)
+        a = result["latest_actionable"]
+        self.assertIsNotNone(a)
+        self.assertEqual(a["ticker"], "NVDA")
+        self.assertEqual(a["action"], "add")
+
+    def test_latest_thesis_trigger_found(self):
+        from console_api import get_demo_subjects
+        result = get_demo_subjects(self.session)
+        tt = result["latest_thesis_trigger"]
+        self.assertIsNotNone(tt)
+        self.assertEqual(tt["doc_id"], 1)
+        self.assertEqual(tt["ticker"], "NVDA")
+
+    def test_latest_conviction_change(self):
+        from console_api import get_demo_subjects
+        result = get_demo_subjects(self.session)
+        cc = result["latest_conviction_change"]
+        self.assertIsNotNone(cc)
+        self.assertEqual(cc["ticker"], "NVDA")
+        self.assertAlmostEqual(cc["delta"], 22.0)
+
+    def test_empty_db_returns_all_none(self):
+        from console_api import get_demo_subjects
+        session = _make_session()
+        result = get_demo_subjects(session)
+        self.assertIsNone(result["latest_thesis_delta"])
+        self.assertIsNone(result["latest_actionable"])
+        self.assertIsNone(result["latest_thesis_trigger"])
+        self.assertIsNone(result["latest_conviction_change"])
+
+
+# ===========================================================================
+# Test: Console API — What Changed
+# ===========================================================================
+
+class TestWhatChanged(unittest.TestCase):
+    def setUp(self):
+        self.session = _make_session()
+        _seed_basic(self.session)
+
+    def test_returns_summary(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertIsNotNone(result)
+        self.assertIn("document", result)
+        self.assertIn("new_information", result)
+        self.assertIn("retrieved_memory", result)
+        self.assertIn("thesis_delta", result)
+        self.assertIn("recommendation_delta", result)
+        self.assertIn("why_it_matters", result)
+
+    def test_document_field(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertEqual(result["document"]["ticker"], "NVDA")
+        self.assertEqual(result["document"]["id"], 1)
+
+    def test_new_information_from_claims(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertEqual(len(result["new_information"]), 2)
+        types = [c["claim_type"] for c in result["new_information"]]
+        self.assertIn("demand", types)
+
+    def test_retrieved_memory_has_themes(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertIn("AI Accelerators", result["retrieved_memory"])
+
+    def test_thesis_delta_present(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertEqual(len(result["thesis_delta"]), 1)
+        td = result["thesis_delta"][0]
+        self.assertEqual(td["old_state"], "forming")
+        self.assertEqual(td["new_state"], "strengthening")
+        self.assertAlmostEqual(td["conviction_delta"], 22.0)
+
+    def test_recommendation_delta(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertTrue(len(result["recommendation_delta"]) >= 1)
+        actions = [r["action"] for r in result["recommendation_delta"]]
+        self.assertIn("add", actions)
+
+    def test_why_it_matters_not_empty(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 1)
+        self.assertTrue(len(result["why_it_matters"]) > 0)
+
+    def test_not_found(self):
+        from console_api import get_what_changed
+        result = get_what_changed(self.session, 999)
+        self.assertIsNone(result)
+
+
+# ===========================================================================
+# Test: Console API — Narrative Export
+# ===========================================================================
+
+class TestNarrativeExport(unittest.TestCase):
+    def setUp(self):
+        self.session = _make_session()
+        _seed_basic(self.session)
+
+    def test_returns_steps(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 1)
+        self.assertIsInstance(result, list)
+        self.assertTrue(len(result) >= 4)
+
+    def test_has_all_stages(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 1)
+        stages = [s["stage"] for s in result]
+        self.assertIn("INGEST", stages)
+        self.assertIn("CLAIMS", stages)
+        self.assertIn("MEMORY", stages)
+        self.assertIn("THESIS", stages)
+        self.assertIn("GRAPH", stages)
+
+    def test_ingest_has_title(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 1)
+        ingest = [s for s in result if s["stage"] == "INGEST"][0]
+        self.assertIn("NVIDIA", ingest["text"])
+
+    def test_claims_has_count(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 1)
+        claims = [s for s in result if s["stage"] == "CLAIMS"][0]
+        self.assertIn("2 claims", claims["text"])
+
+    def test_not_found(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 999)
+        self.assertEqual(len(result), 0)
+
+    def test_recommendation_stage(self):
+        from console_api import get_narrative_export
+        result = get_narrative_export(self.session, 1)
+        stages = [s["stage"] for s in result]
+        self.assertIn("RECOMMENDATION", stages)
+
+
+# ===========================================================================
+# Test: Console App — Demo Polish Routes
+# ===========================================================================
+
+class TestDemoPolishRoutes(unittest.TestCase):
+    def setUp(self):
+        import db as db_module
+        self._orig_get_session = db_module.get_session
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        from contextlib import contextmanager
+        @contextmanager
+        def mock_get_session():
+            session = Session()
+            try:
+                yield session
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+
+        db_module.get_session = mock_get_session
+
+        session = Session()
+        _seed_basic(session)
+        session.commit()
+        session.close()
+
+        from console_app import create_console_app
+        app = create_console_app(graph=None, demo_mode=True)
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def tearDown(self):
+        import db as db_module
+        db_module.get_session = self._orig_get_session
+
+    def test_demo_subjects_endpoint(self):
+        resp = self.client.get("/api/demo/subjects")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertIn("latest_thesis_delta", data)
+        self.assertIn("latest_actionable", data)
+
+    def test_what_changed_endpoint(self):
+        resp = self.client.get("/api/documents/1/what-changed")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertIn("document", data)
+        self.assertIn("new_information", data)
+        self.assertIn("thesis_delta", data)
+        self.assertIn("why_it_matters", data)
+
+    def test_what_changed_not_found(self):
+        resp = self.client.get("/api/documents/999/what-changed")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_narrative_endpoint(self):
+        resp = self.client.get("/api/documents/1/narrative")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertIsInstance(data, list)
+        stages = [s["stage"] for s in data]
+        self.assertIn("INGEST", stages)
+
+    def test_narrative_not_found(self):
+        resp = self.client.get("/api/documents/999/narrative")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_demo_mode_labeled(self):
+        resp = self.client.get("/api/status")
+        data = resp.get_json()
+        self.assertTrue(data["demo_mode"])
+
+    def test_real_mode_labeled(self):
+        import db as db_module
+        from console_app import create_console_app
+        app = create_console_app(graph=None, demo_mode=False)
+        app.config["TESTING"] = True
+        client = app.test_client()
+        resp = client.get("/api/status")
+        data = resp.get_json()
+        self.assertFalse(data["demo_mode"])
+
+
 if __name__ == "__main__":
     unittest.main()

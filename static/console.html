@@ -7,15 +7,17 @@
 <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
 <style>
 /* ================================================================
-   OPERATOR CONSOLE — DARK TERMINAL AESTHETIC
+   OPERATOR CONSOLE — DARK TERMINAL AESTHETIC (DEMO-POLISHED)
    ================================================================ */
 :root {
   --bg-primary: #0a0a0f;
   --bg-secondary: #0f0f18;
   --bg-panel: #12121e;
   --bg-hover: #1a1a2e;
+  --bg-card: #141422;
   --border: #1e1e30;
   --border-bright: #2a2a44;
+  --border-accent: #333355;
   --text-primary: #d4d4dc;
   --text-secondary: #8888a0;
   --text-dim: #555566;
@@ -45,7 +47,7 @@ body {
   display: flex;
   align-items: center;
   padding: 0 16px;
-  gap: 16px;
+  gap: 12px;
   z-index: 100;
 }
 #topbar .logo {
@@ -57,8 +59,7 @@ body {
 #topbar .logo span { color: var(--accent-green); }
 .status-pills {
   display: flex;
-  gap: 8px;
-  margin-left: auto;
+  gap: 6px;
 }
 .pill {
   padding: 2px 8px;
@@ -73,7 +74,97 @@ body {
 .pill-err { background: rgba(239,68,68,0.15); color: var(--accent-red); }
 .pill-info { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
 .pill-demo { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
-#clock { color: var(--text-secondary); font-size: 11px; }
+
+/* Demo subject quick-pick */
+.demo-picker {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+.demo-pick-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.demo-pick-btn:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  background: rgba(6,182,212,0.08);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.search-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  outline: none;
+  width: 160px;
+}
+.search-box:focus { border-color: var(--accent-green); }
+#clock { color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
+
+/* ---- Guided Demo Ribbon ---- */
+#demo-ribbon {
+  height: 0;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(168,85,247,0.08) 0%, rgba(6,182,212,0.06) 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 4px;
+  transition: height 0.2s;
+}
+#demo-ribbon.open { height: 34px; }
+.demo-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.demo-step:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.demo-step.active { color: var(--accent-cyan); background: rgba(6,182,212,0.12); }
+.demo-step.done { color: var(--accent-green); }
+.demo-step-arrow { color: var(--text-dim); font-size: 10px; }
+.demo-ribbon-label {
+  font-size: 10px;
+  color: var(--accent-purple);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 8px;
+}
+.demo-ribbon-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--mono);
+}
+.demo-ribbon-close:hover { color: var(--text-primary); }
 
 /* ---- Nav tabs ---- */
 #nav {
@@ -106,12 +197,25 @@ body {
   padding: 0 3px;
   border-radius: 2px;
 }
+.nav-tab-guide-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 10px;
+  color: var(--accent-purple);
+  cursor: pointer;
+  user-select: none;
+}
+.nav-tab-guide-btn:hover { color: var(--text-primary); }
 
 /* ---- Main layout ---- */
 #main {
   height: calc(100vh - 72px);
   overflow: hidden;
+  transition: height 0.2s;
 }
+body.ribbon-open #main { height: calc(100vh - 106px); }
 .view {
   display: none;
   height: 100%;
@@ -129,7 +233,7 @@ body {
   flex-shrink: 0;
 }
 .panel-header {
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   font-size: 11px;
@@ -147,7 +251,7 @@ body {
   font-weight: 400;
 }
 .panel-body {
-  padding: 8px 12px;
+  padding: 10px 14px;
   overflow: auto;
 }
 
@@ -164,14 +268,14 @@ body {
   text-transform: uppercase;
   font-size: 10px;
   letter-spacing: 0.5px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   background: var(--bg-panel);
 }
 .data-table td {
-  padding: 4px 8px;
+  padding: 5px 8px;
   border-bottom: 1px solid rgba(30,30,48,0.5);
   white-space: nowrap;
   overflow: hidden;
@@ -180,6 +284,7 @@ body {
 }
 .data-table tr:hover td { background: var(--bg-hover); }
 .data-table tr.clickable { cursor: pointer; }
+.data-table tr.selected td { background: rgba(6,182,212,0.08); border-left: 2px solid var(--accent-cyan); }
 
 /* ---- Badges ---- */
 .badge {
@@ -195,6 +300,7 @@ body {
 .badge-err { background: rgba(239,68,68,0.15); color: var(--accent-red); }
 .badge-info { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
 .badge-neutral { background: rgba(136,136,160,0.15); color: var(--text-secondary); }
+.badge-delta { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
 
 .dir-positive { color: var(--accent-green); }
 .dir-negative { color: var(--accent-red); }
@@ -206,76 +312,151 @@ body {
 .split-left { width: 45%; border-right: 1px solid var(--border); overflow: auto; }
 .split-right { width: 55%; overflow: auto; }
 
-/* ---- Event timeline ---- */
+/* ---- What Changed summary card ---- */
+.what-changed-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  margin: 6px;
+  overflow: hidden;
+}
+.what-changed-header {
+  padding: 8px 14px;
+  background: linear-gradient(90deg, rgba(168,85,247,0.1), rgba(6,182,212,0.06));
+  border-bottom: 1px solid var(--border-accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.what-changed-header h2 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.what-changed-body {
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.wc-section {
+  min-width: 0;
+}
+.wc-section h4 {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+.wc-item {
+  font-size: 11px;
+  padding: 2px 0;
+  color: var(--text-primary);
+}
+.wc-delta {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-weight: 600;
+  font-size: 11px;
+}
+.wc-delta-positive { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.wc-delta-negative { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.wc-why {
+  grid-column: 1 / -1;
+  background: rgba(168,85,247,0.06);
+  border: 1px solid rgba(168,85,247,0.15);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.wc-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ---- Navigation link buttons ---- */
+.nav-link-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nav-link-btn:hover {
+  background: rgba(6,182,212,0.1);
+  border-color: var(--accent-cyan);
+}
+
+/* ---- Event timeline (enhanced) ---- */
 .timeline-row {
   display: flex;
-  gap: 8px;
-  padding: 3px 0;
+  gap: 0;
+  padding: 0;
   font-size: 11px;
+  align-items: stretch;
+  min-height: 36px;
+}
+.timeline-connector {
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 12px;
+}
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border-bright);
+}
+.timeline-content {
+  flex: 1;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(30,30,48,0.3);
+  display: flex;
   align-items: baseline;
+  gap: 10px;
 }
 .timeline-stage {
-  width: 70px;
-  font-weight: 600;
-  text-align: right;
+  width: 80px;
+  font-weight: 700;
   flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
 .timeline-ticker {
   width: 50px;
   color: var(--accent-cyan);
   flex-shrink: 0;
+  font-weight: 600;
 }
 .timeline-detail { color: var(--text-primary); flex: 1; }
-.timeline-extra { color: var(--text-secondary); }
-.timeline-status { width: 40px; text-align: right; flex-shrink: 0; }
-
-/* ---- Search ---- */
-.search-box {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 3px;
-  outline: none;
-  width: 200px;
-}
-.search-box:focus { border-color: var(--accent-green); }
-
-/* ---- Graph container ---- */
-#graph-container {
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-}
-
-/* ---- Detail side panel ---- */
-.detail-section {
-  margin-bottom: 12px;
-}
-.detail-section h3 {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-.detail-kv {
-  display: flex;
-  gap: 8px;
-  padding: 2px 0;
-  font-size: 11px;
-}
-.detail-kv .k { color: var(--text-dim); width: 120px; flex-shrink: 0; }
-.detail-kv .v { color: var(--text-primary); }
+.timeline-extra { color: var(--text-secondary); font-size: 10px; }
+.timeline-status { width: 50px; text-align: right; flex-shrink: 0; }
 
 /* ---- Status overview cards ---- */
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 8px;
   padding: 8px;
 }
@@ -307,15 +488,92 @@ body {
   vertical-align: middle;
 }
 
+/* ---- Graph container ---- */
+#graph-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+/* ---- Detail side panel ---- */
+.detail-section {
+  margin-bottom: 14px;
+}
+.detail-section h3 {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-kv {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+}
+.detail-kv .k { color: var(--text-dim); width: 130px; flex-shrink: 0; }
+.detail-kv .v { color: var(--text-primary); }
+
+/* ---- Narrative export panel ---- */
+.narrative-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 4px;
+  margin: 6px;
+}
+.narrative-header {
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.narrative-body {
+  padding: 10px 14px;
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+  max-height: 200px;
+  overflow: auto;
+}
+.narrative-copy-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.narrative-copy-btn:hover { color: var(--accent-green); border-color: var(--accent-green); }
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a55; }
 
-/* ---- Loading ---- */
+/* ---- Loading / Empty ---- */
 .loading { color: var(--text-dim); padding: 20px; text-align: center; }
-.empty-state { color: var(--text-dim); padding: 20px; text-align: center; font-style: italic; }
+.empty-state {
+  color: var(--text-dim);
+  padding: 24px;
+  text-align: center;
+  font-style: italic;
+  font-size: 11px;
+}
 </style>
 </head>
 <body>
@@ -326,8 +584,47 @@ body {
 <div id="topbar">
   <div class="logo">CONSENSUS<span>.</span></div>
   <div class="status-pills" id="status-pills"></div>
-  <input type="text" class="search-box" id="global-search" placeholder="Search ticker..." />
-  <div id="clock"></div>
+  <div class="demo-picker" id="demo-picker" style="display:none;">
+    <span style="font-size:10px; color:var(--text-dim); margin-right:2px;">Quick:</span>
+    <button class="demo-pick-btn" onclick="pickDemoSubject('latest_thesis_trigger')" title="Latest document that changed a thesis">Latest Trigger</button>
+    <button class="demo-pick-btn" onclick="pickDemoSubject('latest_thesis_delta')" title="Latest thesis state change">Thesis Delta</button>
+    <button class="demo-pick-btn" onclick="pickDemoSubject('latest_actionable')" title="Latest actionable recommendation">Actionable</button>
+  </div>
+  <div class="topbar-right">
+    <input type="text" class="search-box" id="global-search" placeholder="Search ticker..." />
+    <div id="clock"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     GUIDED DEMO RIBBON
+     ================================================================ -->
+<div id="demo-ribbon">
+  <span class="demo-ribbon-label">Demo Flow</span>
+  <div class="demo-step active" data-step="1" onclick="demoGoToStep(1)">
+    <span>1</span> Feed
+  </div>
+  <span class="demo-step-arrow">&rarr;</span>
+  <div class="demo-step" data-step="2" onclick="demoGoToStep(2)">
+    <span>2</span> Claims
+  </div>
+  <span class="demo-step-arrow">&rarr;</span>
+  <div class="demo-step" data-step="3" onclick="demoGoToStep(3)">
+    <span>3</span> Thesis
+  </div>
+  <span class="demo-step-arrow">&rarr;</span>
+  <div class="demo-step" data-step="4" onclick="demoGoToStep(4)">
+    <span>4</span> Portfolio
+  </div>
+  <span class="demo-step-arrow">&rarr;</span>
+  <div class="demo-step" data-step="5" onclick="demoGoToStep(5)">
+    <span>5</span> Graph
+  </div>
+  <span class="demo-step-arrow">&rarr;</span>
+  <div class="demo-step" data-step="6" onclick="demoGoToStep(6)">
+    <span>6</span> Timeline
+  </div>
+  <button class="demo-ribbon-close" onclick="toggleDemoRibbon()">&times;</button>
 </div>
 
 <!-- ================================================================
@@ -352,6 +649,9 @@ body {
   <div class="nav-tab" data-view="timeline" onclick="switchView('timeline')">
     Timeline <span class="tab-key">6</span>
   </div>
+  <div class="nav-tab-guide-btn" onclick="toggleDemoRibbon()">
+    Guide
+  </div>
 </div>
 
 <!-- ================================================================
@@ -367,9 +667,12 @@ body {
         <div class="status-grid" id="status-grid"></div>
       </div>
     </div>
+    <!-- What Changed card (shown when document selected) -->
+    <div id="what-changed-container" style="display:none;"></div>
     <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <div class="panel-header">
         Live Information Feed <span class="count" id="feed-count"></span>
+        <span style="margin-left:auto; font-size:10px; color:var(--text-dim); font-weight:400;">Click a document to explore</span>
       </div>
       <div class="panel-body" style="flex:1; overflow:auto;">
         <table class="data-table" id="feed-table">
@@ -397,8 +700,11 @@ body {
     <div class="split-h">
       <div class="split-left">
         <div class="panel" style="height:100%;">
-          <div class="panel-header">Document Claims</div>
-          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-header">
+            Document Claims
+            <span id="claims-nav-btns" style="margin-left:auto; display:flex; gap:4px;"></span>
+          </div>
+          <div class="panel-body" style="height:calc(100% - 36px); overflow:auto;">
             <div id="claims-doc-info" class="empty-state">Select a document from the Feed tab</div>
             <table class="data-table" id="claims-table" style="display:none;">
               <thead>
@@ -419,13 +725,13 @@ body {
       <div class="split-right">
         <div class="panel" style="height:50%;">
           <div class="panel-header">Linked Theses & Memory</div>
-          <div class="panel-body" id="claims-memory" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-body" id="claims-memory" style="height:calc(100% - 36px); overflow:auto;">
             <div class="empty-state">Select a claim to see linked theses and memory</div>
           </div>
         </div>
         <div class="panel" style="height:50%;">
           <div class="panel-header">Claim Impact</div>
-          <div class="panel-body" id="claims-impact" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-body" id="claims-impact" style="height:calc(100% - 36px); overflow:auto;">
             <div class="empty-state">Select a claim to see impact classification</div>
           </div>
         </div>
@@ -443,15 +749,18 @@ body {
             <input type="text" class="search-box" id="thesis-ticker-input"
                    placeholder="Enter ticker..." style="margin-left:auto; width:120px;" />
           </div>
-          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-body" style="height:calc(100% - 36px); overflow:auto;">
             <div id="thesis-list" class="empty-state">Enter a ticker to view theses</div>
           </div>
         </div>
       </div>
       <div class="split-right">
         <div class="panel" style="height:100%;">
-          <div class="panel-header">Thesis Detail & Evolution</div>
-          <div class="panel-body" id="thesis-detail" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-header">
+            Thesis Detail & Evolution
+            <span id="thesis-nav-btns" style="margin-left:auto; display:flex; gap:4px;"></span>
+          </div>
+          <div class="panel-body" id="thesis-detail" style="height:calc(100% - 36px); overflow:auto;">
             <div class="empty-state">Select a thesis to see evolution timeline</div>
           </div>
         </div>
@@ -465,7 +774,7 @@ body {
       <div class="split-left">
         <div class="panel" style="height:50%;">
           <div class="panel-header">Active Positions</div>
-          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-body" style="height:calc(100% - 36px); overflow:auto;">
             <table class="data-table" id="positions-table">
               <thead>
                 <tr>
@@ -483,7 +792,7 @@ body {
         </div>
         <div class="panel" style="height:50%;">
           <div class="panel-header">Candidates</div>
-          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-body" style="height:calc(100% - 36px); overflow:auto;">
             <table class="data-table" id="candidates-table">
               <thead>
                 <tr>
@@ -501,8 +810,11 @@ body {
       </div>
       <div class="split-right">
         <div class="panel" style="height:100%;">
-          <div class="panel-header">Latest Review Decisions</div>
-          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+          <div class="panel-header">
+            Latest Review Decisions
+            <span id="portfolio-nav-btns" style="margin-left:auto; display:flex; gap:4px;"></span>
+          </div>
+          <div class="panel-body" style="height:calc(100% - 36px); overflow:auto;">
             <div id="review-header"></div>
             <table class="data-table" id="decisions-table" style="margin-top:8px;">
               <thead>
@@ -526,12 +838,12 @@ body {
 
   <!-- ---- VIEW 5: GRAPH ---- -->
   <div class="view" id="view-graph">
-    <div class="panel" style="flex:0 0 40px;">
+    <div class="panel" style="flex:0 0 auto;">
       <div class="panel-header">
         Graph Explorer
         <input type="text" class="search-box" id="graph-ticker-input"
                placeholder="Ticker..." style="margin-left:8px; width:100px;" />
-        <button onclick="loadGraphForTicker()" style="background:var(--bg-hover); border:1px solid var(--border); color:var(--text-primary); padding:2px 10px; border-radius:3px; cursor:pointer; font-family:var(--mono); font-size:11px;">Load</button>
+        <button class="nav-link-btn" onclick="loadGraphForTicker()">Load</button>
         <span id="graph-stats" style="margin-left:auto; color:var(--text-dim); font-weight:400; font-size:10px;"></span>
       </div>
     </div>
@@ -542,10 +854,11 @@ body {
 
   <!-- ---- VIEW 6: EVENT TIMELINE ---- -->
   <div class="view" id="view-timeline">
-    <div class="panel" style="flex:0 0 40px;">
+    <div class="panel" style="flex:0 0 auto;">
       <div class="panel-header">
         Pipeline Event Timeline
         <span class="count" id="timeline-hint">Click a document in the Feed to trace its pipeline stages</span>
+        <span id="timeline-nav-btns" style="margin-left:auto; display:flex; gap:4px;"></span>
       </div>
     </div>
     <div class="panel" style="flex:1; min-height:0;">
@@ -553,6 +866,8 @@ body {
         <div class="empty-state">Select a document from the Feed tab, then switch here</div>
       </div>
     </div>
+    <!-- Narrative export -->
+    <div id="narrative-container" style="display:none;"></div>
   </div>
 
 </div>
@@ -567,7 +882,12 @@ let state = {
   selectedThesisId: null,
   selectedTicker: null,
   documents: [],
+  currentClaims: [],
   graphNetwork: null,
+  demoSubjects: null,
+  demoRibbonOpen: false,
+  demoStep: 1,
+  autoRefresh: true,
 };
 
 // ---- Utilities ----
@@ -579,14 +899,14 @@ function esc(s) {
 }
 
 function fmtTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return '\u2014';
   const d = new Date(iso);
   if (isNaN(d)) return iso;
   return d.toISOString().replace('T', ' ').slice(0, 16);
 }
 
 function fmtShortTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return '\u2014';
   const d = new Date(iso);
   if (isNaN(d)) return iso;
   const hh = String(d.getHours()).padStart(2,'0');
@@ -604,25 +924,36 @@ function dirClass(dir) {
 
 function zoneBadge(zone) {
   const m = { buy: 'ok', hold: 'info', trim: 'warn', full_exit: 'err' };
-  return badge(zone || '—', m[zone] || 'neutral');
+  return badge(zone || '\u2014', m[zone] || 'neutral');
 }
 
 function actionBadge(action) {
   const m = { initiate: 'ok', add: 'ok', hold: 'info', trim: 'warn', exit: 'err', probation: 'warn', no_action: 'neutral' };
-  return badge(action || '—', m[action] || 'neutral');
+  return badge(action || '\u2014', m[action] || 'neutral');
 }
 
 function convictionBar(score) {
-  if (score == null) return '—';
+  if (score == null) return '\u2014';
   const pct = Math.min(100, Math.max(0, score));
   const color = pct >= 60 ? 'var(--accent-green)' : pct >= 40 ? 'var(--accent-amber)' : 'var(--accent-red)';
   return `<span class="conviction-bar" style="width:${pct * 0.6}px; background:${color};"></span> ${score.toFixed(0)}`;
 }
 
+function deltaStr(val) {
+  if (val == null) return '';
+  const sign = val >= 0 ? '+' : '';
+  const cls = val >= 0 ? 'wc-delta-positive' : 'wc-delta-negative';
+  return `<span class="wc-delta ${cls}">${sign}${val.toFixed(0)}</span>`;
+}
+
 async function api(path) {
-  const res = await fetch(path);
-  if (!res.ok) return null;
-  return await res.json();
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) {
+    return null;
+  }
 }
 
 // ---- View switching ----
@@ -633,6 +964,10 @@ function switchView(name) {
   document.querySelector(`.nav-tab[data-view="${name}"]`).classList.add('active');
   if (name === 'portfolio') loadPortfolio();
   if (name === 'graph') initGraph();
+
+  // Update demo ribbon step
+  const viewToStep = { feed: 1, claims: 2, thesis: 3, portfolio: 4, graph: 5, timeline: 6 };
+  updateDemoStep(viewToStep[name] || 1);
 }
 
 // Keyboard shortcuts
@@ -641,7 +976,56 @@ document.addEventListener('keydown', e => {
   const views = ['feed', 'claims', 'thesis', 'portfolio', 'graph', 'timeline'];
   const idx = parseInt(e.key) - 1;
   if (idx >= 0 && idx < views.length) switchView(views[idx]);
+  // G for guide toggle
+  if (e.key === 'g' || e.key === 'G') toggleDemoRibbon();
 });
+
+// ---- Demo Ribbon ----
+function toggleDemoRibbon() {
+  state.demoRibbonOpen = !state.demoRibbonOpen;
+  const ribbon = document.getElementById('demo-ribbon');
+  ribbon.classList.toggle('open', state.demoRibbonOpen);
+  document.body.classList.toggle('ribbon-open', state.demoRibbonOpen);
+}
+
+function updateDemoStep(step) {
+  state.demoStep = step;
+  document.querySelectorAll('.demo-step').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.toggle('active', s === step);
+    el.classList.toggle('done', s < step);
+  });
+}
+
+function demoGoToStep(step) {
+  const views = ['feed', 'claims', 'thesis', 'portfolio', 'graph', 'timeline'];
+  switchView(views[step - 1]);
+}
+
+// ---- Demo Subject Picker ----
+async function loadDemoSubjects() {
+  state.demoSubjects = await api('/api/demo/subjects');
+  if (state.demoSubjects) {
+    document.getElementById('demo-picker').style.display = 'flex';
+  }
+}
+
+async function pickDemoSubject(type) {
+  if (!state.demoSubjects) return;
+  const subj = state.demoSubjects[type];
+  if (!subj) return;
+
+  if (type === 'latest_thesis_trigger' && subj.doc_id) {
+    await selectDocument(subj.doc_id);
+  } else if (type === 'latest_thesis_delta' && subj.thesis_id) {
+    await loadThesisById(subj.thesis_id);
+  } else if (type === 'latest_actionable' && subj.ticker) {
+    await loadThesisByTicker(subj.ticker);
+  }
+
+  // Open ribbon for guided flow
+  if (!state.demoRibbonOpen) toggleDemoRibbon();
+}
 
 // ---- Clock ----
 function updateClock() {
@@ -667,7 +1051,6 @@ async function loadStatus() {
     { val: s.active_positions, label: 'Positions' },
     { val: s.candidates, label: 'Candidates' },
     { val: s.reviews, label: 'Reviews' },
-    { val: s.paper_fills, label: 'Paper Fills' },
   ];
   grid.innerHTML = items.map(i =>
     `<div class="status-card"><div class="val">${i.val}</div><div class="label">${i.label}</div></div>`
@@ -677,7 +1060,7 @@ async function loadStatus() {
   const pills = document.getElementById('status-pills');
   let html = '';
   if (s.demo_mode) html += '<span class="pill pill-demo">DEMO</span>';
-  html += `<span class="pill pill-ok">READ-ONLY</span>`;
+  html += '<span class="pill pill-ok">READ-ONLY</span>';
   if (s.graph_loaded) html += '<span class="pill pill-info">GRAPH</span>';
   else html += '<span class="pill pill-warn">NO GRAPH</span>';
   pills.innerHTML = html;
@@ -696,18 +1079,99 @@ async function loadFeed() {
       `<span class="badge badge-${k === 'new' ? 'ok' : k === 'confirming' ? 'info' : k === 'conflicting' ? 'err' : 'neutral'}">${k}=${v}</span>`
     ).join(' ');
 
-    return `<tr class="clickable" onclick="selectDocument(${d.id})" data-doc-id="${d.id}">
+    const isSelected = d.id === state.selectedDocId;
+    return `<tr class="clickable ${isSelected ? 'selected' : ''}" onclick="selectDocument(${d.id})" data-doc-id="${d.id}">
       <td>${esc(fmtShortTime(d.timestamp))}</td>
-      <td style="color:var(--accent-cyan); font-weight:600;">${esc(d.ticker || '—')}</td>
+      <td style="color:var(--accent-cyan); font-weight:600;">${esc(d.ticker || '\u2014')}</td>
       <td>${esc(d.document_type)}</td>
-      <td style="max-width:250px;" title="${esc(d.title)}">${esc(d.title || '—')}</td>
-      <td>${badge(d.source_tier || '—', d.source_tier === 'tier_1' ? 'ok' : d.source_tier === 'tier_2' ? 'info' : 'neutral')}</td>
+      <td style="max-width:250px;" title="${esc(d.title)}">${esc(d.title || '\u2014')}</td>
+      <td>${badge(d.source_tier || '\u2014', d.source_tier === 'tier_1' ? 'ok' : d.source_tier === 'tier_2' ? 'info' : 'neutral')}</td>
       <td>${d.claim_count}</td>
-      <td>${noveltyParts || '—'}</td>
+      <td>${noveltyParts || '\u2014'}</td>
       <td>${d.thesis_update_triggered ? badge('YES', 'ok') : badge('NO', 'neutral')}</td>
       <td>${badge(d.ingestion_status, d.ingestion_status === 'OK' ? 'ok' : 'err')}</td>
     </tr>`;
   }).join('');
+}
+
+// ---- What Changed card ----
+async function loadWhatChanged(docId) {
+  const wc = await api(`/api/documents/${docId}/what-changed`);
+  const container = document.getElementById('what-changed-container');
+  if (!wc) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+
+  let newInfoHtml = '';
+  (wc.new_information || []).forEach(c => {
+    const dirCls = dirClass(c.direction);
+    newInfoHtml += `<div class="wc-item"><span class="${dirCls}">${esc(c.direction)}</span> ${esc(c.text_short)} ${badge(c.novelty_type, c.novelty_type === 'new' ? 'ok' : c.novelty_type === 'confirming' ? 'info' : c.novelty_type === 'conflicting' ? 'err' : 'neutral')}</div>`;
+  });
+
+  let memoryHtml = '';
+  (wc.retrieved_memory || []).forEach(m => {
+    memoryHtml += `<div class="wc-item">${esc(m)}</div>`;
+  });
+  if (!memoryHtml) memoryHtml = '<div class="wc-item" style="color:var(--text-dim);">No linked themes</div>';
+
+  let thesisDeltaHtml = '';
+  (wc.thesis_delta || []).forEach(td => {
+    const arrow = td.old_state && td.new_state && td.old_state !== td.new_state
+      ? `${badge(td.old_state, 'neutral')} &rarr; ${badge(td.new_state, td.new_state === 'strengthening' ? 'ok' : td.new_state === 'weakening' ? 'warn' : 'info')}`
+      : badge(td.new_state || td.old_state || '\u2014', 'info');
+    thesisDeltaHtml += `<div class="wc-item">
+      <span style="color:var(--accent-cyan); cursor:pointer;" onclick="loadThesisById(${td.thesis_id})">${esc(td.title)}</span>
+      ${arrow} ${deltaStr(td.conviction_delta)}
+    </div>`;
+  });
+  if (!thesisDeltaHtml) thesisDeltaHtml = '<div class="wc-item" style="color:var(--text-dim);">No thesis changes</div>';
+
+  let recoHtml = '';
+  (wc.recommendation_delta || []).forEach(r => {
+    recoHtml += `<div class="wc-item">${esc(r.ticker)} ${actionBadge(r.action)} score ${r.action_score.toFixed(0)} ${(r.reason_codes || []).map(rc => badge(rc, 'info')).join(' ')}</div>`;
+  });
+  if (!recoHtml) recoHtml = '<div class="wc-item" style="color:var(--text-dim);">No recommendation changes</div>';
+
+  const ticker = wc.document ? wc.document.ticker : '';
+
+  container.innerHTML = `
+    <div class="what-changed-card">
+      <div class="what-changed-header">
+        <h2>What Changed</h2>
+        <span style="font-size:10px; color:var(--text-secondary);">${esc(wc.document ? wc.document.title : '')}</span>
+        ${ticker ? `<span style="font-size:10px; color:var(--accent-cyan); font-weight:600; margin-left:4px;">${esc(ticker)}</span>` : ''}
+      </div>
+      <div class="what-changed-body">
+        <div class="wc-section">
+          <h4>New Information</h4>
+          ${newInfoHtml}
+        </div>
+        <div class="wc-section">
+          <h4>Retrieved Memory</h4>
+          ${memoryHtml}
+        </div>
+        <div class="wc-section">
+          <h4>Thesis Delta</h4>
+          ${thesisDeltaHtml}
+        </div>
+        <div class="wc-section">
+          <h4>Recommendation Delta</h4>
+          ${recoHtml}
+        </div>
+        <div class="wc-why">
+          ${esc(wc.why_it_matters || '')}
+        </div>
+        <div class="wc-actions">
+          <button class="nav-link-btn" onclick="switchView('claims')">View Claims &rarr;</button>
+          ${ticker ? `<button class="nav-link-btn" onclick="loadThesisByTicker('${esc(ticker)}')">View Thesis &rarr;</button>` : ''}
+          ${ticker ? `<button class="nav-link-btn" onclick="loadGraphForTickerValue('${esc(ticker)}')">View Graph &rarr;</button>` : ''}
+          <button class="nav-link-btn" onclick="switchView('timeline')">View Timeline &rarr;</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // ---- Document selection -> Claims view ----
@@ -717,33 +1181,46 @@ async function selectDocument(docId) {
   if (!detail) return;
 
   // Highlight row
-  document.querySelectorAll('#feed-tbody tr').forEach(r => r.style.background = '');
-  const row = document.querySelector(`tr[data-doc-id="${docId}"]`);
-  if (row) row.style.background = 'var(--bg-hover)';
+  document.querySelectorAll('#feed-tbody tr').forEach(r => {
+    r.classList.toggle('selected', r.dataset.docId == docId);
+  });
+
+  // Load what-changed card
+  loadWhatChanged(docId);
 
   // Load timeline for this document
   loadDocTimeline(docId);
+
+  // Load narrative for this document
+  loadNarrative(docId);
 
   // Populate claims view
   const docInfo = document.getElementById('claims-doc-info');
   docInfo.innerHTML = `
     <div class="detail-kv"><span class="k">Document</span><span class="v">${esc(detail.document.title)}</span></div>
-    <div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan);">${esc(detail.document.ticker)}</span></div>
+    <div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan); font-weight:600;">${esc(detail.document.ticker)}</span></div>
     <div class="detail-kv"><span class="k">Type</span><span class="v">${esc(detail.document.document_type)}</span></div>
     <div class="detail-kv"><span class="k">Published</span><span class="v">${fmtTime(detail.document.timestamp)}</span></div>
     <div class="detail-kv"><span class="k">Claims</span><span class="v">${detail.claims.length}</span></div>
+  `;
+
+  // Nav buttons in claims view
+  const ticker = detail.document.ticker;
+  document.getElementById('claims-nav-btns').innerHTML = `
+    ${ticker ? `<button class="nav-link-btn" onclick="loadThesisByTicker('${esc(ticker)}')">Thesis &rarr;</button>` : ''}
+    <button class="nav-link-btn" onclick="switchView('timeline')">Timeline &rarr;</button>
   `;
 
   const table = document.getElementById('claims-table');
   table.style.display = '';
   const tbody = document.getElementById('claims-tbody');
   tbody.innerHTML = detail.claims.map((c, idx) => `
-    <tr class="clickable" onclick="selectClaim(${idx})">
+    <tr class="clickable" onclick="selectClaim(${idx})" data-claim-idx="${idx}">
       <td style="max-width:200px;" title="${esc(c.text)}">${esc(c.text_short || c.text)}</td>
       <td>${esc(c.claim_type)}</td>
       <td>${esc(c.economic_channel)}</td>
       <td class="${dirClass(c.direction)}">${esc(c.direction)}</td>
-      <td>${c.strength != null ? c.strength.toFixed(1) : '—'}</td>
+      <td>${c.strength != null ? c.strength.toFixed(1) : '\u2014'}</td>
       <td>${badge(c.novelty_type, c.novelty_type === 'new' ? 'ok' : c.novelty_type === 'confirming' ? 'info' : c.novelty_type === 'conflicting' ? 'err' : 'neutral')}</td>
     </tr>
   `).join('');
@@ -759,14 +1236,21 @@ function selectClaim(idx) {
   const c = state.currentClaims[idx];
   if (!c) return;
 
+  // Highlight claim row
+  document.querySelectorAll('#claims-tbody tr').forEach(r => {
+    r.classList.toggle('selected', parseInt(r.dataset.claimIdx) === idx);
+  });
+
   // Memory panel — linked theses and themes
   let memoryHtml = '';
   if (c.linked_theses && c.linked_theses.length) {
     memoryHtml += '<div class="detail-section"><h3>Linked Theses</h3>';
     c.linked_theses.forEach(t => {
       memoryHtml += `<div class="detail-kv">
-        <span class="k">[${esc(t.link_type)}]</span>
-        <span class="v"><span style="color:var(--accent-cyan); cursor:pointer;" onclick="loadThesisById(${t.id})">${esc(t.ticker)}</span> — ${esc(t.title)}</span>
+        <span class="k">${badge(t.link_type, t.link_type === 'supports' ? 'ok' : t.link_type === 'weakens' ? 'warn' : 'info')}</span>
+        <span class="v">
+          <span style="color:var(--accent-cyan); cursor:pointer; text-decoration:underline;" onclick="loadThesisById(${t.id})">${esc(t.ticker)} &mdash; ${esc(t.title)}</span>
+        </span>
       </div>`;
     });
     memoryHtml += '</div>';
@@ -780,9 +1264,9 @@ function selectClaim(idx) {
   }
   if (c.linked_tickers && c.linked_tickers.length) {
     memoryHtml += '<div class="detail-section"><h3>Affected Tickers</h3>';
-    memoryHtml += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+    memoryHtml += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
     c.linked_tickers.forEach(t => {
-      memoryHtml += `<span style="color:var(--accent-cyan); cursor:pointer;" onclick="loadThesisByTicker('${t}')">${esc(t)}</span>`;
+      memoryHtml += `<button class="nav-link-btn" onclick="loadThesisByTicker('${t}')">${esc(t)}</button>`;
     });
     memoryHtml += '</div></div>';
   }
@@ -794,9 +1278,9 @@ function selectClaim(idx) {
   impactHtml += `<div class="detail-kv"><span class="k">Type</span><span class="v">${esc(c.claim_type)}</span></div>`;
   impactHtml += `<div class="detail-kv"><span class="k">Economic Channel</span><span class="v">${esc(c.economic_channel)}</span></div>`;
   impactHtml += `<div class="detail-kv"><span class="k">Direction</span><span class="v ${dirClass(c.direction)}">${esc(c.direction)}</span></div>`;
-  impactHtml += `<div class="detail-kv"><span class="k">Strength</span><span class="v">${c.strength != null ? c.strength.toFixed(2) : '—'}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Strength</span><span class="v">${c.strength != null ? c.strength.toFixed(2) : '\u2014'}</span></div>`;
   impactHtml += `<div class="detail-kv"><span class="k">Novelty</span><span class="v">${badge(c.novelty_type, c.novelty_type === 'new' ? 'ok' : c.novelty_type === 'confirming' ? 'info' : c.novelty_type === 'conflicting' ? 'err' : 'neutral')}</span></div>`;
-  impactHtml += `<div class="detail-kv"><span class="k">Confidence</span><span class="v">${c.confidence != null ? c.confidence.toFixed(2) : '—'}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Confidence</span><span class="v">${c.confidence != null ? c.confidence.toFixed(2) : '\u2014'}</span></div>`;
   impactHtml += `<div class="detail-kv"><span class="k">Structural</span><span class="v">${c.is_structural ? badge('YES', 'ok') : badge('NO', 'neutral')}</span></div>`;
   impactHtml += '</div>';
 
@@ -805,6 +1289,18 @@ function selectClaim(idx) {
     impactHtml += `<div style="color:var(--text-primary); font-size:11px; line-height:1.6;">${esc(c.text)}</div>`;
     impactHtml += '</div>';
   }
+
+  // Cross-link buttons
+  impactHtml += '<div style="display:flex; gap:6px; margin-top:8px;">';
+  if (c.linked_theses && c.linked_theses.length) {
+    const first = c.linked_theses[0];
+    impactHtml += `<button class="nav-link-btn" onclick="loadThesisById(${first.id})">View Thesis &rarr;</button>`;
+  }
+  if (c.linked_tickers && c.linked_tickers.length) {
+    impactHtml += `<button class="nav-link-btn" onclick="loadGraphForTickerValue('${c.linked_tickers[0]}')">View Graph &rarr;</button>`;
+  }
+  impactHtml += '</div>';
+
   document.getElementById('claims-impact').innerHTML = impactHtml;
 }
 
@@ -847,15 +1343,15 @@ async function loadTickerTheses(ticker) {
       probation: 'var(--accent-amber)',
     }[t.state] || 'var(--text-secondary)';
 
-    html += `<div style="padding:8px; border-bottom:1px solid var(--border); cursor:pointer;" onclick="renderThesisDetail(window._theses[${t.id}])">
+    html += `<div style="padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s;" onmouseenter="this.style.background='var(--bg-hover)'" onmouseleave="this.style.background=''" onclick="renderThesisDetail(window._theses[${t.id}])">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span style="font-weight:600; color:var(--text-primary);">${esc(t.title)}</span>
         <span style="color:${stateColor}; font-weight:600; text-transform:uppercase; font-size:10px;">${esc(t.state)}</span>
       </div>
-      <div style="display:flex; gap:12px; margin-top:4px; font-size:10px; color:var(--text-secondary);">
+      <div style="display:flex; gap:14px; margin-top:6px; font-size:10px; color:var(--text-secondary);">
         <span>Conv: ${convictionBar(t.conviction_score)}</span>
-        <span>Val gap: ${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '—'}</span>
-        <span>History: ${t.history ? t.history.length : 0} entries</span>
+        <span>Val gap: ${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '\u2014'}</span>
+        <span>History: ${t.history ? t.history.length : 0}</span>
       </div>
     </div>`;
   });
@@ -872,15 +1368,22 @@ async function loadTickerTheses(ticker) {
 function renderThesisDetail(t) {
   if (!t) return;
   state.selectedThesisId = t.id;
+  state.selectedTicker = t.ticker;
   const detail = document.getElementById('thesis-detail');
+
+  // Nav buttons
+  document.getElementById('thesis-nav-btns').innerHTML = `
+    <button class="nav-link-btn" onclick="switchView('portfolio')">Portfolio &rarr;</button>
+    <button class="nav-link-btn" onclick="loadGraphForTickerValue('${esc(t.ticker)}')">Graph &rarr;</button>
+  `;
 
   let html = '<div class="detail-section"><h3>Current State</h3>';
   html += `<div class="detail-kv"><span class="k">Title</span><span class="v">${esc(t.title)}</span></div>`;
-  html += `<div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan);">${esc(t.ticker)}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan); font-weight:600;">${esc(t.ticker)}</span></div>`;
   html += `<div class="detail-kv"><span class="k">State</span><span class="v">${badge(t.state, t.state === 'strengthening' ? 'ok' : t.state === 'weakening' ? 'warn' : t.state === 'broken' ? 'err' : 'info')}</span></div>`;
   html += `<div class="detail-kv"><span class="k">Conviction</span><span class="v">${convictionBar(t.conviction_score)}</span></div>`;
-  html += `<div class="detail-kv"><span class="k">Valuation Gap</span><span class="v">${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '—'}</span></div>`;
-  html += `<div class="detail-kv"><span class="k">Base Case Rerating</span><span class="v">${t.base_case_rerating != null ? t.base_case_rerating.toFixed(1) + '%' : '—'}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Valuation Gap</span><span class="v">${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '\u2014'}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Base Case Rerating</span><span class="v">${t.base_case_rerating != null ? t.base_case_rerating.toFixed(1) + '%' : '\u2014'}</span></div>`;
   html += `<div class="detail-kv"><span class="k">Created</span><span class="v">${fmtTime(t.created_at)}</span></div>`;
   html += `<div class="detail-kv"><span class="k">Updated</span><span class="v">${fmtTime(t.updated_at)}</span></div>`;
   if (t.summary) {
@@ -888,32 +1391,38 @@ function renderThesisDetail(t) {
   }
   html += '</div>';
 
-  // State timeline
+  // State evolution timeline with before/after delta
   if (t.history && t.history.length) {
     html += '<div class="detail-section"><h3>State Evolution Timeline</h3>';
-    html += '<table class="data-table"><thead><tr><th>Time</th><th>State</th><th>Conv.</th><th>Val Gap</th><th>Note</th></tr></thead><tbody>';
-    // Show before/after delta for adjacent entries
+    html += '<table class="data-table"><thead><tr><th>Time</th><th>State</th><th>Conviction</th><th>Val Gap</th><th>Note</th></tr></thead><tbody>';
     for (let i = 0; i < t.history.length; i++) {
       const h = t.history[i];
       const prev = i > 0 ? t.history[i-1] : null;
       const stateChanged = prev && prev.state !== h.state;
       const convDelta = prev && prev.conviction_score != null && h.conviction_score != null
         ? h.conviction_score - prev.conviction_score : null;
-      const convDeltaStr = convDelta != null ? ` (${convDelta >= 0 ? '+' : ''}${convDelta.toFixed(0)})` : '';
+      const convDeltaStr = convDelta != null ? ` ${deltaStr(convDelta)}` : '';
+      const rowStyle = stateChanged ? 'border-left:3px solid var(--accent-amber); background:rgba(234,179,8,0.03);' : '';
 
-      html += `<tr ${stateChanged ? 'style="border-left:3px solid var(--accent-amber);"' : ''}>
+      html += `<tr style="${rowStyle}">
         <td>${fmtTime(h.created_at)}</td>
         <td>${badge(h.state, h.state === 'strengthening' ? 'ok' : h.state === 'weakening' ? 'warn' : h.state === 'broken' ? 'err' : 'info')}</td>
-        <td>${h.conviction_score != null ? h.conviction_score.toFixed(0) : '—'}${convDeltaStr ? `<span style="color:${convDelta >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${convDeltaStr}</span>` : ''}</td>
-        <td>${h.valuation_gap_pct != null ? h.valuation_gap_pct.toFixed(1) + '%' : '—'}</td>
-        <td style="max-width:200px;">${esc(h.note || '')}</td>
+        <td>${h.conviction_score != null ? convictionBar(h.conviction_score) : '\u2014'}${convDeltaStr}</td>
+        <td>${h.valuation_gap_pct != null ? h.valuation_gap_pct.toFixed(1) + '%' : '\u2014'}</td>
+        <td style="max-width:200px; white-space:normal;">${esc(h.note || '')}</td>
       </tr>`;
     }
     html += '</tbody></table></div>';
   }
 
-  // Graph link
-  html += `<div style="margin-top:12px;"><button onclick="loadGraphForTickerValue('${t.ticker}')" style="background:var(--bg-hover); border:1px solid var(--border); color:var(--accent-cyan); padding:4px 12px; border-radius:3px; cursor:pointer; font-family:var(--mono); font-size:11px;">View in Graph</button></div>`;
+  // Cross-link buttons
+  html += '<div style="display:flex; gap:6px; margin-top:12px;">';
+  html += `<button class="nav-link-btn" onclick="loadGraphForTickerValue('${esc(t.ticker)}')">View in Graph &rarr;</button>`;
+  html += `<button class="nav-link-btn" onclick="switchView('portfolio')">View Portfolio &rarr;</button>`;
+  if (state.selectedDocId) {
+    html += `<button class="nav-link-btn" onclick="switchView('timeline')">View Timeline &rarr;</button>`;
+  }
+  html += '</div>';
 
   detail.innerHTML = html;
 }
@@ -925,6 +1434,11 @@ async function loadPortfolio() {
     api('/api/candidates'),
     api('/api/reviews/latest'),
   ]);
+
+  // Nav buttons
+  document.getElementById('portfolio-nav-btns').innerHTML = `
+    ${state.selectedTicker ? `<button class="nav-link-btn" onclick="loadGraphForTickerValue('${esc(state.selectedTicker)}')">Graph &rarr;</button>` : ''}
+  `;
 
   // Positions
   const ptbody = document.getElementById('positions-tbody');
@@ -962,7 +1476,7 @@ async function loadPortfolio() {
   // Review decisions
   if (review) {
     document.getElementById('review-header').innerHTML = `
-      <div style="display:flex; gap:16px; font-size:11px; color:var(--text-secondary);">
+      <div style="display:flex; gap:16px; font-size:11px; color:var(--text-secondary); flex-wrap:wrap;">
         <span>Date: <b style="color:var(--text-primary);">${esc(review.review_date)}</b></span>
         <span>Type: <b style="color:var(--text-primary);">${esc(review.review_type)}</b></span>
         <span>Holdings: ${review.holdings_reviewed}</span>
@@ -976,8 +1490,8 @@ async function loadPortfolio() {
         <td style="color:var(--accent-cyan); font-weight:600;">${esc(d.ticker)}</td>
         <td>${actionBadge(d.action)}</td>
         <td>${d.action_score.toFixed(1)}</td>
-        <td>${d.target_weight_change != null ? (d.target_weight_change >= 0 ? '+' : '') + d.target_weight_change.toFixed(1) + '%' : '—'}</td>
-        <td>${d.suggested_weight != null ? d.suggested_weight.toFixed(1) + '%' : '—'}</td>
+        <td>${d.target_weight_change != null ? (d.target_weight_change >= 0 ? '+' : '') + d.target_weight_change.toFixed(1) + '%' : '\u2014'}</td>
+        <td>${d.suggested_weight != null ? d.suggested_weight.toFixed(1) + '%' : '\u2014'}</td>
         <td style="max-width:200px;">${(d.reason_codes || []).map(r => badge(r, 'info')).join(' ')}</td>
         <td>${d.was_executed ? badge('YES', 'ok') : badge('NO', 'neutral')}</td>
       </tr>
@@ -986,9 +1500,7 @@ async function loadPortfolio() {
 }
 
 // ---- Graph ----
-function initGraph() {
-  // Already initialized? Don't re-init
-}
+function initGraph() {}
 
 function loadGraphForTicker() {
   const ticker = document.getElementById('graph-ticker-input').value.trim().toUpperCase();
@@ -1006,7 +1518,7 @@ async function loadGraphForTickerValue(ticker) {
   }
 
   document.getElementById('graph-stats').textContent =
-    `${data.nodes.length} nodes · ${data.edges.length} edges`;
+    `${data.nodes.length} nodes \u00b7 ${data.edges.length} edges`;
 
   const container = document.getElementById('graph-container');
   const nodes = new vis.DataSet(data.nodes);
@@ -1027,7 +1539,7 @@ async function loadGraphForTickerValue(ticker) {
   state.graphNetwork = new vis.Network(container, { nodes, edges }, options);
 }
 
-// ---- Event timeline ----
+// ---- Event timeline (enhanced) ----
 async function loadDocTimeline(docId) {
   const timeline = await api(`/api/documents/${docId}/timeline`);
   const body = document.getElementById('timeline-body');
@@ -1044,18 +1556,66 @@ async function loadDocTimeline(docId) {
     GRAPH: 'var(--accent-blue)',
   };
 
-  body.innerHTML = timeline.map(e => `
+  body.innerHTML = timeline.map((e, i) => `
     <div class="timeline-row">
-      <span class="timeline-stage" style="color:${stageColors[e.stage] || 'var(--text-secondary)'};">${esc(e.stage)}</span>
-      <span class="timeline-ticker">${esc(e.ticker)}</span>
-      <span class="timeline-detail">${esc(e.detail)}</span>
-      <span class="timeline-extra">${esc(e.extra || '')}</span>
-      <span class="timeline-status">${badge(e.status, e.status === 'OK' ? 'ok' : e.status === 'NONE' ? 'neutral' : 'warn')}</span>
+      <div class="timeline-connector">
+        <div class="timeline-dot" style="background:${stageColors[e.stage] || 'var(--text-dim)'};"></div>
+        ${i < timeline.length - 1 ? '<div class="timeline-line"></div>' : ''}
+      </div>
+      <div class="timeline-content">
+        <span class="timeline-stage" style="color:${stageColors[e.stage] || 'var(--text-secondary)'};">${esc(e.stage)}</span>
+        <span class="timeline-ticker">${esc(e.ticker)}</span>
+        <span class="timeline-detail">${esc(e.detail)}</span>
+        <span class="timeline-extra">${esc(e.extra || '')}</span>
+        <span class="timeline-status">${badge(e.status, e.status === 'OK' ? 'ok' : e.status === 'NONE' ? 'neutral' : 'warn')}</span>
+      </div>
     </div>
   `).join('');
 
   document.getElementById('timeline-hint').textContent =
-    `Document #${docId} — ${timeline.length} pipeline stages`;
+    `Document #${docId} \u2014 ${timeline.length} pipeline stages`;
+
+  // Nav buttons
+  const ticker = timeline[0] ? timeline[0].ticker : '';
+  document.getElementById('timeline-nav-btns').innerHTML = `
+    <button class="nav-link-btn" onclick="switchView('feed')">Back to Feed</button>
+    ${ticker && ticker !== '\u2014' ? `<button class="nav-link-btn" onclick="loadGraphForTickerValue('${esc(ticker)}')">Graph &rarr;</button>` : ''}
+  `;
+}
+
+// ---- Narrative export ----
+async function loadNarrative(docId) {
+  const narrative = await api(`/api/documents/${docId}/narrative`);
+  const container = document.getElementById('narrative-container');
+  if (!narrative || !narrative.length) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+
+  const text = narrative.map(n => `[${n.stage}] ${n.text}`).join('\n');
+
+  container.innerHTML = `
+    <div class="narrative-panel">
+      <div class="narrative-header">
+        Demo Narrative
+        <button class="narrative-copy-btn" onclick="copyNarrative()">Copy</button>
+      </div>
+      <div class="narrative-body" id="narrative-text">${esc(text)}</div>
+    </div>
+  `;
+
+  window._narrativeText = text;
+}
+
+function copyNarrative() {
+  if (window._narrativeText) {
+    navigator.clipboard.writeText(window._narrativeText).then(() => {
+      const btn = document.querySelector('.narrative-copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+  }
 }
 
 // ---- Global search ----
@@ -1068,14 +1628,16 @@ document.getElementById('global-search').addEventListener('keydown', e => {
 
 // ---- Initial load ----
 async function init() {
-  await Promise.all([loadStatus(), loadFeed()]);
+  await Promise.all([loadStatus(), loadFeed(), loadDemoSubjects()]);
 }
 init();
 
 // Auto-refresh every 30s
 setInterval(() => {
-  loadStatus();
-  loadFeed();
+  if (state.autoRefresh) {
+    loadStatus();
+    loadFeed();
+  }
 }, 30000);
 </script>
 </body>

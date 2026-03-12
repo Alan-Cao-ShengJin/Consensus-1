@@ -198,9 +198,44 @@ This drill-down path is the primary demo flow.
 | Status | All tables (counts) | Optional |
 
 
+## Demo-Polish Pass (Step 12.5b)
+
+### What Was Added
+
+1. **"What Changed" summary card** — appears in Feed view when a document is selected. Shows new information, retrieved memory, thesis delta, recommendation delta, and a "why it matters" summary. All data sourced from real persisted objects.
+
+2. **Guided Demo ribbon** — collapsible step indicator (Feed → Claims → Thesis → Portfolio → Graph → Timeline) toggled with "Guide" button or G key. Tracks current step with active/done highlighting.
+
+3. **Demo subject quick-picker** — three buttons in the top bar: Latest Trigger, Thesis Delta, Actionable. Auto-selects the best demo subject from current state.
+
+4. **Cross-linking between views** — every panel has navigation buttons to the next relevant view. Claims → Thesis → Portfolio → Graph → Timeline → Feed. Thesis links are clickable. Tickers are clickable.
+
+5. **Enhanced event timeline** — vertical dot/line connector visualization. Colored stage dots. Timestamps and drill-down context.
+
+6. **Narrative export** — copyable text summary of the full pipeline flow for a document, shown in the Timeline view.
+
+7. **CLI improvements** — `--focus latest-thesis-delta|latest-actionable|latest-trigger`, `--no-auto-refresh` flags.
+
+8. **Visual polish** — selected row highlighting, better spacing, stronger delta presentation (green/red conviction badges), cleaner empty states.
+
+### New API Endpoints
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /api/demo/subjects` | GET | Best demo subjects (latest trigger, thesis delta, actionable, conviction change) |
+| `GET /api/documents/<id>/what-changed` | GET | What Changed summary card data |
+| `GET /api/documents/<id>/narrative` | GET | Narrative pipeline steps |
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `console_demo_guide.md` | 3–5 minute walkthrough guide with talk track |
+
+
 ## What Passed
 
-All 67 Step 12.5 tests pass deterministically:
+All 94 Step 12.5 tests pass deterministically:
 
 - Recent documents: returns docs, claim counts, novelty counts, thesis trigger flag
 - Document detail: claims present, linked tickers/themes/theses, claim fields correct
@@ -216,6 +251,10 @@ All 67 Step 12.5 tests pass deterministically:
 - Flask routes: all endpoints return correct status codes
 - Read-only enforcement: POST/PUT/DELETE return 405, data unchanged after reads
 - Serialization: None, enum, datetime, date, string handling
+- Demo subjects: all keys present, correct thesis delta/actionable/trigger/conviction
+- What Changed: document field, claims, themes, thesis delta, recommendation delta, why_it_matters
+- Narrative export: all stages present, ingest has title, claims has count, recommendation stage
+- Demo polish routes: all endpoints return correct status, demo/real mode labeled
 
 
 ## Hard Constraints Maintained

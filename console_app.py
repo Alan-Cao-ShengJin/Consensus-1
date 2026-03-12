@@ -35,6 +35,9 @@ from console_api import (
     get_graph_thesis_view,
     get_graph_theme_view,
     get_graph_full_summary,
+    get_demo_subjects,
+    get_what_changed,
+    get_narrative_export,
 )
 
 logger = logging.getLogger(__name__)
@@ -207,5 +210,31 @@ def create_console_app(
             return jsonify({"error": "Graph not loaded"}), 503
         data = get_graph_theme_view(cg, theme_id)
         return jsonify(data)
+
+    # -----------------------------------------------------------------------
+    # API: Demo helpers
+    # -----------------------------------------------------------------------
+
+    @app.route("/api/demo/subjects")
+    def api_demo_subjects():
+        with get_session() as session:
+            subjects = get_demo_subjects(session)
+            return jsonify(subjects)
+
+    @app.route("/api/documents/<int:doc_id>/what-changed")
+    def api_what_changed(doc_id):
+        with get_session() as session:
+            result = get_what_changed(session, doc_id)
+            if not result:
+                return jsonify({"error": "Document not found"}), 404
+            return jsonify(result)
+
+    @app.route("/api/documents/<int:doc_id>/narrative")
+    def api_narrative(doc_id):
+        with get_session() as session:
+            result = get_narrative_export(session, doc_id)
+            if not result:
+                return jsonify({"error": "Document not found"}), 404
+            return jsonify(result)
 
     return app

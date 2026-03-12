@@ -6,6 +6,8 @@ Usage:
   python scripts/run_console.py --demo
   python scripts/run_console.py --no-graph
   python scripts/run_console.py --host 0.0.0.0 --port 5000
+  python scripts/run_console.py --focus latest-thesis-delta
+  python scripts/run_console.py --no-auto-refresh
 """
 from __future__ import annotations
 
@@ -39,6 +41,13 @@ def main():
     parser.add_argument("--no-graph", dest="load_graph", action="store_false",
                        default=True,
                        help="Skip loading the graph layer")
+    parser.add_argument("--focus", type=str, default=None,
+                       choices=["latest-thesis-delta", "latest-actionable",
+                                "latest-trigger"],
+                       help="Pre-select a demo subject on launch")
+    parser.add_argument("--no-auto-refresh", dest="auto_refresh",
+                       action="store_false", default=True,
+                       help="Disable auto-refresh (useful during demos)")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--debug", action="store_true",
                        help="Enable Flask debug mode (auto-reload)")
@@ -72,6 +81,8 @@ def main():
         graph=graph,
         demo_mode=args.demo,
     )
+    app.config["AUTO_REFRESH"] = args.auto_refresh
+    app.config["FOCUS"] = args.focus
 
     logger.info("=" * 50)
     logger.info("CONSENSUS OPERATOR CONSOLE")
@@ -79,6 +90,10 @@ def main():
     logger.info("URL: http://%s:%d", args.host, args.port)
     if args.demo:
         logger.info("Mode: DEMO")
+    if args.focus:
+        logger.info("Focus: %s", args.focus)
+    if not args.auto_refresh:
+        logger.info("Auto-refresh: DISABLED")
     logger.info("Graph: %s", "loaded" if graph else "not loaded")
     logger.info("=" * 50)
 

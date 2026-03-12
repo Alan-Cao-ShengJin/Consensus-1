@@ -652,3 +652,397 @@ def get_graph_theme_view(cg, theme_id: int) -> dict:
 def get_graph_full_summary(cg) -> dict:
     """Get full graph stats."""
     return cg.summary()
+
+
+# ---------------------------------------------------------------------------
+# K. Demo subjects / what-changed / narrative export
+# ---------------------------------------------------------------------------
+
+def get_demo_subjects(session: Session) -> dict:
+    """Return interesting demo subjects for the operator console."""
+
+    # --- latest_thesis_delta ---
+    latest_thesis_delta = None
+    # Find thesis with most recent history entry that shows a state change
+    # by scanning recent history pairs
+    recent_histories = (
+        session.query(ThesisStateHistory)
+        .order_by(desc(ThesisStateHistory.created_at))
+        .limit(200)
+        .all()
+    )
+    # Group by thesis_id, keep only first 2 per thesis
+    from collections import defaultdict
+    by_thesis: dict[int, list] = defaultdict(list)
+    for h in recent_histories:
+        if len(by_thesis[h.thesis_id]) < 2:
+            by_thesis[h.thesis_id].append(h)
+
+    # Find the thesis whose most recent history entry is newest AND shows a change
+    for tid in by_thesis:
+        entries = by_thesis[tid]
+        if len(entries) >= 2:
+            curr, prev = entries[0], entries[1]
+            if _ser(curr.state) != _ser(prev.state) or curr.conviction_score != prev.conviction_score:
+                thesis = session.get(Thesis, tid)
+                if thesis:
+                    # Find a document_id via claim linked to this thesis
+                    doc_id_link = (
+                        session.query(Claim.document_id)
+                        .join(ThesisClaimLink, ThesisClaimLink.claim_id == Claim.id)
+                        .filter(ThesisClaimLink.thesis_id == tid)
+                        .order_by(desc(Claim.id))
+                        .first()
+                    )
+                    conv_delta = None
+                    if curr.conviction_score is not None and prev.conviction_score is not None:
+                        conv_delta = round(curr.conviction_score - prev.conviction_score, 2)
+                    latest_thesis_delta = {
+                        "thesis_id": tid,
+                        "ticker": thesis.company_ticker,
+                        "title": thesis.title,
+                        "old_state": _ser(prev.state),
+                        "new_state": _ser(curr.state),
+                        "old_conviction": prev.conviction_score,
+                        "new_conviction": curr.conviction_score,
+                        "conviction_delta": conv_delta,
+                        "document_id": doc_id_link[0] if doc_id_link else None,
+                    }
+                    break
+
+    # --- latest_actionable ---
+    latest_actionable = None
+    actionable_dec = (
+        session.query(PortfolioDecision)
+        .filter(PortfolioDecision.action.notin_([ActionType.NO_ACTION, ActionType.HOLD]))
+        .order_by(desc(PortfolioDecision.generated_at))
+        .first()
+    )
+    if actionable_dec:
+        latest_actionable = {
+            "ticker": actionable_dec.ticker,
+            "action": _ser(actionable_dec.action),
+            "action_score": actionable_dec.action_score,
+            "reason_codes": json.loads(actionable_dec.reason_codes) if actionable_dec.reason_codes else [],
+            "review_id": actionable_dec.review_id,
+        }
+
+    # --- latest_thesis_trigger ---
+    latest_thesis_trigger = None
+    trigger_row = (
+        session.query(Document.id, Document.primary_company_ticker, Document.title,
+                      ThesisClaimLink.thesis_id)
+        .join(Claim, Claim.document_id == Document.id)
+        .join(ThesisClaimLink, ThesisClaimLink.claim_id == Claim.id)
+        .order_by(desc(Document.ingested_at))
+        .first()
+    )
+    if trigger_row:
+        thesis_obj = session.get(Thesis, trigger_row[3])
+        latest_thesis_trigger = {
+            "doc_id": trigger_row[0],
+            "ticker": trigger_row[1],
+            "title": trigger_row[2],
+            "thesis_id": trigger_row[3],
+            "thesis_title": thesis_obj.title if thesis_obj else None,
+        }
+
+    # --- latest_conviction_change ---
+    latest_conviction_change = None
+    best_delta = 0.0
+    for tid in by_thesis:
+        entries = by_thesis[tid]
+        if len(entries) >= 2:
+            curr, prev = entries[0], entries[1]
+            if curr.conviction_score is not None and prev.conviction_score is not None:
+                delta = abs(curr.conviction_score - prev.conviction_score)
+                if delta > best_delta:
+                    best_delta = delta
+                    thesis = session.get(Thesis, tid)
+                    if thesis:
+                        latest_conviction_change = {
+                            "thesis_id": tid,
+                            "ticker": thesis.company_ticker,
+                            "old_conviction": prev.conviction_score,
+                            "new_conviction": curr.conviction_score,
+                            "delta": round(curr.conviction_score - prev.conviction_score, 2),
+                        }
+
+    return {
+        "latest_thesis_delta": latest_thesis_delta,
+        "latest_actionable": latest_actionable,
+        "latest_thesis_trigger": latest_thesis_trigger,
+        "latest_conviction_change": latest_conviction_change,
+    }
+
+
+def get_what_changed(session: Session, doc_id: int) -> Optional[dict]:
+    """Build a 'what changed' summary for a document."""
+    doc = session.get(Document, doc_id)
+    if not doc:
+        return None
+
+    # --- document ---
+    document = {
+        "id": doc.id,
+        "title": doc.title,
+        "ticker": doc.primary_company_ticker,
+        "source_type": _ser(doc.source_type),
+        "published_at": _ser(doc.published_at),
+    }
+
+    # --- new_information (claims) ---
+    claims = doc.claims or []
+    new_information = [
+        {
+            "text_short": cl.claim_text_short,
+            "claim_type": _ser(cl.claim_type),
+            "direction": _ser(cl.direction),
+            "strength": cl.strength,
+            "novelty_type": _ser(cl.novelty_type),
+        }
+        for cl in claims
+    ]
+
+    # --- retrieved_memory (themes linked to claims) ---
+    claim_ids = [cl.id for cl in claims]
+    retrieved_memory = []
+    if claim_ids:
+        theme_rows = (
+            session.query(Theme.theme_name)
+            .join(ClaimThemeLink, ClaimThemeLink.theme_id == Theme.id)
+            .filter(ClaimThemeLink.claim_id.in_(claim_ids))
+            .distinct()
+            .all()
+        )
+        retrieved_memory = [r[0] for r in theme_rows]
+
+    # --- thesis_delta ---
+    thesis_delta = []
+    if claim_ids:
+        thesis_links = (
+            session.query(ThesisClaimLink)
+            .filter(ThesisClaimLink.claim_id.in_(claim_ids))
+            .all()
+        )
+        linked_thesis_ids = list({tl.thesis_id for tl in thesis_links})
+        for tid in linked_thesis_ids:
+            thesis = session.get(Thesis, tid)
+            if not thesis:
+                continue
+            history = (
+                session.query(ThesisStateHistory)
+                .filter_by(thesis_id=tid)
+                .order_by(desc(ThesisStateHistory.created_at))
+                .limit(2)
+                .all()
+            )
+            if len(history) >= 2:
+                curr, prev = history[0], history[1]
+                conv_delta = None
+                if curr.conviction_score is not None and prev.conviction_score is not None:
+                    conv_delta = round(curr.conviction_score - prev.conviction_score, 2)
+                thesis_delta.append({
+                    "thesis_id": tid,
+                    "title": thesis.title,
+                    "old_state": _ser(prev.state),
+                    "new_state": _ser(curr.state),
+                    "old_conviction": prev.conviction_score,
+                    "new_conviction": curr.conviction_score,
+                    "conviction_delta": conv_delta,
+                })
+            else:
+                thesis_delta.append({
+                    "thesis_id": tid,
+                    "title": thesis.title,
+                    "old_state": None,
+                    "new_state": _ser(thesis.state),
+                    "old_conviction": None,
+                    "new_conviction": thesis.conviction_score,
+                    "conviction_delta": None,
+                })
+
+    # --- recommendation_delta ---
+    # Get tickers from claims' linked companies
+    recommendation_delta = []
+    if claim_ids:
+        ticker_rows = (
+            session.query(ClaimCompanyLink.company_ticker)
+            .filter(ClaimCompanyLink.claim_id.in_(claim_ids))
+            .distinct()
+            .all()
+        )
+        tickers = [r[0] for r in ticker_rows]
+        if doc.primary_company_ticker and doc.primary_company_ticker not in tickers:
+            tickers.append(doc.primary_company_ticker)
+
+        if tickers:
+            # Get latest review
+            latest_review = (
+                session.query(PortfolioReview)
+                .order_by(desc(PortfolioReview.created_at))
+                .first()
+            )
+            if latest_review:
+                decisions = (
+                    session.query(PortfolioDecision)
+                    .filter(
+                        PortfolioDecision.review_id == latest_review.id,
+                        PortfolioDecision.ticker.in_(tickers),
+                    )
+                    .all()
+                )
+                for dec in decisions:
+                    recommendation_delta.append({
+                        "ticker": dec.ticker,
+                        "action": _ser(dec.action),
+                        "action_score": dec.action_score,
+                        "reason_codes": json.loads(dec.reason_codes) if dec.reason_codes else [],
+                        "rationale": dec.rationale,
+                    })
+
+    # --- why_it_matters ---
+    parts = []
+    parts.append(f"{len(new_information)} new claims")
+    for td in thesis_delta:
+        if td["old_state"] and td["new_state"] and td["old_state"] != td["new_state"]:
+            parts.append(f"thesis {td['old_state']} -> {td['new_state']}")
+        if td["conviction_delta"] is not None:
+            parts.append(f"conviction {td['conviction_delta']:+.0f}")
+    why_it_matters = ", ".join(parts)
+
+    return {
+        "document": document,
+        "new_information": new_information,
+        "retrieved_memory": retrieved_memory,
+        "thesis_delta": thesis_delta,
+        "recommendation_delta": recommendation_delta,
+        "why_it_matters": why_it_matters,
+    }
+
+
+def get_narrative_export(session: Session, doc_id: int) -> list[dict]:
+    """Build a list of narrative pipeline steps for a document."""
+    doc = session.get(Document, doc_id)
+    if not doc:
+        return []
+
+    steps = []
+
+    # Stage INGEST
+    ticker = doc.primary_company_ticker or "unknown"
+    steps.append({
+        "stage": "INGEST",
+        "text": f"Document ingested: {doc.title} ({_ser(doc.source_type)}) for {ticker}",
+    })
+
+    # Stage CLAIMS
+    claims = doc.claims or []
+    novelty_counts: dict[str, int] = {}
+    for cl in claims:
+        nt = _ser(cl.novelty_type) or "unknown"
+        novelty_counts[nt] = novelty_counts.get(nt, 0) + 1
+    count_str = ", ".join(f"{k}={v}" for k, v in sorted(novelty_counts.items()))
+    steps.append({
+        "stage": "CLAIMS",
+        "text": f"{len(claims)} claims extracted: {count_str}",
+    })
+
+    # Stage MEMORY
+    claim_ids = [cl.id for cl in claims]
+    theme_names = []
+    if claim_ids:
+        theme_rows = (
+            session.query(Theme.theme_name)
+            .join(ClaimThemeLink, ClaimThemeLink.theme_id == Theme.id)
+            .filter(ClaimThemeLink.claim_id.in_(claim_ids))
+            .distinct()
+            .all()
+        )
+        theme_names = [r[0] for r in theme_rows]
+    steps.append({
+        "stage": "MEMORY",
+        "text": f"Retrieved {len(theme_names)} themes: {', '.join(theme_names)}",
+    })
+
+    # Stage THESIS
+    linked_thesis_ids = []
+    if claim_ids:
+        thesis_links = (
+            session.query(ThesisClaimLink)
+            .filter(ThesisClaimLink.claim_id.in_(claim_ids))
+            .all()
+        )
+        linked_thesis_ids = list({tl.thesis_id for tl in thesis_links})
+        for tid in linked_thesis_ids:
+            thesis = session.get(Thesis, tid)
+            if not thesis:
+                continue
+            history = (
+                session.query(ThesisStateHistory)
+                .filter_by(thesis_id=tid)
+                .order_by(desc(ThesisStateHistory.created_at))
+                .limit(2)
+                .all()
+            )
+            if len(history) >= 2:
+                curr, prev = history[0], history[1]
+                conv_delta = None
+                if curr.conviction_score is not None and prev.conviction_score is not None:
+                    conv_delta = round(curr.conviction_score - prev.conviction_score, 2)
+                steps.append({
+                    "stage": "THESIS",
+                    "text": (
+                        f"Thesis '{thesis.title}' {_ser(prev.state)} -> {_ser(curr.state)}, "
+                        f"conviction {prev.conviction_score} -> {curr.conviction_score} ({conv_delta})"
+                    ),
+                })
+            else:
+                steps.append({
+                    "stage": "THESIS",
+                    "text": (
+                        f"Thesis '{thesis.title}' {_ser(thesis.state)}, "
+                        f"conviction {thesis.conviction_score}"
+                    ),
+                })
+
+    # Stage RECOMMENDATION
+    if claim_ids:
+        ticker_rows = (
+            session.query(ClaimCompanyLink.company_ticker)
+            .filter(ClaimCompanyLink.claim_id.in_(claim_ids))
+            .distinct()
+            .all()
+        )
+        tickers = [r[0] for r in ticker_rows]
+        if doc.primary_company_ticker and doc.primary_company_ticker not in tickers:
+            tickers.append(doc.primary_company_ticker)
+
+        if tickers:
+            latest_review = (
+                session.query(PortfolioReview)
+                .order_by(desc(PortfolioReview.created_at))
+                .first()
+            )
+            if latest_review:
+                decisions = (
+                    session.query(PortfolioDecision)
+                    .filter(
+                        PortfolioDecision.review_id == latest_review.id,
+                        PortfolioDecision.ticker.in_(tickers),
+                    )
+                    .all()
+                )
+                for dec in decisions:
+                    steps.append({
+                        "stage": "RECOMMENDATION",
+                        "text": f"{dec.ticker}: {_ser(dec.action)} (score {dec.action_score}) — {dec.rationale}",
+                    })
+
+    # Stage GRAPH
+    steps.append({
+        "stage": "GRAPH",
+        "text": f"Graph evidence: {len(linked_thesis_ids)} linked theses, {len(theme_names)} linked themes",
+    })
+
+    return steps
