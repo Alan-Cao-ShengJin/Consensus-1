@@ -66,6 +66,14 @@ class ReplayMetrics:
     dates_skipped_no_data: int = 0
     missing_price_events: int = 0
 
+    # --- Purity (Step 8.1) ---
+    purity_level: str = "unknown"
+    impure_candidate_fallbacks: int = 0
+    impure_valuation_fallbacks: int = 0
+    impure_checkpoint_fallbacks: int = 0
+    skipped_impure_total: int = 0
+    strict_replay: bool = False
+
     def to_dict(self) -> dict:
         return {
             "performance": {
@@ -115,6 +123,14 @@ class ReplayMetrics:
                 "total_fallback_count": self.total_fallback_count,
                 "dates_skipped_no_data": self.dates_skipped_no_data,
                 "missing_price_events": self.missing_price_events,
+            },
+            "purity": {
+                "purity_level": self.purity_level,
+                "strict_replay": self.strict_replay,
+                "impure_candidate_fallbacks": self.impure_candidate_fallbacks,
+                "impure_valuation_fallbacks": self.impure_valuation_fallbacks,
+                "impure_checkpoint_fallbacks": self.impure_checkpoint_fallbacks,
+                "skipped_impure_total": self.skipped_impure_total,
             },
         }
 
@@ -243,6 +259,14 @@ def compute_metrics(
     holding_periods = _compute_holding_periods(portfolio)
     if holding_periods:
         m.avg_holding_period_days = sum(holding_periods) / len(holding_periods)
+
+    # --- Purity (Step 8.1) ---
+    m.strict_replay = run_result.strict_replay
+    m.purity_level = run_result.purity_level
+    m.impure_candidate_fallbacks = run_result.total_impure_candidates
+    m.impure_valuation_fallbacks = run_result.total_impure_valuations
+    m.impure_checkpoint_fallbacks = run_result.total_impure_checkpoints
+    m.skipped_impure_total = run_result.total_skipped_impure
 
     return m
 

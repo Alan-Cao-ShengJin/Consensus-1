@@ -110,19 +110,32 @@ def _count_novel_claims_7d(
 
 def _has_checkpoint_ahead(
     session: Session, ticker: str, as_of: date,
+    *, filter_created_at: bool = False,
 ) -> tuple[bool, Optional[int]]:
     """Check if there is an upcoming checkpoint for the ticker.
 
+    Args:
+        filter_created_at: If True, only include checkpoints whose created_at
+            is on or before as_of (replay-safe). If False, use all checkpoints
+            (live mode, backward-compatible).
+
     Returns (has_checkpoint, days_to_checkpoint).
     """
-    checkpoint = session.scalars(
+    q = (
         select(Checkpoint)
         .where(
             Checkpoint.linked_company_ticker == ticker,
             Checkpoint.date_expected >= as_of,
         )
-        .order_by(Checkpoint.date_expected.asc())
-        .limit(1)
+    )
+    if filter_created_at:
+        as_of_dt = datetime.combine(as_of, datetime.max.time())
+        q = q.where(
+            Checkpoint.created_at.isnot(None),
+            Checkpoint.created_at <= as_of_dt,
+        )
+    checkpoint = session.scalars(
+        q.order_by(Checkpoint.date_expected.asc()).limit(1)
     ).first()
 
     if checkpoint and checkpoint.date_expected:
@@ -160,6 +173,40 @@ def _get_thesis_state_as_of(
         return thesis.state, thesis.conviction_score
     # Thesis did not exist yet — return a safe default
     return ThesisState.FORMING, None
+
+
+def _get_valuation_as_of(
+    session: Session, thesis: Thesis, as_of: date,
+) -> tuple[Optional[float], Optional[float], bool]:
+    """Get valuation_gap_pct and base_case_rerating as of a historical date.
+
+    Returns (valuation_gap_pct, base_case_rerating, is_historical).
+    is_historical is True if values came from ThesisStateHistory, False if
+    they came from a fallback (live thesis or None).
+
+    Anti-leakage: checks ThesisStateHistory for the most recent record
+    on or before as_of that has valuation fields populated. If no historical
+    record has these fields, falls back based on strict_mode:
+      - Non-strict: use current thesis values (documented impurity)
+      - Strict: return None (caller should downgrade/skip)
+    """
+    as_of_dt = datetime.combine(as_of, datetime.max.time())
+    hist = session.scalars(
+        select(ThesisStateHistory)
+        .where(
+            ThesisStateHistory.thesis_id == thesis.id,
+            ThesisStateHistory.created_at <= as_of_dt,
+            ThesisStateHistory.valuation_gap_pct.isnot(None),
+        )
+        .order_by(ThesisStateHistory.created_at.desc())
+        .limit(1)
+    ).first()
+
+    if hist is not None:
+        return hist.valuation_gap_pct, hist.base_case_rerating, True
+
+    # No historical valuation record — this is an impurity fallback
+    return thesis.valuation_gap_pct, thesis.base_case_rerating, False
 
 
 def build_holding_snapshot(

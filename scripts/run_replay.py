@@ -46,6 +46,8 @@ def main():
                         help="Export full results to replay_outputs/ JSON file")
     parser.add_argument("--cost-bps", type=float, default=10.0,
                         help="Transaction cost in basis points (default: 10)")
+    parser.add_argument("--strict", action="store_true",
+                        help="Strict replay: skip impure inputs instead of fallbacks")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Verbose logging")
     args = parser.parse_args()
@@ -72,6 +74,7 @@ def main():
             apply_trades=not args.no_apply,
             ticker_filter=args.ticker,
             transaction_cost_bps=args.cost_bps,
+            strict_replay=args.strict,
         )
 
         if args.export:

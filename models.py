@@ -218,6 +218,7 @@ class Checkpoint(Base):
     importance: Mapped[Optional[float]] = mapped_column(Float)  # 0-1
     linked_company_ticker: Mapped[Optional[str]] = mapped_column(ForeignKey("companies.ticker"))
     status: Mapped[Optional[str]] = mapped_column(String(50))
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
 
 class Price(Base):
@@ -275,6 +276,8 @@ class ThesisStateHistory(Base):
     thesis_id: Mapped[int] = mapped_column(ForeignKey("theses.id"), nullable=False, index=True)
     state: Mapped[ThesisState] = mapped_column(SAEnum(ThesisState), nullable=False)
     conviction_score: Mapped[Optional[float]] = mapped_column(Float)
+    valuation_gap_pct: Mapped[Optional[float]] = mapped_column(Float)
+    base_case_rerating: Mapped[Optional[float]] = mapped_column(Float)
     note: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -323,6 +326,7 @@ class Candidate(Base):
     last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     cooldown_flag: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     cooldown_until: Mapped[Optional[date]] = mapped_column(Date)
+    created_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
 
 class PortfolioReview(Base):

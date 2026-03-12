@@ -35,6 +35,7 @@ def run_replay(
     apply_trades: bool = True,
     ticker_filter: Optional[str] = None,
     transaction_cost_bps: float = 10.0,
+    strict_replay: bool = False,
 ) -> tuple[ReplayRunResult, ShadowPortfolio, ReplayMetrics]:
     """Run a full replay over the given date range.
 
@@ -47,13 +48,14 @@ def run_replay(
         apply_trades: If True, apply recommendations to shadow portfolio.
         ticker_filter: If set, only replay this ticker.
         transaction_cost_bps: Transaction cost in basis points.
+        strict_replay: If True, skip impure inputs rather than using fallbacks.
 
     Returns:
         (run_result, portfolio, metrics) tuple.
     """
     logger.info(
-        "Starting replay: %s to %s, cadence=%dd, cash=%.0f, apply=%s",
-        start_date, end_date, cadence_days, initial_cash, apply_trades,
+        "Starting replay: %s to %s, cadence=%dd, cash=%.0f, apply=%s, strict=%s",
+        start_date, end_date, cadence_days, initial_cash, apply_trades, strict_replay,
     )
 
     portfolio = ShadowPortfolio(
@@ -75,6 +77,7 @@ def run_replay(
         cadence_days=cadence_days,
         initial_cash=initial_cash,
         apply_trades=apply_trades,
+        strict_replay=strict_replay,
     )
 
     for review_date in review_dates:
@@ -87,6 +90,7 @@ def run_replay(
             prices_by_ticker=prices_by_ticker,
             ticker_filter=ticker_filter,
             apply_trades=apply_trades,
+            strict_replay=strict_replay,
         )
         run_result.review_records.append(record)
 
@@ -98,16 +102,50 @@ def run_replay(
             run_result.total_trades_skipped += len(record.execution_result.trades_skipped)
             run_result.total_fallback_count += record.execution_result.fallback_count
 
+        # Accumulate purity counters (Step 8.1)
+        run_result.total_impure_candidates += record.purity.impure_candidate_count
+        run_result.total_impure_valuations += record.purity.impure_valuation_count
+        run_result.total_impure_checkpoints += record.purity.impure_checkpoint_count
+        run_result.total_skipped_impure += (
+            record.purity.skipped_impure_candidates
+            + record.purity.skipped_impure_valuation
+            + record.purity.skipped_impure_checkpoints
+        )
+        run_result.integrity_warnings.extend(record.purity.integrity_warnings)
+
+    # Compute purity level
+    run_result.purity_level = _compute_purity_level(run_result)
+
     # Compute metrics
     metrics = compute_metrics(run_result, portfolio)
 
     logger.info(
-        "Replay complete: %d reviews, %d recommendations, %d trades, return=%.2f%%",
+        "Replay complete: %d reviews, %d recommendations, %d trades, return=%.2f%%, purity=%s",
         run_result.total_reviews, run_result.total_recommendations,
         run_result.total_trades_applied, metrics.total_return_pct,
+        run_result.purity_level,
     )
 
     return run_result, portfolio, metrics
+
+
+def _compute_purity_level(run_result: ReplayRunResult) -> str:
+    """Determine overall purity level of the replay run."""
+    total_impure = (
+        run_result.total_impure_candidates
+        + run_result.total_impure_valuations
+        + run_result.total_impure_checkpoints
+    )
+    total_skipped = run_result.total_skipped_impure
+
+    if total_impure == 0 and total_skipped == 0:
+        return "strict"
+    if total_impure == 0 and total_skipped > 0:
+        # All impurities were skipped (strict mode)
+        return "strict"
+    if total_impure > 0 and total_skipped == 0:
+        return "degraded"
+    return "mixed"
 
 
 def _get_all_tickers(
@@ -165,7 +203,8 @@ def format_replay_text(
         f"Replay Summary: {run_result.start_date} to {run_result.end_date}",
         "=" * 70,
         f"Cadence: {run_result.cadence_days}d | Initial cash: ${run_result.initial_cash:,.0f}",
-        f"Trades applied: {run_result.apply_trades}",
+        f"Trades applied: {run_result.apply_trades} | Strict mode: {run_result.strict_replay}",
+        f"Purity level: {run_result.purity_level}",
         "",
         "--- PERFORMANCE ---",
         f"  Total return:      {m.total_return_pct:+.2f}%",
@@ -193,7 +232,7 @@ def format_replay_text(
         f"  Avg: {m.avg_cash_pct:.1f}%  Min: {m.min_cash_pct:.1f}%  Max: {m.max_cash_pct:.1f}%",
         "",
         "--- DISCIPLINE ---",
-        f"  Probation → exit:     {m.probation_to_exit_count}",
+        f"  Probation -> exit:     {m.probation_to_exit_count}",
         f"  Funded pairings used: {m.funded_pairing_count}",
         f"  Turnover cap blocked: {m.turnover_cap_blocked_count}",
     ])
@@ -208,7 +247,24 @@ def format_replay_text(
         f"  Trades skipped (no price): {m.total_trades_skipped}",
         f"  Fallback behaviors:       {m.total_fallback_count}",
         f"  Missing price events:     {m.missing_price_events}",
+        "",
+        "--- PURITY (Step 8.1) ---",
+        f"  Purity level:             {run_result.purity_level}",
+        f"  Impure candidates used:   {run_result.total_impure_candidates}",
+        f"  Impure valuations used:   {run_result.total_impure_valuations}",
+        f"  Impure checkpoints used:  {run_result.total_impure_checkpoints}",
+        f"  Inputs skipped (strict):  {run_result.total_skipped_impure}",
     ])
+
+    if run_result.integrity_warnings:
+        lines.append("")
+        lines.append("--- INTEGRITY WARNINGS ---")
+        # Deduplicate warnings for display
+        seen = set()
+        for w in run_result.integrity_warnings:
+            if w not in seen:
+                lines.append(f"  {w}")
+                seen.add(w)
 
     if portfolio.snapshots:
         final = portfolio.snapshots[-1]
