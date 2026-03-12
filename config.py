@@ -22,8 +22,10 @@ class Environment:
     DEMO = "demo"
     PAPER = "paper"
     LIVE = "live"
+    LIVE_READONLY = "live_readonly"
+    LIVE_DISABLED = "live_disabled"
 
-    VALID = frozenset({DEMO, PAPER, LIVE})
+    VALID = frozenset({DEMO, PAPER, LIVE, LIVE_READONLY, LIVE_DISABLED})
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +93,8 @@ class SystemConfig:
         if self.environment == Environment.LIVE:
             raise ValueError(
                 "LIVE environment is not implemented. "
-                "Only 'demo' and 'paper' are currently supported."
+                "Use 'live_readonly' for read-only broker sync, "
+                "or 'live_disabled' as a protective default."
             )
         if not self.database_url:
             self.database_url = os.getenv("DATABASE_URL", "sqlite:///consensus.db")
@@ -150,6 +153,20 @@ PAPER_CONFIG = SystemConfig(
     paper_execute=True,
 )
 
+LIVE_READONLY_CONFIG = SystemConfig(
+    environment=Environment.LIVE_READONLY,
+    dry_run=False,
+    require_approval=True,
+    paper_execute=False,
+)
+
+LIVE_DISABLED_CONFIG = SystemConfig(
+    environment=Environment.LIVE_DISABLED,
+    dry_run=True,
+    require_approval=True,
+    paper_execute=False,
+)
+
 
 def get_default_config(environment: str) -> SystemConfig:
     """Get the default configuration for an environment."""
@@ -157,6 +174,10 @@ def get_default_config(environment: str) -> SystemConfig:
         return SystemConfig.from_dict(DEMO_CONFIG.to_dict())
     elif environment == Environment.PAPER:
         return SystemConfig.from_dict(PAPER_CONFIG.to_dict())
+    elif environment == Environment.LIVE_READONLY:
+        return SystemConfig.from_dict(LIVE_READONLY_CONFIG.to_dict())
+    elif environment == Environment.LIVE_DISABLED:
+        return SystemConfig.from_dict(LIVE_DISABLED_CONFIG.to_dict())
     elif environment == Environment.LIVE:
         raise ValueError("LIVE environment is not implemented.")
     else:
