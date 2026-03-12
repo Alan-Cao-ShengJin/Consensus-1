@@ -1,0 +1,21 @@
+{
+  "snapshot_date": "2025-10-01",
+  "total_value": 999885.0,
+  "cash": 794885.0,
+  "invested": 205000.0,
+  "positions": {
+    "STRCH": 40000.0,
+    "WINR": 65000.0,
+    "STDY": 40000.0,
+    "PROB": 30000.0,
+    "NEWCO": 30000.0
+  },
+  "weights": {
+    "STRCH": 4.0,
+    "WINR": 6.5,
+    "STDY": 4.0,
+    "PROB": 3.0,
+    "NEWCO": 3.0
+  },
+  "num_positions": 5
+}

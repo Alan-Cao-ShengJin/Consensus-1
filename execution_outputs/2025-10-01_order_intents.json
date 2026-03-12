@@ -1,0 +1,111 @@
+{
+  "review_date": "2025-10-01",
+  "review_id": null,
+  "generated_at": "2026-03-12T17:53:35.972632",
+  "portfolio_value": 1000000.0,
+  "dry_run": false,
+  "paper_trade": true,
+  "order_intent_count": 4,
+  "skipped_non_trading": [
+    "STDY",
+    "PROB",
+    "BLKD"
+  ],
+  "skipped_blocked": [],
+  "order_intents": [
+    {
+      "ticker": "BRKN",
+      "side": "sell",
+      "action_type": "exit",
+      "target_weight_before": 5.0,
+      "target_weight_after": 0.0,
+      "current_weight": 5.0,
+      "notional_delta": -50000.0,
+      "estimated_shares": -1111.1111,
+      "reference_price": 45.0,
+      "reason_codes": [
+        "THESIS_BROKEN"
+      ],
+      "linked_funding_ticker": null,
+      "generated_at": "2026-03-12T17:53:35.971632",
+      "review_date": "2025-10-01",
+      "review_id": null,
+      "dry_run": false,
+      "paper_trade": true,
+      "is_validated": true,
+      "is_blocked": false,
+      "block_reasons": []
+    },
+    {
+      "ticker": "STRCH",
+      "side": "sell",
+      "action_type": "trim",
+      "target_weight_before": 6.0,
+      "target_weight_after": 4.0,
+      "current_weight": 6.0,
+      "notional_delta": -20000.0,
+      "estimated_shares": -166.6667,
+      "reference_price": 120.0,
+      "reason_codes": [
+        "VALUATION_STRETCHED"
+      ],
+      "linked_funding_ticker": null,
+      "generated_at": "2026-03-12T17:53:35.971632",
+      "review_date": "2025-10-01",
+      "review_id": null,
+      "dry_run": false,
+      "paper_trade": true,
+      "is_validated": true,
+      "is_blocked": false,
+      "block_reasons": []
+    },
+    {
+      "ticker": "NEWCO",
+      "side": "buy",
+      "action_type": "initiate",
+      "target_weight_before": 0.0,
+      "target_weight_after": 3.0,
+      "current_weight": 0.0,
+      "notional_delta": 30000.0,
+      "estimated_shares": 352.9412,
+      "reference_price": 85.0,
+      "reason_codes": [
+        "VALUATION_ATTRACTIVE",
+        "SUFFICIENT_NOVEL_EVIDENCE"
+      ],
+      "linked_funding_ticker": null,
+      "generated_at": "2026-03-12T17:53:35.971632",
+      "review_date": "2025-10-01",
+      "review_id": null,
+      "dry_run": false,
+      "paper_trade": true,
+      "is_validated": true,
+      "is_blocked": false,
+      "block_reasons": []
+    },
+    {
+      "ticker": "WINR",
+      "side": "buy",
+      "action_type": "add",
+      "target_weight_before": 5.0,
+      "target_weight_after": 6.5,
+      "current_weight": 5.0,
+      "notional_delta": 15000.0,
+      "estimated_shares": 75.0,
+      "reference_price": 200.0,
+      "reason_codes": [
+        "ADD_TO_WINNER",
+        "VALUATION_ATTRACTIVE"
+      ],
+      "linked_funding_ticker": null,
+      "generated_at": "2026-03-12T17:53:35.971632",
+      "review_date": "2025-10-01",
+      "review_id": null,
+      "dry_run": false,
+      "paper_trade": true,
+      "is_validated": true,
+      "is_blocked": false,
+      "block_reasons": []
+    }
+  ]
+}

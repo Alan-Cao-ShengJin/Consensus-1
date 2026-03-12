@@ -114,6 +114,13 @@ class ActionType(str, Enum):
     NO_ACTION = "no_action"
 
 
+class ValuationProvenance(str, Enum):
+    """How a valuation-state value was obtained for ThesisStateHistory."""
+    HISTORICAL_RECORDED = "historical_recorded"            # captured at thesis update time
+    BACKFILLED_FROM_THESIS_SNAPSHOT = "backfilled_from_thesis_snapshot"  # from dated thesis state
+    MISSING = "missing"                                     # no defensible source
+
+
 # ---------- Core Tables ----------
 
 class Company(Base):
@@ -278,6 +285,7 @@ class ThesisStateHistory(Base):
     conviction_score: Mapped[Optional[float]] = mapped_column(Float)
     valuation_gap_pct: Mapped[Optional[float]] = mapped_column(Float)
     base_case_rerating: Mapped[Optional[float]] = mapped_column(Float)
+    valuation_provenance: Mapped[Optional[str]] = mapped_column(String(50))
     note: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -412,3 +420,62 @@ class CompanyPeerGroupLink(Base):
     company_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
     peer_group_id: Mapped[int] = mapped_column(ForeignKey("peer_groups.id"), nullable=False, index=True)
     role: Mapped[Optional[str]] = mapped_column(String(50))  # current / target / alt
+
+
+# ---------- Step 9: Execution Artifacts ----------
+
+class ExecutionIntentRecord(Base):
+    """Persisted order intent for audit trail."""
+    __tablename__ = "execution_intents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    side: Mapped[str] = mapped_column(String(10), nullable=False)  # buy / sell
+    action_type: Mapped[str] = mapped_column(String(20), nullable=False)  # initiate / add / trim / exit
+    target_weight_before: Mapped[float] = mapped_column(Float, nullable=False)
+    target_weight_after: Mapped[float] = mapped_column(Float, nullable=False)
+    notional_delta: Mapped[float] = mapped_column(Float, nullable=False)
+    estimated_shares: Mapped[Optional[float]] = mapped_column(Float)
+    reference_price: Mapped[Optional[float]] = mapped_column(Float)
+    reason_codes: Mapped[Optional[str]] = mapped_column(Text)  # JSON list
+    linked_funding_ticker: Mapped[Optional[str]] = mapped_column(String(20))
+    review_date: Mapped[Optional[str]] = mapped_column(String(20))
+    review_id: Mapped[Optional[int]] = mapped_column(Integer)
+    is_validated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    block_reasons: Mapped[Optional[str]] = mapped_column(Text)  # JSON list
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    paper_trade: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PaperFillRecord(Base):
+    """Persisted paper fill for audit trail."""
+    __tablename__ = "paper_fills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fill_id: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    side: Mapped[str] = mapped_column(String(10), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    shares: Mapped[float] = mapped_column(Float, nullable=False)
+    fill_price: Mapped[float] = mapped_column(Float, nullable=False)
+    notional: Mapped[float] = mapped_column(Float, nullable=False)
+    transaction_cost: Mapped[float] = mapped_column(Float, nullable=False)
+    review_date: Mapped[Optional[str]] = mapped_column(String(20))
+    filled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PaperPortfolioSnapshotRecord(Base):
+    """Persisted paper portfolio snapshot for audit trail."""
+    __tablename__ = "paper_portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    snapshot_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    total_value: Mapped[float] = mapped_column(Float, nullable=False)
+    cash: Mapped[float] = mapped_column(Float, nullable=False)
+    invested: Mapped[float] = mapped_column(Float, nullable=False)
+    num_positions: Mapped[int] = mapped_column(Integer, nullable=False)
+    positions_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON {ticker: market_value}
+    weights_json: Mapped[Optional[str]] = mapped_column(Text)    # JSON {ticker: weight_pct}
+    snapshot_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
