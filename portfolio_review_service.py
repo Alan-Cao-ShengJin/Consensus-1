@@ -301,10 +301,22 @@ def _apply_position_side_effects(
     positions: list[PortfolioPosition],
     review_date: date,
 ) -> None:
-    """Apply decision side effects to position records.
+    """Apply review-level side effects to position records.
 
-    This updates probation flags, cooldown flags, and exit status.
-    It does NOT change weights — that is left for execution (Step 8+).
+    RECOMMENDATION vs EXECUTION BOUNDARY:
+    This function may persist:
+      - Probation tracking state (enter/continue/exit probation) — review metadata
+      - Probation review counters — review metadata
+    This function must NOT:
+      - Set position status to CLOSED (execution-only)
+      - Zero position weights (execution-only)
+      - Write exit_date on the live position (execution-only)
+      - Activate cooldown on position or candidate (execution-only, begins
+        only after an actual exit is executed in Step 8+)
+
+    Exit recommendations are captured in the PortfolioDecision record
+    (action=EXIT, rationale, reason_codes). The live position remains
+    ACTIVE until an execution layer confirms the trade.
     """
     pos_by_ticker = {p.ticker: p for p in positions}
 
@@ -314,31 +326,38 @@ def _apply_position_side_effects(
             continue
 
         if decision.action == ActionType.PROBATION and not pos.probation_flag:
-            # Enter probation
+            # Enter probation — review tracking state
             pos.probation_flag = True
             pos.probation_start_date = review_date
             pos.probation_reviews_count = 0
+            decision.state_mutation_performed = True
+            decision.state_mutation_notes.append("probation_flag set to True")
             logger.info("Position %s entering probation", pos.ticker)
 
         elif decision.action == ActionType.PROBATION and pos.probation_flag:
             # Already on probation — increment review count
             pos.probation_reviews_count += 1
+            decision.state_mutation_performed = True
+            decision.state_mutation_notes.append(
+                f"probation_reviews_count incremented to {pos.probation_reviews_count}"
+            )
             logger.info(
                 "Position %s probation review %d",
                 pos.ticker, pos.probation_reviews_count,
             )
 
         elif decision.action == ActionType.EXIT:
-            pos.status = PositionStatus.CLOSED
-            pos.exit_date = review_date
-            pos.exit_reason = decision.rationale[:100] if decision.rationale else "exit"
-            pos.current_weight = 0.0
-            # Set cooldown on the candidate if one exists
-            cooldown_until = review_date + timedelta(days=COOLDOWN_DAYS)
-            pos.cooldown_flag = True
-            pos.cooldown_until = cooldown_until
-            _set_candidate_cooldown(session, pos.ticker, cooldown_until)
-            logger.info("Position %s exited — cooldown until %s", pos.ticker, cooldown_until)
+            # EXIT is recommendation-only in Step 7.
+            # Do NOT close position, zero weight, write exit_date, or set cooldown.
+            # These mutations happen in Step 8+ execution layer.
+            decision.state_mutation_performed = False
+            decision.state_mutation_notes.append(
+                "exit recommended — position remains ACTIVE until execution"
+            )
+            logger.info(
+                "Position %s exit recommended (not executed — awaiting Step 8)",
+                pos.ticker,
+            )
 
         elif pos.probation_flag and decision.action in (ActionType.HOLD, ActionType.ADD):
             # Check if conviction improved enough to exit probation
@@ -348,26 +367,10 @@ def _apply_position_side_effects(
                 pos.probation_start_date = None
                 pos.probation_reviews_count = 0
                 pos.conviction_score = thesis.conviction_score
+                decision.state_mutation_performed = True
+                decision.state_mutation_notes.append("probation cleared — conviction improved")
                 logger.info("Position %s exiting probation — conviction improved", pos.ticker)
 
-    session.flush()
-
-
-def _set_candidate_cooldown(session: Session, ticker: str, cooldown_until: date) -> None:
-    """Set cooldown on a candidate record after exit."""
-    candidate = session.scalars(
-        select(Candidate).where(Candidate.ticker == ticker)
-    ).first()
-    if candidate:
-        candidate.cooldown_flag = True
-        candidate.cooldown_until = cooldown_until
-    else:
-        # Create a candidate record to track cooldown
-        session.add(Candidate(
-            ticker=ticker,
-            cooldown_flag=True,
-            cooldown_until=cooldown_until,
-        ))
     session.flush()
 
 

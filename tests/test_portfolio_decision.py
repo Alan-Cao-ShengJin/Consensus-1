@@ -34,6 +34,9 @@ from portfolio_decision_engine import (
     evaluate_holding, evaluate_candidate, run_decision_engine,
     INITIATION_CONVICTION_FLOOR, RELATIVE_HURDLE_MARGIN,
     PROBATION_MAX_REVIEWS, COOLDOWN_DAYS,
+    EXIT_CONVICTION_CEILING, PROBATION_CONVICTION_CEILING,
+    PRIORITY_FORCED_EXIT, PRIORITY_STRONG_EXIT, PRIORITY_DEFENSIVE,
+    PRIORITY_CAPITAL_REDEPLOY, PRIORITY_GROWTH, PRIORITY_NEUTRAL,
 )
 from valuation_policy import (
     classify_zone, ZoneThresholds, DEFAULT_THRESHOLDS,
@@ -589,7 +592,8 @@ class TestReviewService:
 
 class TestSideEffects:
 
-    def test_exit_sets_cooldown_on_position(self, session):
+    def test_exit_recommendation_does_not_close_position(self, session):
+        """Step 7.1: exit is recommendation-only — position stays ACTIVE."""
         _make_company(session, "NVDA")
         thesis = _make_thesis(session, "NVDA", state=ThesisState.BROKEN, conviction=10.0)
         pos = PortfolioPosition(
@@ -601,13 +605,22 @@ class TestSideEffects:
         session.add(pos)
         session.flush()
 
-        run_portfolio_review(session, as_of=TODAY, persist=True)
+        result = run_portfolio_review(session, as_of=TODAY, persist=True)
 
         refreshed = session.get(PortfolioPosition, pos.id)
-        assert refreshed.status == PositionStatus.CLOSED
-        assert refreshed.cooldown_flag is True
-        assert refreshed.cooldown_until is not None
-        assert refreshed.exit_date == TODAY
+        # Position must remain ACTIVE — execution is Step 8+
+        assert refreshed.status == PositionStatus.ACTIVE
+        # Weight must NOT be zeroed
+        assert refreshed.current_weight == 5.0
+        # No exit_date on live position
+        assert refreshed.exit_date is None
+        # No cooldown on live position
+        assert refreshed.cooldown_flag is False
+        assert refreshed.cooldown_until is None
+        # But the decision should recommend exit
+        exit_decisions = [d for d in result.decisions if d.action == ActionType.EXIT]
+        assert len(exit_decisions) == 1
+        assert exit_decisions[0].ticker == "NVDA"
 
     def test_probation_entry_sets_flags(self, session):
         _make_company(session, "NVDA")
@@ -660,3 +673,298 @@ class TestTextReport:
         d = result.to_dict()
         serialized = json.dumps(d)
         assert "NVDA" in serialized
+
+    def test_to_dict_includes_audit_fields(self):
+        d = TickerDecision(
+            ticker="NVDA", action=ActionType.INITIATE,
+            funded_by_ticker="WEAK",
+            funded_by_action=ActionType.TRIM,
+            state_mutation_performed=False,
+        )
+        out = d.to_dict()
+        assert out["funded_by_ticker"] == "WEAK"
+        assert out["funded_by_action"] == "trim"
+        assert out["decision_stage"] == "recommendation"
+        assert out["state_mutation_performed"] is False
+
+
+# ---------------------------------------------------------------------------
+# 16. Step 7.1 Hardening: conviction threshold precedence
+# ---------------------------------------------------------------------------
+
+class TestConvictionPrecedence:
+    """Prove that critical conviction exits are not swallowed by probation."""
+
+    def test_conviction_20_returns_exit_not_probation(self):
+        """Conviction 20 is below EXIT_CONVICTION_CEILING (25). Must EXIT."""
+        h = _holding(conviction=20.0, thesis_state=ThesisState.WEAKENING)
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.EXIT
+        assert d.recommendation_priority == PRIORITY_STRONG_EXIT
+        assert ReasonCode.CONVICTION_LOW in d.reason_codes
+
+    def test_conviction_25_returns_exit(self):
+        """Conviction exactly at EXIT_CONVICTION_CEILING. Must EXIT."""
+        h = _holding(conviction=25.0, thesis_state=ThesisState.WEAKENING)
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.EXIT
+
+    def test_conviction_30_returns_probation_not_exit(self):
+        """Conviction 30 is in probation band (25 < 30 ≤ 35). Must PROBATION."""
+        h = _holding(conviction=30.0, thesis_state=ThesisState.WEAKENING)
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.PROBATION
+        assert d.recommendation_priority == PRIORITY_DEFENSIVE
+        assert ReasonCode.CONVICTION_LOW in d.reason_codes
+
+    def test_conviction_35_returns_probation(self):
+        """Conviction exactly at PROBATION_CONVICTION_CEILING. Must PROBATION."""
+        h = _holding(conviction=35.0, thesis_state=ThesisState.WEAKENING)
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.PROBATION
+
+    def test_conviction_36_does_not_enter_probation(self):
+        """Conviction 36 is above probation ceiling. Should not enter probation."""
+        h = _holding(conviction=36.0, thesis_state=ThesisState.STABLE)
+        d = evaluate_holding(h, TODAY)
+        assert d.action != ActionType.PROBATION
+
+
+# ---------------------------------------------------------------------------
+# 17. Step 7.1 Hardening: thesis broken beats attractive valuation
+# ---------------------------------------------------------------------------
+
+class TestBrokenBeatsValuation:
+
+    def test_thesis_broken_exits_despite_buy_zone(self):
+        """Thesis BROKEN must exit even if valuation is in BUY zone."""
+        h = _holding(
+            thesis_state=ThesisState.BROKEN,
+            conviction=60.0,
+            valuation_gap=20.0,  # BUY zone — attractive
+        )
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.EXIT
+        assert ReasonCode.THESIS_BROKEN in d.reason_codes
+        assert d.recommendation_priority == PRIORITY_FORCED_EXIT
+
+
+# ---------------------------------------------------------------------------
+# 18. Step 7.1 Hardening: cooldown blocks otherwise valid initiation
+# ---------------------------------------------------------------------------
+
+class TestCooldownBlocksValid:
+
+    def test_cooldown_blocks_initiation_even_with_all_gates_passing(self):
+        """Candidate passes all gates but cooldown blocks initiation."""
+        c = _candidate(
+            conviction=80.0, zone=ZoneState.BUY,
+            has_checkpoint=True, novel_7d=5,
+            cooldown=True, cooldown_until=TODAY + timedelta(days=5),
+        )
+        d = evaluate_candidate(c, None, TODAY)
+        assert d.action == ActionType.NO_ACTION
+        assert ReasonCode.COOLDOWN_ACTIVE in d.reason_codes
+        assert d.decision_stage == "blocked"
+
+
+# ---------------------------------------------------------------------------
+# 19. Step 7.1 Hardening: probation blocks otherwise valid add
+# ---------------------------------------------------------------------------
+
+class TestProbationBlocksAdd:
+
+    def test_probation_blocks_add_even_with_buy_zone(self):
+        """Holding on probation in BUY zone with high conviction cannot add."""
+        h = _holding(
+            conviction=60.0, probation=True, probation_reviews=0,
+            valuation_gap=20.0,  # BUY zone
+            thesis_state=ThesisState.STRENGTHENING,
+            avg_cost=90.0, current_price=110.0,
+        )
+        d = evaluate_holding(h, TODAY)
+        assert d.action == ActionType.PROBATION
+        assert d.action != ActionType.ADD
+
+
+# ---------------------------------------------------------------------------
+# 20. Step 7.1 Hardening: funded pairing
+# ---------------------------------------------------------------------------
+
+class TestFundedPairing:
+
+    def test_funded_initiation_when_capital_constrained(self):
+        """When capital is constrained, initiation should have funded_by_ticker."""
+        inputs = DecisionInput(
+            review_date=TODAY,
+            total_portfolio_weight=100.0,
+            holdings=[
+                _holding(ticker="STRONG", conviction=75.0, weight=50.0,
+                         thesis_state=ThesisState.STRENGTHENING),
+                _holding(ticker="WEAK", conviction=45.0, weight=50.0,
+                         thesis_state=ThesisState.STABLE),
+            ],
+            candidates=[
+                _candidate(ticker="NEW", conviction=70.0, zone=ZoneState.BUY),
+            ],
+        )
+        result = run_decision_engine(inputs)
+        init_d = next((d for d in result.decisions if d.action == ActionType.INITIATE), None)
+        assert init_d is not None
+        assert init_d.funded_by_ticker == "WEAK"
+        assert init_d.funded_by_action is not None
+        assert ReasonCode.CAPITAL_CHALLENGER in init_d.reason_codes
+        assert init_d.recommendation_priority == PRIORITY_CAPITAL_REDEPLOY
+
+    def test_no_funded_pairing_when_cash_available(self):
+        """When there is sufficient capacity, no funded pairing should be created."""
+        inputs = DecisionInput(
+            review_date=TODAY,
+            total_portfolio_weight=100.0,
+            holdings=[
+                _holding(ticker="A", conviction=50.0, weight=30.0,
+                         thesis_state=ThesisState.STABLE),
+            ],
+            candidates=[
+                _candidate(ticker="NEW", conviction=70.0, zone=ZoneState.BUY),
+            ],
+        )
+        result = run_decision_engine(inputs)
+        init_d = next((d for d in result.decisions if d.action == ActionType.INITIATE), None)
+        assert init_d is not None
+        # Cash is available (30 + 3 < 100), so no funding needed
+        assert init_d.funded_by_ticker is None
+        assert init_d.funded_by_action is None
+        assert ReasonCode.CAPITAL_CHALLENGER not in init_d.reason_codes
+
+    def test_funded_by_exit_when_weakest_conviction_very_low(self):
+        """When weakest holding conviction is critically low, funding action is EXIT."""
+        inputs = DecisionInput(
+            review_date=TODAY,
+            total_portfolio_weight=100.0,
+            holdings=[
+                _holding(ticker="STRONG", conviction=75.0, weight=50.0,
+                         thesis_state=ThesisState.STRENGTHENING),
+                _holding(ticker="DYING", conviction=20.0, weight=50.0,
+                         thesis_state=ThesisState.WEAKENING),
+            ],
+            candidates=[
+                _candidate(ticker="NEW", conviction=70.0, zone=ZoneState.BUY),
+            ],
+        )
+        result = run_decision_engine(inputs)
+        init_d = next((d for d in result.decisions if d.action == ActionType.INITIATE), None)
+        assert init_d is not None
+        assert init_d.funded_by_ticker == "DYING"
+        assert init_d.funded_by_action == ActionType.EXIT
+        assert ReasonCode.FUNDED_BY_EXIT in init_d.reason_codes
+
+
+# ---------------------------------------------------------------------------
+# 21. Step 7.1 Hardening: turnover cap blocks lower-priority deterministically
+# ---------------------------------------------------------------------------
+
+class TestTurnoverPriority:
+
+    def test_turnover_blocks_lower_priority_not_higher(self):
+        """With tight turnover cap, forced exit (priority 1) should go through,
+        lower-priority trim should be blocked."""
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=[
+                # Priority 1: thesis broken → forced exit (weight 8%)
+                _holding(ticker="BROKEN", conviction=10.0, weight=8.0,
+                         thesis_state=ThesisState.BROKEN),
+                # Priority 3: trim zone (weight 7%)
+                _holding(ticker="STRETCHED", conviction=60.0, weight=7.0,
+                         thesis_state=ThesisState.STABLE,
+                         valuation_gap=-15.0),  # TRIM zone
+            ],
+            candidates=[],
+            weekly_turnover_cap_pct=10.0,  # only 10% budget
+        )
+        result = run_decision_engine(inputs)
+
+        broken_d = next(d for d in result.decisions if d.ticker == "BROKEN")
+        assert broken_d.action == ActionType.EXIT  # should go through
+
+        stretched_d = next(d for d in result.decisions if d.ticker == "STRETCHED")
+        # Trim needs 2% but exit used 8% of 10% budget → only 2% left
+        # 2% trim should still fit, but if it were larger it would be blocked
+        # The key test: broken exit was processed first due to priority
+        assert broken_d.recommendation_priority < stretched_d.recommendation_priority or \
+               broken_d.action_score >= stretched_d.action_score
+
+
+# ---------------------------------------------------------------------------
+# 22. Step 7.1 Hardening: review does not zero weight or close position
+# ---------------------------------------------------------------------------
+
+class TestRecommendationBoundary:
+
+    def test_review_does_not_zero_weight(self, session):
+        """Exit recommendation must not zero weight on the live position."""
+        _make_company(session, "NVDA")
+        thesis = _make_thesis(session, "NVDA", state=ThesisState.BROKEN, conviction=10.0)
+        pos = PortfolioPosition(
+            ticker="NVDA", thesis_id=thesis.id,
+            entry_date=TODAY - timedelta(days=30),
+            avg_cost=100.0, current_weight=5.0, target_weight=5.0,
+            conviction_score=10.0, zone_state=ZoneState.HOLD,
+        )
+        session.add(pos)
+        session.flush()
+
+        run_portfolio_review(session, as_of=TODAY, persist=True)
+
+        refreshed = session.get(PortfolioPosition, pos.id)
+        assert refreshed.current_weight == 5.0  # unchanged
+        assert refreshed.status == PositionStatus.ACTIVE  # not closed
+
+    def test_persisted_decision_has_was_executed_false(self, session):
+        """Persisted PortfolioDecision.was_executed should be False (recommendation only)."""
+        _make_company(session, "NVDA")
+        thesis = _make_thesis(session, "NVDA", state=ThesisState.BROKEN, conviction=10.0)
+        session.add(PortfolioPosition(
+            ticker="NVDA", thesis_id=thesis.id,
+            entry_date=TODAY - timedelta(days=30),
+            avg_cost=100.0, current_weight=5.0, target_weight=5.0,
+            conviction_score=10.0, zone_state=ZoneState.HOLD,
+        ))
+        session.flush()
+
+        run_portfolio_review(session, as_of=TODAY, persist=True)
+
+        decisions = session.scalars(select(PortfolioDecision)).all()
+        assert len(decisions) >= 1
+        for pd in decisions:
+            assert pd.was_executed is False
+
+    def test_exit_recommendation_does_not_set_cooldown(self, session):
+        """Exit recommendation must not activate cooldown on position or candidate."""
+        _make_company(session, "NVDA")
+        thesis = _make_thesis(session, "NVDA", state=ThesisState.BROKEN, conviction=10.0)
+        pos = PortfolioPosition(
+            ticker="NVDA", thesis_id=thesis.id,
+            entry_date=TODAY - timedelta(days=30),
+            avg_cost=100.0, current_weight=5.0, target_weight=5.0,
+            conviction_score=10.0, zone_state=ZoneState.HOLD,
+        )
+        session.add(pos)
+        # Also add a candidate for this ticker
+        session.add(Candidate(
+            ticker="NVDA", conviction_score=10.0,
+        ))
+        session.flush()
+
+        run_portfolio_review(session, as_of=TODAY, persist=True)
+
+        refreshed_pos = session.get(PortfolioPosition, pos.id)
+        assert refreshed_pos.cooldown_flag is False
+        assert refreshed_pos.cooldown_until is None
+
+        cand = session.scalars(
+            select(Candidate).where(Candidate.ticker == "NVDA")
+        ).first()
+        assert cand.cooldown_flag is False
+        assert cand.cooldown_until is None

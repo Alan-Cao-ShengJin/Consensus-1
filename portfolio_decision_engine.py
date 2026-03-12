@@ -2,6 +2,18 @@
 into explicit portfolio actions under capital constraints.
 
 All decision logic is deterministic code. LLM is not used here.
+
+Decision precedence for holdings (strongest wins, checked in this order):
+  Priority 1 — FORCED EXIT:  thesis broken, probation expired
+  Priority 2 — STRONG EXIT:  conviction critically low (≤ EXIT_CONVICTION_CEILING),
+                              thesis achieved + not BUY, FULL_EXIT valuation zone
+  Priority 3 — DEFENSIVE:    enter/continue probation, trim (valuation or weakness)
+  Priority 4 — GROWTH:       add to winner, add to loser (with evidence)
+  Priority 5 — NEUTRAL:      hold
+
+A stronger rule always takes precedence over a weaker one. For example,
+conviction ≤ 25 produces EXIT even though it also satisfies the probation
+threshold (≤ 35). Thesis broken produces EXIT regardless of valuation zone.
 """
 from __future__ import annotations
 
@@ -52,6 +64,20 @@ class ReasonCode(str, Enum):
     NO_IMPROVEMENT_ON_PROBATION = "NO_IMPROVEMENT_ON_PROBATION"
     THESIS_ACHIEVED_EXHAUSTED = "THESIS_ACHIEVED_EXHAUSTED"
     CAPITAL_CHALLENGER = "CAPITAL_CHALLENGER"
+    FUNDED_BY_TRIM = "FUNDED_BY_TRIM"
+    FUNDED_BY_EXIT = "FUNDED_BY_EXIT"
+
+
+# ---------------------------------------------------------------------------
+# Recommendation priority tiers (lower number = higher precedence)
+# ---------------------------------------------------------------------------
+
+PRIORITY_FORCED_EXIT = 1       # thesis broken, probation expired
+PRIORITY_STRONG_EXIT = 2       # critical conviction, achieved+exhausted, FULL_EXIT zone
+PRIORITY_DEFENSIVE = 3         # probation entry, trim
+PRIORITY_CAPITAL_REDEPLOY = 4  # funded initiations
+PRIORITY_GROWTH = 5            # adds, unfunded initiations
+PRIORITY_NEUTRAL = 6           # hold, no_action
 
 
 # ---------------------------------------------------------------------------
@@ -123,10 +149,15 @@ class DecisionInput:
 
 @dataclass
 class TickerDecision:
-    """Structured recommendation for one ticker."""
+    """Structured recommendation for one ticker.
+
+    This is a recommendation object, not an execution record.
+    Fields like funded_by_* and state_mutation_* support Step 8 replay/audit.
+    """
     ticker: str
     action: ActionType
     action_score: float = 0.0                   # higher = more urgent
+    recommendation_priority: int = PRIORITY_NEUTRAL  # deterministic tier (1=highest)
     target_weight_change: Optional[float] = None
     suggested_weight: Optional[float] = None
     reason_codes: list[ReasonCode] = field(default_factory=list)
@@ -134,12 +165,20 @@ class TickerDecision:
     blocking_conditions: list[str] = field(default_factory=list)
     required_followup: list[str] = field(default_factory=list)
     generated_at: datetime = field(default_factory=datetime.utcnow)
+    # Funded pairing: set when initiation requires capital from existing holdings
+    funded_by_ticker: Optional[str] = None
+    funded_by_action: Optional[ActionType] = None
+    # Audit trail: what review-level state mutation occurred (if any)
+    decision_stage: str = "recommendation"       # "recommendation" or "blocked"
+    state_mutation_performed: bool = False
+    state_mutation_notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
             "ticker": self.ticker,
             "action": self.action.value,
             "action_score": round(self.action_score, 2),
+            "recommendation_priority": self.recommendation_priority,
             "target_weight_change": round(self.target_weight_change, 2) if self.target_weight_change is not None else None,
             "suggested_weight": round(self.suggested_weight, 2) if self.suggested_weight is not None else None,
             "reason_codes": [r.value for r in self.reason_codes],
@@ -147,6 +186,11 @@ class TickerDecision:
             "blocking_conditions": self.blocking_conditions,
             "required_followup": self.required_followup,
             "generated_at": self.generated_at.isoformat(),
+            "funded_by_ticker": self.funded_by_ticker,
+            "funded_by_action": self.funded_by_action.value if self.funded_by_action else None,
+            "decision_stage": self.decision_stage,
+            "state_mutation_performed": self.state_mutation_performed,
+            "state_mutation_notes": self.state_mutation_notes,
         }
 
 
@@ -241,11 +285,23 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
 
     This is pure deterministic logic using thesis state, conviction, valuation zone,
     and checkpoint context.
+
+    Decision precedence (checked in this order — first match wins):
+      1. FORCED EXIT:  thesis broken (score 100)
+      2. FORCED EXIT:  probation expired after max reviews (score 90)
+      3. STRONG EXIT:  thesis achieved + not in BUY zone (score 85)
+      4. STRONG EXIT:  FULL_EXIT valuation zone (score 80)
+      5. STRONG EXIT:  conviction critically low ≤ EXIT_CONVICTION_CEILING (score 95)
+      6. DEFENSIVE:    continue probation if already on probation (score 60)
+      7. DEFENSIVE:    enter probation if conviction ≤ PROBATION_CONVICTION_CEILING (score 65)
+      8. DEFENSIVE:    trim on TRIM zone or conviction < TRIM + weakening (score 55-70)
+      9. GROWTH:       add to winner or loser (score 40-55)
+     10. NEUTRAL:      hold (score 0)
     """
     decision = TickerDecision(ticker=holding.ticker, action=ActionType.HOLD)
     reasons: list[ReasonCode] = []
 
-    # --- Immediate review trigger ---
+    # --- Immediate review trigger (informational, does not imply execution) ---
     if holding.price_change_pct_5d is not None and abs(holding.price_change_pct_5d) >= IMMEDIATE_REVIEW_PRICE_MOVE_PCT:
         decision.required_followup.append(
             f"Price moved {holding.price_change_pct_5d:+.1f}% in 5 days — immediate review needed"
@@ -259,10 +315,13 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         holding.current_price,
     )
 
-    # --- EXIT: thesis broken ---
+    # ---------------------------------------------------------------
+    # Priority 1 — FORCED EXIT: thesis broken (strongest rule)
+    # ---------------------------------------------------------------
     if holding.thesis_state == ThesisState.BROKEN:
         decision.action = ActionType.EXIT
         decision.action_score = 100.0
+        decision.recommendation_priority = PRIORITY_FORCED_EXIT
         decision.target_weight_change = -holding.current_weight
         decision.suggested_weight = 0.0
         reasons.append(ReasonCode.THESIS_BROKEN)
@@ -270,25 +329,15 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         decision.reason_codes = reasons
         return decision
 
-    # --- EXIT: thesis achieved with no extension ---
-    if holding.thesis_state == ThesisState.ACHIEVED and zone != ZoneState.BUY:
-        decision.action = ActionType.EXIT
-        decision.action_score = 85.0
-        decision.target_weight_change = -holding.current_weight
-        decision.suggested_weight = 0.0
-        reasons.append(ReasonCode.THESIS_ACHIEVED_EXHAUSTED)
-        decision.rationale = "Thesis achieved and valuation no longer attractive — exit"
-        decision.reason_codes = reasons
-        return decision
-
-    # --- PROBATION HANDLING ---
+    # ---------------------------------------------------------------
+    # Priority 1 — FORCED EXIT: probation expired
+    # ---------------------------------------------------------------
     if holding.probation_flag:
         reasons.append(ReasonCode.PROBATION_ACTIVE)
-
-        # Check if probation expired (2 weekly reviews without improvement)
         if holding.probation_reviews_count >= PROBATION_MAX_REVIEWS:
             decision.action = ActionType.EXIT
             decision.action_score = 90.0
+            decision.recommendation_priority = PRIORITY_FORCED_EXIT
             decision.target_weight_change = -holding.current_weight
             decision.suggested_weight = 0.0
             reasons.append(ReasonCode.PROBATION_EXPIRED)
@@ -296,28 +345,44 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
             decision.reason_codes = reasons
             return decision
 
-        # Still on probation — no adds, just hold and review
-        decision.action = ActionType.PROBATION
-        decision.action_score = 60.0
-        decision.required_followup.append("Mandatory next-week review — probation active")
-        decision.rationale = f"On probation (review {holding.probation_reviews_count + 1}/{PROBATION_MAX_REVIEWS}) — no adds allowed"
+    # ---------------------------------------------------------------
+    # Priority 2 — STRONG EXIT: thesis achieved + not in BUY zone
+    # ---------------------------------------------------------------
+    if holding.thesis_state == ThesisState.ACHIEVED and zone != ZoneState.BUY:
+        decision.action = ActionType.EXIT
+        decision.action_score = 85.0
+        decision.recommendation_priority = PRIORITY_STRONG_EXIT
+        decision.target_weight_change = -holding.current_weight
+        decision.suggested_weight = 0.0
+        reasons.append(ReasonCode.THESIS_ACHIEVED_EXHAUSTED)
+        decision.rationale = "Thesis achieved and valuation no longer attractive — exit"
         decision.reason_codes = reasons
         return decision
 
-    # --- Should we ENTER probation? ---
-    if holding.conviction_score <= PROBATION_CONVICTION_CEILING:
-        decision.action = ActionType.PROBATION
-        decision.action_score = 65.0
-        decision.required_followup.append("Enter probation — mandatory next-week review")
-        reasons.append(ReasonCode.CONVICTION_LOW)
-        decision.rationale = f"Conviction {holding.conviction_score:.0f} below probation threshold {PROBATION_CONVICTION_CEILING:.0f}"
+    # ---------------------------------------------------------------
+    # Priority 2 — STRONG EXIT: FULL_EXIT valuation zone
+    # ---------------------------------------------------------------
+    if zone == ZoneState.FULL_EXIT:
+        decision.action = ActionType.EXIT
+        decision.action_score = 80.0
+        decision.recommendation_priority = PRIORITY_STRONG_EXIT
+        decision.target_weight_change = -holding.current_weight
+        decision.suggested_weight = 0.0
+        reasons.append(ReasonCode.VALUATION_STRETCHED)
+        decision.rationale = "Valuation in full exit zone"
         decision.reason_codes = reasons
         return decision
 
-    # --- EXIT: conviction very low (below probation, should not normally reach here) ---
+    # ---------------------------------------------------------------
+    # Priority 2 — STRONG EXIT: conviction critically low
+    # Must be checked BEFORE probation entry (conviction ≤ 25 is a subset
+    # of conviction ≤ 35, so without this ordering the weaker probation
+    # rule would swallow the stronger exit rule).
+    # ---------------------------------------------------------------
     if holding.conviction_score <= EXIT_CONVICTION_CEILING:
         decision.action = ActionType.EXIT
         decision.action_score = 95.0
+        decision.recommendation_priority = PRIORITY_STRONG_EXIT
         decision.target_weight_change = -holding.current_weight
         decision.suggested_weight = 0.0
         reasons.append(ReasonCode.CONVICTION_LOW)
@@ -325,28 +390,52 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         decision.reason_codes = reasons
         return decision
 
-    # --- TRIM: valuation stretched or thesis weakening ---
-    if zone == ZoneState.TRIM or zone == ZoneState.FULL_EXIT:
+    # ---------------------------------------------------------------
+    # Priority 3 — DEFENSIVE: continue probation (already on probation,
+    # not expired — blocks adds, mandates review)
+    # ---------------------------------------------------------------
+    if holding.probation_flag:
+        # reasons already has PROBATION_ACTIVE from the expired check above
+        decision.action = ActionType.PROBATION
+        decision.action_score = 60.0
+        decision.recommendation_priority = PRIORITY_DEFENSIVE
+        decision.required_followup.append("Mandatory next-week review — probation active")
+        decision.rationale = f"On probation (review {holding.probation_reviews_count + 1}/{PROBATION_MAX_REVIEWS}) — no adds allowed"
+        decision.reason_codes = reasons
+        return decision
+
+    # ---------------------------------------------------------------
+    # Priority 3 — DEFENSIVE: enter probation (conviction ≤ 35, not yet on probation)
+    # ---------------------------------------------------------------
+    if holding.conviction_score <= PROBATION_CONVICTION_CEILING:
+        decision.action = ActionType.PROBATION
+        decision.action_score = 65.0
+        decision.recommendation_priority = PRIORITY_DEFENSIVE
+        decision.required_followup.append("Enter probation — mandatory next-week review")
+        reasons.append(ReasonCode.CONVICTION_LOW)
+        decision.rationale = f"Conviction {holding.conviction_score:.0f} below probation threshold {PROBATION_CONVICTION_CEILING:.0f}"
+        decision.reason_codes = reasons
+        return decision
+
+    # ---------------------------------------------------------------
+    # Priority 3 — DEFENSIVE: trim on stretched valuation
+    # ---------------------------------------------------------------
+    if zone == ZoneState.TRIM:
         decision.action = ActionType.TRIM
         decision.action_score = 70.0
+        decision.recommendation_priority = PRIORITY_DEFENSIVE
         trim_amount = min(TRIM_DECREMENT, holding.current_weight - 1.0)  # keep at least 1%
-        if zone == ZoneState.FULL_EXIT:
-            decision.action = ActionType.EXIT
-            decision.action_score = 80.0
-            trim_amount = holding.current_weight
-            reasons.append(ReasonCode.VALUATION_STRETCHED)
-            decision.rationale = "Valuation in full exit zone"
-        else:
-            reasons.append(ReasonCode.VALUATION_STRETCHED)
-            decision.rationale = "Valuation stretched — trim position"
         decision.target_weight_change = -trim_amount
         decision.suggested_weight = holding.current_weight - trim_amount
+        reasons.append(ReasonCode.VALUATION_STRETCHED)
+        decision.rationale = "Valuation stretched — trim position"
         decision.reason_codes = reasons
         return decision
 
     if holding.conviction_score < TRIM_CONVICTION_CEILING and holding.thesis_state == ThesisState.WEAKENING:
         decision.action = ActionType.TRIM
         decision.action_score = 55.0
+        decision.recommendation_priority = PRIORITY_DEFENSIVE
         trim_amount = min(TRIM_DECREMENT, holding.current_weight - 1.0)
         decision.target_weight_change = -trim_amount
         decision.suggested_weight = holding.current_weight - trim_amount
@@ -356,9 +445,10 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         decision.reason_codes = reasons
         return decision
 
-    # --- ADD evaluation ---
+    # ---------------------------------------------------------------
+    # Priority 4/5 — GROWTH: add evaluation
+    # ---------------------------------------------------------------
     if zone == ZoneState.BUY and holding.conviction_score >= ADD_CONVICTION_FLOOR:
-        # Determine if winner or loser
         is_winner = (
             holding.current_price is not None
             and holding.avg_cost > 0
@@ -366,10 +456,10 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         )
 
         if is_winner:
-            # Winner add: easier — just need conviction + valuation
             if holding.thesis_state in (ThesisState.STRENGTHENING, ThesisState.STABLE):
                 decision.action = ActionType.ADD
                 decision.action_score = 50.0
+                decision.recommendation_priority = PRIORITY_GROWTH
                 decision.target_weight_change = ADD_INCREMENT
                 decision.suggested_weight = holding.current_weight + ADD_INCREMENT
                 reasons.append(ReasonCode.ADD_TO_WINNER)
@@ -381,7 +471,6 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
                 decision.reason_codes = reasons
                 return decision
         else:
-            # Loser add: requires confirming evidence + thesis intact + improved valuation
             has_confirming_evidence = holding.confirming_claim_count_7d > 0 or holding.novel_claim_count_7d > 0
             thesis_intact = holding.thesis_state in (
                 ThesisState.STRENGTHENING, ThesisState.STABLE, ThesisState.FORMING,
@@ -390,6 +479,7 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
             if has_confirming_evidence and thesis_intact:
                 decision.action = ActionType.ADD
                 decision.action_score = 40.0
+                decision.recommendation_priority = PRIORITY_GROWTH
                 decision.target_weight_change = ADD_INCREMENT
                 decision.suggested_weight = holding.current_weight + ADD_INCREMENT
                 reasons.append(ReasonCode.ADD_TO_LOSER_CONFIRMED)
@@ -403,8 +493,9 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
                     reasons.append(ReasonCode.INSUFFICIENT_NOVEL_EVIDENCE)
                     decision.blocking_conditions.append("Add to loser blocked: no confirming evidence in last 7 days")
 
-    # --- Default: HOLD ---
-    # Add contextual reason codes
+    # ---------------------------------------------------------------
+    # Priority 6 — NEUTRAL: hold
+    # ---------------------------------------------------------------
     if holding.thesis_state == ThesisState.STRENGTHENING:
         reasons.append(ReasonCode.THESIS_STRENGTHENING)
     elif holding.thesis_state == ThesisState.WEAKENING:
@@ -420,6 +511,7 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
 
     decision.action = ActionType.HOLD
     decision.action_score = 0.0
+    decision.recommendation_priority = PRIORITY_NEUTRAL
     decision.rationale = f"Hold — conviction {holding.conviction_score:.0f}, thesis {holding.thesis_state.value}"
     decision.reason_codes = reasons
     return decision
@@ -506,14 +598,16 @@ def evaluate_candidate(
     Must pass all entry gates AND beat the weakest current holding.
     """
     decision = TickerDecision(ticker=candidate.ticker, action=ActionType.NO_ACTION)
+    decision.recommendation_priority = PRIORITY_NEUTRAL
 
-    # Cooldown check
+    # Cooldown check — blocks initiation even if all other gates pass
     if candidate.cooldown_flag:
         if candidate.cooldown_until and review_date < candidate.cooldown_until:
             decision.reason_codes = [ReasonCode.COOLDOWN_ACTIVE]
             decision.blocking_conditions.append(
                 f"Cooldown active until {candidate.cooldown_until.isoformat()}"
             )
+            decision.decision_stage = "blocked"
             decision.rationale = "Re-entry blocked by cooldown"
             return decision
 
@@ -523,6 +617,7 @@ def evaluate_candidate(
     if not gates_pass:
         decision.reason_codes = gate_reasons
         decision.blocking_conditions = gate_blockers
+        decision.decision_stage = "blocked"
         decision.rationale = f"Failed entry gates: {', '.join(gate_blockers)}"
         return decision
 
@@ -536,6 +631,7 @@ def evaluate_candidate(
                 f"{weakest_holding.ticker} ({weakest_holding.conviction_score:.0f}) "
                 f"by required margin of {RELATIVE_HURDLE_MARGIN:.0f}"
             )
+            decision.decision_stage = "blocked"
             decision.rationale = f"Failed relative hurdle vs {weakest_holding.ticker}"
             return decision
         gate_reasons.append(ReasonCode.BETTER_THAN_WEAKEST_HOLDING)
@@ -543,6 +639,7 @@ def evaluate_candidate(
     # All gates passed + relative hurdle passed → INITIATE
     decision.action = ActionType.INITIATE
     decision.action_score = candidate_score
+    decision.recommendation_priority = PRIORITY_GROWTH
     decision.target_weight_change = DEFAULT_INITIATION_WEIGHT
     decision.suggested_weight = DEFAULT_INITIATION_WEIGHT
     decision.reason_codes = gate_reasons
@@ -562,6 +659,11 @@ def evaluate_candidate(
 # Full portfolio evaluation with capital competition + turnover enforcement
 # ---------------------------------------------------------------------------
 
+def _decision_sort_key(d: TickerDecision) -> tuple:
+    """Sort key: lower priority number first, then higher score first."""
+    return (d.recommendation_priority, -d.action_score)
+
+
 def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     """Run the decision engine over all holdings and candidates.
 
@@ -569,9 +671,9 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     1. Evaluate each holding → holding decisions
     2. Find weakest holding for relative hurdle
     3. Evaluate each candidate → candidate decisions
-    4. Rank all actions by urgency
-    5. Enforce weekly turnover cap
-    6. If initiation needs capital, suggest trim of weakest holding
+    4. Rank by recommendation_priority (tier), then action_score within tier
+    5. Enforce weekly turnover cap (higher-priority actions processed first)
+    6. If initiation needs capital, create explicit funded pairing
     """
     result = PortfolioReviewResult(
         review_date=inputs.review_date,
@@ -599,11 +701,11 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
         d = evaluate_candidate(c, weakest_holding, inputs.review_date)
         candidate_decisions.append(d)
 
-    # Step 4: Combine and rank all decisions
+    # Step 4: Combine and rank by priority tier, then score within tier
     all_decisions = holding_decisions + candidate_decisions
-    all_decisions.sort(key=lambda d: d.action_score, reverse=True)
+    all_decisions.sort(key=_decision_sort_key)
 
-    # Step 5: Enforce turnover cap
+    # Step 5: Enforce turnover cap (processes highest-priority actions first)
     turnover_budget = inputs.weekly_turnover_cap_pct
     approved_decisions: list[TickerDecision] = []
 
@@ -624,6 +726,8 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
                 ticker=d.ticker,
                 action=ActionType.HOLD if d.action in (ActionType.ADD, ActionType.TRIM) else ActionType.NO_ACTION,
                 action_score=0.0,
+                recommendation_priority=PRIORITY_NEUTRAL,
+                decision_stage="blocked",
                 reason_codes=d.reason_codes + [ReasonCode.TURNOVER_LIMIT],
                 rationale=f"Action {d.action.value} blocked by turnover cap (needed {turnover_cost:.1f}%, remaining {turnover_budget:.1f}%)",
                 blocking_conditions=[f"Turnover cap: {d.action.value} would use {turnover_cost:.1f}%, only {turnover_budget:.1f}% remaining"],
@@ -632,25 +736,44 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
             result.blocked_actions.append({
                 "ticker": d.ticker,
                 "original_action": d.action.value,
+                "original_priority": d.recommendation_priority,
                 "blocked_reason": "turnover_limit",
                 "turnover_needed": round(turnover_cost, 2),
                 "turnover_remaining": round(turnover_budget, 2),
             })
 
-    # Step 6: Capital competition — if initiation approved, suggest trim of weakest
+    # Step 6: Funded pairing — only when capital is actually constrained
     initiations = [d for d in approved_decisions if d.action == ActionType.INITIATE]
     if initiations and weakest_holding is not None:
-        # Check if we need capital from existing positions
         total_current_weight = sum(h.current_weight for h in inputs.holdings)
         weight_needed = sum(d.target_weight_change or 0 for d in initiations)
+        available_capacity = inputs.total_portfolio_weight - total_current_weight
 
-        if total_current_weight + weight_needed > inputs.total_portfolio_weight:
+        if weight_needed > available_capacity:
+            # Capital is constrained — create explicit funded pairing
+            # Determine funding action based on weakest holding's state
+            weakest_decision = next(
+                (d for d in approved_decisions if d.ticker == weakest_holding.ticker),
+                None,
+            )
+            # Decide trim vs exit as funding source
+            if weakest_holding.conviction_score <= EXIT_CONVICTION_CEILING:
+                funding_action = ActionType.EXIT
+                funding_reason = ReasonCode.FUNDED_BY_EXIT
+            else:
+                funding_action = ActionType.TRIM
+                funding_reason = ReasonCode.FUNDED_BY_TRIM
+
             for init_d in initiations:
+                init_d.funded_by_ticker = weakest_holding.ticker
+                init_d.funded_by_action = funding_action
+                init_d.recommendation_priority = PRIORITY_CAPITAL_REDEPLOY
+                init_d.reason_codes.append(ReasonCode.CAPITAL_CHALLENGER)
+                init_d.reason_codes.append(funding_reason)
                 init_d.required_followup.append(
-                    f"Capital needed — consider trimming weakest holding {weakest_holding.ticker} "
+                    f"Funded by {funding_action.value} of {weakest_holding.ticker} "
                     f"(conviction {weakest_holding.conviction_score:.0f})"
                 )
-                init_d.reason_codes.append(ReasonCode.CAPITAL_CHALLENGER)
 
     result.decisions = approved_decisions
     result.turnover_pct_planned = inputs.weekly_turnover_cap_pct - turnover_budget

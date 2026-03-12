@@ -190,12 +190,104 @@ python scripts/run_portfolio_review.py -v
 - Candidate pool must be manually maintained (Candidate table rows)
 - No automatic promotion from "interesting thesis" to "candidate"
 
+---
+
+## Step 7.1 Hardening Pass
+
+### What was fixed
+
+**1. Conviction threshold precedence bug.**
+`evaluate_holding()` previously checked "enter probation" (conviction ≤ 35) before "exit on critical conviction" (conviction ≤ 25). Since 25 ≤ 35, any holding with conviction ≤ 25 was caught by probation and never reached the exit check. Fixed: the exit check now runs first. Holdings with conviction ≤ 25 produce EXIT; conviction 26–35 produces PROBATION.
+
+**2. Recommendation vs execution boundary tightened.**
+The review pass previously mutated live position state as if trades had executed:
+- Set `pos.status = CLOSED` — removed
+- Set `pos.current_weight = 0.0` — removed
+- Wrote `pos.exit_date` — removed
+- Activated cooldown on position and candidate — removed
+
+These are now Step 8+ execution responsibilities. The review pass only persists:
+- Probation tracking (enter/continue/clear probation, review counters)
+- Recommendation records (`PortfolioDecision` with `was_executed=False`)
+
+Exit intent, exit reason, and cooldown timing are captured in the `PortfolioDecision` record but do **not** mutate the live position until an execution layer confirms the trade.
+
+**3. Explicit funded pairing for capital-constrained initiations.**
+When a candidate clears all entry gates and the relative hurdle, but available portfolio capacity is insufficient, the engine now produces a structured funded recommendation:
+- `funded_by_ticker`: the weakest holding that would fund the initiation
+- `funded_by_action`: TRIM or EXIT (EXIT if weakest conviction ≤ 25)
+- `ReasonCode.FUNDED_BY_TRIM` or `FUNDED_BY_EXIT` on the initiation decision
+- `recommendation_priority` upgraded to `PRIORITY_CAPITAL_REDEPLOY` (tier 4)
+
+Funded pairing is **only** created when capital is actually constrained. If available capacity is sufficient, no trim/exit is invented.
+
+**4. Deterministic recommendation priority tiers.**
+Decisions are now sorted by priority tier (lower = higher precedence), then by action score within a tier:
+
+| Tier | Priority | Actions |
+|------|----------|---------|
+| 1 | FORCED_EXIT | thesis broken, probation expired |
+| 2 | STRONG_EXIT | critical conviction ≤ 25, achieved+exhausted, FULL_EXIT zone |
+| 3 | DEFENSIVE | probation entry/continue, trim |
+| 4 | CAPITAL_REDEPLOY | funded initiations |
+| 5 | GROWTH | adds, unfunded initiations |
+| 6 | NEUTRAL | hold, no_action |
+
+Turnover cap processes tier 1 before tier 2, etc. Stronger rules cannot be blocked while weaker ones pass.
+
+**5. Audit fields for Step 8 readiness.**
+`TickerDecision` now includes:
+- `recommendation_priority` — deterministic tier (1–6)
+- `funded_by_ticker` / `funded_by_action` — explicit funding source
+- `decision_stage` — "recommendation" or "blocked"
+- `state_mutation_performed` — whether review actually changed position state
+- `state_mutation_notes` — what was changed (e.g., "probation_flag set to True")
+
+### Recommendation vs execution boundary
+
+| What review may persist | What only Step 8+ execution may do |
+|---|---|
+| Probation flag (enter/continue/clear) | Set position status to CLOSED |
+| Probation review counters | Zero position weight |
+| Probation start date | Write exit_date on position |
+| PortfolioDecision records (was_executed=False) | Activate cooldown on position/candidate |
+| PortfolioReview summary | Execute trades |
+
+### Tests added (Step 7.1)
+
+16 new tests (58 total for portfolio decision):
+- Conviction 20/25 → EXIT, not PROBATION
+- Conviction 30/35 → PROBATION, not EXIT
+- Conviction 36 → no probation
+- Thesis BROKEN + BUY zone → still EXIT
+- Cooldown blocks valid initiation
+- Probation blocks valid add
+- Funded initiation with `funded_by_ticker` when constrained
+- No funded pairing when cash available
+- `funded_by_action = EXIT` when weakest conviction ≤ 25
+- Turnover cap respects priority ordering
+- Review does not zero weight
+- Review does not close position
+- Persisted decision has `was_executed=False`
+- Exit does not set cooldown
+- Audit fields in `to_dict()`
+
+### Remaining gaps before Step 8
+
+- Execution layer: actually close positions, zero weights, set exit_date, activate cooldown
+- Replay engine: re-run historical reviews and compare outcomes
+- Shadow portfolio: paper-trade recommendations without live execution
+- Funded pairing execution: the trim/exit funding source is recommended but not executed
+- Portfolio-level risk constraints (sector concentration, correlation)
+- Richer valuation modeling (DCF, comps, scenario analysis)
+- Performance attribution
+
 ## What Remains for Step 8
 
+- Execution layer: close positions, zero weights, set exit_date, activate cooldown after confirmed exit
 - Shadow portfolio / paper execution
 - Replay engine for decision audit
 - Portfolio-level risk constraints (sector limits, correlation)
 - Automated candidate pipeline (thesis quality → candidate promotion)
 - Richer valuation modeling (DCF, comps, scenario analysis)
-- Execution layer (simulated or real)
 - Performance attribution
