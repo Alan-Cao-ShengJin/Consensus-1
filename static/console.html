@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consensus — Operator Console</title>
+<script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
+<style>
+/* ================================================================
+   OPERATOR CONSOLE — DARK TERMINAL AESTHETIC
+   ================================================================ */
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0f0f18;
+  --bg-panel: #12121e;
+  --bg-hover: #1a1a2e;
+  --border: #1e1e30;
+  --border-bright: #2a2a44;
+  --text-primary: #d4d4dc;
+  --text-secondary: #8888a0;
+  --text-dim: #555566;
+  --accent-green: #22c55e;
+  --accent-amber: #eab308;
+  --accent-red: #ef4444;
+  --accent-blue: #3b82f6;
+  --accent-cyan: #06b6d4;
+  --accent-purple: #a855f7;
+  --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---- Top bar ---- */
+#topbar {
+  height: 40px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  z-index: 100;
+}
+#topbar .logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+}
+#topbar .logo span { color: var(--accent-green); }
+.status-pills {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.pill {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pill-ok { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.pill-warn { background: rgba(234,179,8,0.15); color: var(--accent-amber); }
+.pill-err { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.pill-info { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.pill-demo { background: rgba(168,85,247,0.15); color: var(--accent-purple); }
+#clock { color: var(--text-secondary); font-size: 11px; }
+
+/* ---- Nav tabs ---- */
+#nav {
+  height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  padding: 0 8px;
+  gap: 0;
+}
+.nav-tab {
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+.nav-tab.active { color: var(--accent-green); border-bottom-color: var(--accent-green); }
+.nav-tab .tab-key {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-left: 6px;
+  border: 1px solid var(--border);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+/* ---- Main layout ---- */
+#main {
+  height: calc(100vh - 72px);
+  overflow: hidden;
+}
+.view {
+  display: none;
+  height: 100%;
+  overflow: auto;
+}
+.view.active { display: flex; flex-direction: column; }
+
+/* ---- Panels ---- */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.panel-header {
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-header .count {
+  font-size: 10px;
+  color: var(--accent-cyan);
+  font-weight: 400;
+}
+.panel-body {
+  padding: 8px 12px;
+  overflow: auto;
+}
+
+/* ---- Tables ---- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.data-table th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-panel);
+}
+.data-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(30,30,48,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+.data-table tr:hover td { background: var(--bg-hover); }
+.data-table tr.clickable { cursor: pointer; }
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-ok { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+.badge-warn { background: rgba(234,179,8,0.15); color: var(--accent-amber); }
+.badge-err { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+.badge-info { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.badge-neutral { background: rgba(136,136,160,0.15); color: var(--text-secondary); }
+
+.dir-positive { color: var(--accent-green); }
+.dir-negative { color: var(--accent-red); }
+.dir-mixed { color: var(--accent-amber); }
+.dir-neutral { color: var(--text-secondary); }
+
+/* ---- Split panes ---- */
+.split-h { display: flex; height: 100%; }
+.split-left { width: 45%; border-right: 1px solid var(--border); overflow: auto; }
+.split-right { width: 55%; overflow: auto; }
+
+/* ---- Event timeline ---- */
+.timeline-row {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11px;
+  align-items: baseline;
+}
+.timeline-stage {
+  width: 70px;
+  font-weight: 600;
+  text-align: right;
+  flex-shrink: 0;
+}
+.timeline-ticker {
+  width: 50px;
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+.timeline-detail { color: var(--text-primary); flex: 1; }
+.timeline-extra { color: var(--text-secondary); }
+.timeline-status { width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ---- Search ---- */
+.search-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  outline: none;
+  width: 200px;
+}
+.search-box:focus { border-color: var(--accent-green); }
+
+/* ---- Graph container ---- */
+#graph-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+/* ---- Detail side panel ---- */
+.detail-section {
+  margin-bottom: 12px;
+}
+.detail-section h3 {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-kv {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 11px;
+}
+.detail-kv .k { color: var(--text-dim); width: 120px; flex-shrink: 0; }
+.detail-kv .v { color: var(--text-primary); }
+
+/* ---- Status overview cards ---- */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 8px;
+}
+.status-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.status-card .val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+.status-card .label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* Thesis conviction bar */
+.conviction-bar {
+  display: inline-block;
+  height: 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a55; }
+
+/* ---- Loading ---- */
+.loading { color: var(--text-dim); padding: 20px; text-align: center; }
+.empty-state { color: var(--text-dim); padding: 20px; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     TOP BAR
+     ================================================================ -->
+<div id="topbar">
+  <div class="logo">CONSENSUS<span>.</span></div>
+  <div class="status-pills" id="status-pills"></div>
+  <input type="text" class="search-box" id="global-search" placeholder="Search ticker..." />
+  <div id="clock"></div>
+</div>
+
+<!-- ================================================================
+     NAV TABS
+     ================================================================ -->
+<div id="nav">
+  <div class="nav-tab active" data-view="feed" onclick="switchView('feed')">
+    Feed <span class="tab-key">1</span>
+  </div>
+  <div class="nav-tab" data-view="claims" onclick="switchView('claims')">
+    Claims <span class="tab-key">2</span>
+  </div>
+  <div class="nav-tab" data-view="thesis" onclick="switchView('thesis')">
+    Thesis <span class="tab-key">3</span>
+  </div>
+  <div class="nav-tab" data-view="portfolio" onclick="switchView('portfolio')">
+    Portfolio <span class="tab-key">4</span>
+  </div>
+  <div class="nav-tab" data-view="graph" onclick="switchView('graph')">
+    Graph <span class="tab-key">5</span>
+  </div>
+  <div class="nav-tab" data-view="timeline" onclick="switchView('timeline')">
+    Timeline <span class="tab-key">6</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     MAIN VIEWS
+     ================================================================ -->
+<div id="main">
+
+  <!-- ---- VIEW 1: LIVE FEED ---- -->
+  <div class="view active" id="view-feed">
+    <div class="panel" style="flex:0 0 auto;">
+      <div class="panel-header">System Status</div>
+      <div class="panel-body">
+        <div class="status-grid" id="status-grid"></div>
+      </div>
+    </div>
+    <div class="panel" style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div class="panel-header">
+        Live Information Feed <span class="count" id="feed-count"></span>
+      </div>
+      <div class="panel-body" style="flex:1; overflow:auto;">
+        <table class="data-table" id="feed-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Ticker</th>
+              <th>Type</th>
+              <th>Title</th>
+              <th>Source</th>
+              <th>Claims</th>
+              <th>Novelty</th>
+              <th>Thesis</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="feed-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- VIEW 2: CLAIMS / MEMORY ---- -->
+  <div class="view" id="view-claims">
+    <div class="split-h">
+      <div class="split-left">
+        <div class="panel" style="height:100%;">
+          <div class="panel-header">Document Claims</div>
+          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+            <div id="claims-doc-info" class="empty-state">Select a document from the Feed tab</div>
+            <table class="data-table" id="claims-table" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Claim</th>
+                  <th>Type</th>
+                  <th>Channel</th>
+                  <th>Dir</th>
+                  <th>Str</th>
+                  <th>Novelty</th>
+                </tr>
+              </thead>
+              <tbody id="claims-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="split-right">
+        <div class="panel" style="height:50%;">
+          <div class="panel-header">Linked Theses & Memory</div>
+          <div class="panel-body" id="claims-memory" style="height:calc(100% - 30px); overflow:auto;">
+            <div class="empty-state">Select a claim to see linked theses and memory</div>
+          </div>
+        </div>
+        <div class="panel" style="height:50%;">
+          <div class="panel-header">Claim Impact</div>
+          <div class="panel-body" id="claims-impact" style="height:calc(100% - 30px); overflow:auto;">
+            <div class="empty-state">Select a claim to see impact classification</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- VIEW 3: THESIS EVOLUTION ---- -->
+  <div class="view" id="view-thesis">
+    <div class="split-h">
+      <div class="split-left">
+        <div class="panel" style="height:100%;">
+          <div class="panel-header">
+            Theses
+            <input type="text" class="search-box" id="thesis-ticker-input"
+                   placeholder="Enter ticker..." style="margin-left:auto; width:120px;" />
+          </div>
+          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+            <div id="thesis-list" class="empty-state">Enter a ticker to view theses</div>
+          </div>
+        </div>
+      </div>
+      <div class="split-right">
+        <div class="panel" style="height:100%;">
+          <div class="panel-header">Thesis Detail & Evolution</div>
+          <div class="panel-body" id="thesis-detail" style="height:calc(100% - 30px); overflow:auto;">
+            <div class="empty-state">Select a thesis to see evolution timeline</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- VIEW 4: PORTFOLIO DECISIONS ---- -->
+  <div class="view" id="view-portfolio">
+    <div class="split-h">
+      <div class="split-left">
+        <div class="panel" style="height:50%;">
+          <div class="panel-header">Active Positions</div>
+          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+            <table class="data-table" id="positions-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Weight</th>
+                  <th>Target</th>
+                  <th>Conv.</th>
+                  <th>Zone</th>
+                  <th>Prob.</th>
+                </tr>
+              </thead>
+              <tbody id="positions-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel" style="height:50%;">
+          <div class="panel-header">Candidates</div>
+          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+            <table class="data-table" id="candidates-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Conv.</th>
+                  <th>Zone</th>
+                  <th>Buyable</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody id="candidates-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="split-right">
+        <div class="panel" style="height:100%;">
+          <div class="panel-header">Latest Review Decisions</div>
+          <div class="panel-body" style="height:calc(100% - 30px); overflow:auto;">
+            <div id="review-header"></div>
+            <table class="data-table" id="decisions-table" style="margin-top:8px;">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Action</th>
+                  <th>Score</th>
+                  <th>&Delta;W</th>
+                  <th>Target W</th>
+                  <th>Reasons</th>
+                  <th>Exec</th>
+                </tr>
+              </thead>
+              <tbody id="decisions-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- VIEW 5: GRAPH ---- -->
+  <div class="view" id="view-graph">
+    <div class="panel" style="flex:0 0 40px;">
+      <div class="panel-header">
+        Graph Explorer
+        <input type="text" class="search-box" id="graph-ticker-input"
+               placeholder="Ticker..." style="margin-left:8px; width:100px;" />
+        <button onclick="loadGraphForTicker()" style="background:var(--bg-hover); border:1px solid var(--border); color:var(--text-primary); padding:2px 10px; border-radius:3px; cursor:pointer; font-family:var(--mono); font-size:11px;">Load</button>
+        <span id="graph-stats" style="margin-left:auto; color:var(--text-dim); font-weight:400; font-size:10px;"></span>
+      </div>
+    </div>
+    <div class="panel" style="flex:1; min-height:0;">
+      <div id="graph-container"></div>
+    </div>
+  </div>
+
+  <!-- ---- VIEW 6: EVENT TIMELINE ---- -->
+  <div class="view" id="view-timeline">
+    <div class="panel" style="flex:0 0 40px;">
+      <div class="panel-header">
+        Pipeline Event Timeline
+        <span class="count" id="timeline-hint">Click a document in the Feed to trace its pipeline stages</span>
+      </div>
+    </div>
+    <div class="panel" style="flex:1; min-height:0;">
+      <div class="panel-body" id="timeline-body" style="height:100%; overflow:auto;">
+        <div class="empty-state">Select a document from the Feed tab, then switch here</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+// ---- State ----
+let state = {
+  selectedDocId: null,
+  selectedThesisId: null,
+  selectedTicker: null,
+  documents: [],
+  graphNetwork: null,
+};
+
+// ---- Utilities ----
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toISOString().replace('T', ' ').slice(0, 16);
+}
+
+function fmtShortTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${d.getMonth()+1}/${d.getDate()} ${hh}:${mm}`;
+}
+
+function badge(text, type) {
+  return `<span class="badge badge-${type}">${esc(text)}</span>`;
+}
+
+function dirClass(dir) {
+  return 'dir-' + (dir || 'neutral');
+}
+
+function zoneBadge(zone) {
+  const m = { buy: 'ok', hold: 'info', trim: 'warn', full_exit: 'err' };
+  return badge(zone || '—', m[zone] || 'neutral');
+}
+
+function actionBadge(action) {
+  const m = { initiate: 'ok', add: 'ok', hold: 'info', trim: 'warn', exit: 'err', probation: 'warn', no_action: 'neutral' };
+  return badge(action || '—', m[action] || 'neutral');
+}
+
+function convictionBar(score) {
+  if (score == null) return '—';
+  const pct = Math.min(100, Math.max(0, score));
+  const color = pct >= 60 ? 'var(--accent-green)' : pct >= 40 ? 'var(--accent-amber)' : 'var(--accent-red)';
+  return `<span class="conviction-bar" style="width:${pct * 0.6}px; background:${color};"></span> ${score.toFixed(0)}`;
+}
+
+async function api(path) {
+  const res = await fetch(path);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+// ---- View switching ----
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`.nav-tab[data-view="${name}"]`).classList.add('active');
+  if (name === 'portfolio') loadPortfolio();
+  if (name === 'graph') initGraph();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const views = ['feed', 'claims', 'thesis', 'portfolio', 'graph', 'timeline'];
+  const idx = parseInt(e.key) - 1;
+  if (idx >= 0 && idx < views.length) switchView(views[idx]);
+});
+
+// ---- Clock ----
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ---- Status ----
+async function loadStatus() {
+  const s = await api('/api/status');
+  if (!s) return;
+
+  const grid = document.getElementById('status-grid');
+  const items = [
+    { val: s.companies, label: 'Companies' },
+    { val: s.documents, label: 'Documents' },
+    { val: s.claims, label: 'Claims' },
+    { val: s.theses, label: 'Active Theses' },
+    { val: s.themes, label: 'Themes' },
+    { val: s.active_positions, label: 'Positions' },
+    { val: s.candidates, label: 'Candidates' },
+    { val: s.reviews, label: 'Reviews' },
+    { val: s.paper_fills, label: 'Paper Fills' },
+  ];
+  grid.innerHTML = items.map(i =>
+    `<div class="status-card"><div class="val">${i.val}</div><div class="label">${i.label}</div></div>`
+  ).join('');
+
+  // Status pills
+  const pills = document.getElementById('status-pills');
+  let html = '';
+  if (s.demo_mode) html += '<span class="pill pill-demo">DEMO</span>';
+  html += `<span class="pill pill-ok">READ-ONLY</span>`;
+  if (s.graph_loaded) html += '<span class="pill pill-info">GRAPH</span>';
+  else html += '<span class="pill pill-warn">NO GRAPH</span>';
+  pills.innerHTML = html;
+}
+
+// ---- Feed ----
+async function loadFeed() {
+  const docs = await api('/api/documents/recent?limit=100');
+  if (!docs) { document.getElementById('feed-tbody').innerHTML = '<tr><td colspan="9" class="empty-state">No documents found</td></tr>'; return; }
+  state.documents = docs;
+  document.getElementById('feed-count').textContent = `${docs.length} documents`;
+
+  const tbody = document.getElementById('feed-tbody');
+  tbody.innerHTML = docs.map(d => {
+    const noveltyParts = Object.entries(d.novelty_counts || {}).map(([k,v]) =>
+      `<span class="badge badge-${k === 'new' ? 'ok' : k === 'confirming' ? 'info' : k === 'conflicting' ? 'err' : 'neutral'}">${k}=${v}</span>`
+    ).join(' ');
+
+    return `<tr class="clickable" onclick="selectDocument(${d.id})" data-doc-id="${d.id}">
+      <td>${esc(fmtShortTime(d.timestamp))}</td>
+      <td style="color:var(--accent-cyan); font-weight:600;">${esc(d.ticker || '—')}</td>
+      <td>${esc(d.document_type)}</td>
+      <td style="max-width:250px;" title="${esc(d.title)}">${esc(d.title || '—')}</td>
+      <td>${badge(d.source_tier || '—', d.source_tier === 'tier_1' ? 'ok' : d.source_tier === 'tier_2' ? 'info' : 'neutral')}</td>
+      <td>${d.claim_count}</td>
+      <td>${noveltyParts || '—'}</td>
+      <td>${d.thesis_update_triggered ? badge('YES', 'ok') : badge('NO', 'neutral')}</td>
+      <td>${badge(d.ingestion_status, d.ingestion_status === 'OK' ? 'ok' : 'err')}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- Document selection -> Claims view ----
+async function selectDocument(docId) {
+  state.selectedDocId = docId;
+  const detail = await api(`/api/documents/${docId}`);
+  if (!detail) return;
+
+  // Highlight row
+  document.querySelectorAll('#feed-tbody tr').forEach(r => r.style.background = '');
+  const row = document.querySelector(`tr[data-doc-id="${docId}"]`);
+  if (row) row.style.background = 'var(--bg-hover)';
+
+  // Load timeline for this document
+  loadDocTimeline(docId);
+
+  // Populate claims view
+  const docInfo = document.getElementById('claims-doc-info');
+  docInfo.innerHTML = `
+    <div class="detail-kv"><span class="k">Document</span><span class="v">${esc(detail.document.title)}</span></div>
+    <div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan);">${esc(detail.document.ticker)}</span></div>
+    <div class="detail-kv"><span class="k">Type</span><span class="v">${esc(detail.document.document_type)}</span></div>
+    <div class="detail-kv"><span class="k">Published</span><span class="v">${fmtTime(detail.document.timestamp)}</span></div>
+    <div class="detail-kv"><span class="k">Claims</span><span class="v">${detail.claims.length}</span></div>
+  `;
+
+  const table = document.getElementById('claims-table');
+  table.style.display = '';
+  const tbody = document.getElementById('claims-tbody');
+  tbody.innerHTML = detail.claims.map((c, idx) => `
+    <tr class="clickable" onclick="selectClaim(${idx})">
+      <td style="max-width:200px;" title="${esc(c.text)}">${esc(c.text_short || c.text)}</td>
+      <td>${esc(c.claim_type)}</td>
+      <td>${esc(c.economic_channel)}</td>
+      <td class="${dirClass(c.direction)}">${esc(c.direction)}</td>
+      <td>${c.strength != null ? c.strength.toFixed(1) : '—'}</td>
+      <td>${badge(c.novelty_type, c.novelty_type === 'new' ? 'ok' : c.novelty_type === 'confirming' ? 'info' : c.novelty_type === 'conflicting' ? 'err' : 'neutral')}</td>
+    </tr>
+  `).join('');
+
+  // Store claims for detail drill-down
+  state.currentClaims = detail.claims;
+
+  // Auto-switch to claims view
+  switchView('claims');
+}
+
+function selectClaim(idx) {
+  const c = state.currentClaims[idx];
+  if (!c) return;
+
+  // Memory panel — linked theses and themes
+  let memoryHtml = '';
+  if (c.linked_theses && c.linked_theses.length) {
+    memoryHtml += '<div class="detail-section"><h3>Linked Theses</h3>';
+    c.linked_theses.forEach(t => {
+      memoryHtml += `<div class="detail-kv">
+        <span class="k">[${esc(t.link_type)}]</span>
+        <span class="v"><span style="color:var(--accent-cyan); cursor:pointer;" onclick="loadThesisById(${t.id})">${esc(t.ticker)}</span> — ${esc(t.title)}</span>
+      </div>`;
+    });
+    memoryHtml += '</div>';
+  }
+  if (c.linked_themes && c.linked_themes.length) {
+    memoryHtml += '<div class="detail-section"><h3>Linked Themes</h3>';
+    c.linked_themes.forEach(t => {
+      memoryHtml += `<div class="detail-kv"><span class="k">${esc(t.type || '')}</span><span class="v">${esc(t.name)}</span></div>`;
+    });
+    memoryHtml += '</div>';
+  }
+  if (c.linked_tickers && c.linked_tickers.length) {
+    memoryHtml += '<div class="detail-section"><h3>Affected Tickers</h3>';
+    memoryHtml += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+    c.linked_tickers.forEach(t => {
+      memoryHtml += `<span style="color:var(--accent-cyan); cursor:pointer;" onclick="loadThesisByTicker('${t}')">${esc(t)}</span>`;
+    });
+    memoryHtml += '</div></div>';
+  }
+  if (!memoryHtml) memoryHtml = '<div class="empty-state">No linked theses or themes</div>';
+  document.getElementById('claims-memory').innerHTML = memoryHtml;
+
+  // Impact panel
+  let impactHtml = '<div class="detail-section"><h3>Claim Classification</h3>';
+  impactHtml += `<div class="detail-kv"><span class="k">Type</span><span class="v">${esc(c.claim_type)}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Economic Channel</span><span class="v">${esc(c.economic_channel)}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Direction</span><span class="v ${dirClass(c.direction)}">${esc(c.direction)}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Strength</span><span class="v">${c.strength != null ? c.strength.toFixed(2) : '—'}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Novelty</span><span class="v">${badge(c.novelty_type, c.novelty_type === 'new' ? 'ok' : c.novelty_type === 'confirming' ? 'info' : c.novelty_type === 'conflicting' ? 'err' : 'neutral')}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Confidence</span><span class="v">${c.confidence != null ? c.confidence.toFixed(2) : '—'}</span></div>`;
+  impactHtml += `<div class="detail-kv"><span class="k">Structural</span><span class="v">${c.is_structural ? badge('YES', 'ok') : badge('NO', 'neutral')}</span></div>`;
+  impactHtml += '</div>';
+
+  if (c.text) {
+    impactHtml += '<div class="detail-section"><h3>Full Claim Text</h3>';
+    impactHtml += `<div style="color:var(--text-primary); font-size:11px; line-height:1.6;">${esc(c.text)}</div>`;
+    impactHtml += '</div>';
+  }
+  document.getElementById('claims-impact').innerHTML = impactHtml;
+}
+
+// ---- Thesis view ----
+async function loadThesisByTicker(ticker) {
+  document.getElementById('thesis-ticker-input').value = ticker;
+  await loadTickerTheses(ticker);
+  switchView('thesis');
+}
+
+async function loadThesisById(thesisId) {
+  const detail = await api(`/api/theses/${thesisId}`);
+  if (!detail) return;
+  document.getElementById('thesis-ticker-input').value = detail.ticker;
+  await loadTickerTheses(detail.ticker);
+  renderThesisDetail(detail);
+  switchView('thesis');
+}
+
+document.getElementById('thesis-ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadTickerTheses(e.target.value.trim().toUpperCase());
+});
+
+async function loadTickerTheses(ticker) {
+  if (!ticker) return;
+  state.selectedTicker = ticker;
+  const theses = await api(`/api/tickers/${ticker}/theses`);
+  const container = document.getElementById('thesis-list');
+  if (!theses || !theses.length) {
+    container.innerHTML = '<div class="empty-state">No theses found for ' + esc(ticker) + '</div>';
+    return;
+  }
+
+  let html = '';
+  theses.forEach(t => {
+    const stateColor = {
+      forming: 'var(--accent-blue)', strengthening: 'var(--accent-green)',
+      stable: 'var(--text-primary)', weakening: 'var(--accent-amber)',
+      broken: 'var(--accent-red)', achieved: 'var(--accent-purple)',
+      probation: 'var(--accent-amber)',
+    }[t.state] || 'var(--text-secondary)';
+
+    html += `<div style="padding:8px; border-bottom:1px solid var(--border); cursor:pointer;" onclick="renderThesisDetail(window._theses[${t.id}])">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:600; color:var(--text-primary);">${esc(t.title)}</span>
+        <span style="color:${stateColor}; font-weight:600; text-transform:uppercase; font-size:10px;">${esc(t.state)}</span>
+      </div>
+      <div style="display:flex; gap:12px; margin-top:4px; font-size:10px; color:var(--text-secondary);">
+        <span>Conv: ${convictionBar(t.conviction_score)}</span>
+        <span>Val gap: ${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '—'}</span>
+        <span>History: ${t.history ? t.history.length : 0} entries</span>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+
+  // Store for click access
+  window._theses = {};
+  theses.forEach(t => { window._theses[t.id] = t; });
+
+  // Auto-select first
+  if (theses.length) renderThesisDetail(theses[0]);
+}
+
+function renderThesisDetail(t) {
+  if (!t) return;
+  state.selectedThesisId = t.id;
+  const detail = document.getElementById('thesis-detail');
+
+  let html = '<div class="detail-section"><h3>Current State</h3>';
+  html += `<div class="detail-kv"><span class="k">Title</span><span class="v">${esc(t.title)}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Ticker</span><span class="v" style="color:var(--accent-cyan);">${esc(t.ticker)}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">State</span><span class="v">${badge(t.state, t.state === 'strengthening' ? 'ok' : t.state === 'weakening' ? 'warn' : t.state === 'broken' ? 'err' : 'info')}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Conviction</span><span class="v">${convictionBar(t.conviction_score)}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Valuation Gap</span><span class="v">${t.valuation_gap_pct != null ? t.valuation_gap_pct.toFixed(1) + '%' : '—'}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Base Case Rerating</span><span class="v">${t.base_case_rerating != null ? t.base_case_rerating.toFixed(1) + '%' : '—'}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Created</span><span class="v">${fmtTime(t.created_at)}</span></div>`;
+  html += `<div class="detail-kv"><span class="k">Updated</span><span class="v">${fmtTime(t.updated_at)}</span></div>`;
+  if (t.summary) {
+    html += `<div class="detail-kv"><span class="k">Summary</span><span class="v">${esc(t.summary)}</span></div>`;
+  }
+  html += '</div>';
+
+  // State timeline
+  if (t.history && t.history.length) {
+    html += '<div class="detail-section"><h3>State Evolution Timeline</h3>';
+    html += '<table class="data-table"><thead><tr><th>Time</th><th>State</th><th>Conv.</th><th>Val Gap</th><th>Note</th></tr></thead><tbody>';
+    // Show before/after delta for adjacent entries
+    for (let i = 0; i < t.history.length; i++) {
+      const h = t.history[i];
+      const prev = i > 0 ? t.history[i-1] : null;
+      const stateChanged = prev && prev.state !== h.state;
+      const convDelta = prev && prev.conviction_score != null && h.conviction_score != null
+        ? h.conviction_score - prev.conviction_score : null;
+      const convDeltaStr = convDelta != null ? ` (${convDelta >= 0 ? '+' : ''}${convDelta.toFixed(0)})` : '';
+
+      html += `<tr ${stateChanged ? 'style="border-left:3px solid var(--accent-amber);"' : ''}>
+        <td>${fmtTime(h.created_at)}</td>
+        <td>${badge(h.state, h.state === 'strengthening' ? 'ok' : h.state === 'weakening' ? 'warn' : h.state === 'broken' ? 'err' : 'info')}</td>
+        <td>${h.conviction_score != null ? h.conviction_score.toFixed(0) : '—'}${convDeltaStr ? `<span style="color:${convDelta >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">${convDeltaStr}</span>` : ''}</td>
+        <td>${h.valuation_gap_pct != null ? h.valuation_gap_pct.toFixed(1) + '%' : '—'}</td>
+        <td style="max-width:200px;">${esc(h.note || '')}</td>
+      </tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+
+  // Graph link
+  html += `<div style="margin-top:12px;"><button onclick="loadGraphForTickerValue('${t.ticker}')" style="background:var(--bg-hover); border:1px solid var(--border); color:var(--accent-cyan); padding:4px 12px; border-radius:3px; cursor:pointer; font-family:var(--mono); font-size:11px;">View in Graph</button></div>`;
+
+  detail.innerHTML = html;
+}
+
+// ---- Portfolio ----
+async function loadPortfolio() {
+  const [positions, candidates, review] = await Promise.all([
+    api('/api/positions'),
+    api('/api/candidates'),
+    api('/api/reviews/latest'),
+  ]);
+
+  // Positions
+  const ptbody = document.getElementById('positions-tbody');
+  if (positions && positions.length) {
+    ptbody.innerHTML = positions.map(p => `
+      <tr class="clickable" onclick="loadThesisByTicker('${p.ticker}')">
+        <td style="color:var(--accent-cyan); font-weight:600;">${esc(p.ticker)}</td>
+        <td>${p.current_weight.toFixed(1)}%</td>
+        <td>${p.target_weight.toFixed(1)}%</td>
+        <td>${convictionBar(p.conviction_score)}</td>
+        <td>${zoneBadge(p.zone_state)}</td>
+        <td>${p.probation_flag ? badge('YES', 'warn') : ''}</td>
+      </tr>
+    `).join('');
+  } else {
+    ptbody.innerHTML = '<tr><td colspan="6" class="empty-state">No active positions</td></tr>';
+  }
+
+  // Candidates
+  const ctbody = document.getElementById('candidates-tbody');
+  if (candidates && candidates.length) {
+    ctbody.innerHTML = candidates.map(c => `
+      <tr class="clickable" onclick="loadThesisByTicker('${c.ticker}')">
+        <td style="color:var(--accent-cyan);">${esc(c.ticker)}</td>
+        <td>${convictionBar(c.conviction_score)}</td>
+        <td>${zoneBadge(c.zone_state)}</td>
+        <td>${c.buyable_flag ? badge('YES', 'ok') : badge('NO', 'neutral')}</td>
+        <td style="max-width:150px;">${esc(c.watch_reason || '')}</td>
+      </tr>
+    `).join('');
+  } else {
+    ctbody.innerHTML = '<tr><td colspan="5" class="empty-state">No candidates</td></tr>';
+  }
+
+  // Review decisions
+  if (review) {
+    document.getElementById('review-header').innerHTML = `
+      <div style="display:flex; gap:16px; font-size:11px; color:var(--text-secondary);">
+        <span>Date: <b style="color:var(--text-primary);">${esc(review.review_date)}</b></span>
+        <span>Type: <b style="color:var(--text-primary);">${esc(review.review_type)}</b></span>
+        <span>Holdings: ${review.holdings_reviewed}</span>
+        <span>Candidates: ${review.candidates_reviewed}</span>
+        <span>Turnover: ${review.turnover_pct.toFixed(1)}%</span>
+      </div>
+    `;
+    const dtbody = document.getElementById('decisions-tbody');
+    dtbody.innerHTML = review.decisions.map(d => `
+      <tr class="clickable" onclick="loadThesisByTicker('${d.ticker}')">
+        <td style="color:var(--accent-cyan); font-weight:600;">${esc(d.ticker)}</td>
+        <td>${actionBadge(d.action)}</td>
+        <td>${d.action_score.toFixed(1)}</td>
+        <td>${d.target_weight_change != null ? (d.target_weight_change >= 0 ? '+' : '') + d.target_weight_change.toFixed(1) + '%' : '—'}</td>
+        <td>${d.suggested_weight != null ? d.suggested_weight.toFixed(1) + '%' : '—'}</td>
+        <td style="max-width:200px;">${(d.reason_codes || []).map(r => badge(r, 'info')).join(' ')}</td>
+        <td>${d.was_executed ? badge('YES', 'ok') : badge('NO', 'neutral')}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ---- Graph ----
+function initGraph() {
+  // Already initialized? Don't re-init
+}
+
+function loadGraphForTicker() {
+  const ticker = document.getElementById('graph-ticker-input').value.trim().toUpperCase();
+  loadGraphForTickerValue(ticker);
+}
+
+async function loadGraphForTickerValue(ticker) {
+  if (!ticker) return;
+  switchView('graph');
+  document.getElementById('graph-ticker-input').value = ticker;
+  const data = await api(`/api/graph/company/${ticker}`);
+  if (!data || (!data.nodes || !data.nodes.length)) {
+    document.getElementById('graph-stats').textContent = 'No graph data for ' + ticker;
+    return;
+  }
+
+  document.getElementById('graph-stats').textContent =
+    `${data.nodes.length} nodes · ${data.edges.length} edges`;
+
+  const container = document.getElementById('graph-container');
+  const nodes = new vis.DataSet(data.nodes);
+  const edges = new vis.DataSet(data.edges);
+  const options = {
+    physics: {
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005,
+                          springLength: 120, springConstant: 0.04 },
+      stabilization: { iterations: 200 }
+    },
+    interaction: { hover: true, tooltipDelay: 100 },
+    edges: { smooth: { type: 'continuous' }, font: { size: 9, color: '#666' } },
+    nodes: { font: { color: '#eee', size: 11 }, borderWidth: 1, borderWidthSelected: 3 },
+    layout: { improvedLayout: true },
+  };
+  if (state.graphNetwork) state.graphNetwork.destroy();
+  state.graphNetwork = new vis.Network(container, { nodes, edges }, options);
+}
+
+// ---- Event timeline ----
+async function loadDocTimeline(docId) {
+  const timeline = await api(`/api/documents/${docId}/timeline`);
+  const body = document.getElementById('timeline-body');
+  if (!timeline || !timeline.length) {
+    body.innerHTML = '<div class="empty-state">No pipeline events for this document</div>';
+    return;
+  }
+
+  const stageColors = {
+    INGEST: 'var(--accent-blue)', CLAIMS: 'var(--accent-amber)',
+    MEMORY: 'var(--accent-purple)', THESIS: 'var(--accent-green)',
+    SCORE: 'var(--accent-cyan)', ZONE: 'var(--accent-amber)',
+    ACTION: 'var(--accent-green)', FUNDING: 'var(--accent-red)',
+    GRAPH: 'var(--accent-blue)',
+  };
+
+  body.innerHTML = timeline.map(e => `
+    <div class="timeline-row">
+      <span class="timeline-stage" style="color:${stageColors[e.stage] || 'var(--text-secondary)'};">${esc(e.stage)}</span>
+      <span class="timeline-ticker">${esc(e.ticker)}</span>
+      <span class="timeline-detail">${esc(e.detail)}</span>
+      <span class="timeline-extra">${esc(e.extra || '')}</span>
+      <span class="timeline-status">${badge(e.status, e.status === 'OK' ? 'ok' : e.status === 'NONE' ? 'neutral' : 'warn')}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('timeline-hint').textContent =
+    `Document #${docId} — ${timeline.length} pipeline stages`;
+}
+
+// ---- Global search ----
+document.getElementById('global-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const ticker = e.target.value.trim().toUpperCase();
+    if (ticker) loadThesisByTicker(ticker);
+  }
+});
+
+// ---- Initial load ----
+async function init() {
+  await Promise.all([loadStatus(), loadFeed()]);
+}
+init();
+
+// Auto-refresh every 30s
+setInterval(() => {
+  loadStatus();
+  loadFeed();
+}, 30000);
+</script>
+</body>
+</html>
