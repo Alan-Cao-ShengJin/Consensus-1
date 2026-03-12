@@ -1070,5 +1070,276 @@ class TestDemoPolishRoutes(unittest.TestCase):
         self.assertFalse(data["demo_mode"])
 
 
+# ===========================================================================
+# Test: Demo Fixtures
+# ===========================================================================
+
+class TestDemoFixtures(unittest.TestCase):
+    def test_seed_creates_data(self):
+        from demo_fixtures import create_demo_session_factory
+        _engine, SessionFactory = create_demo_session_factory()
+        session = SessionFactory()
+        self.assertTrue(session.query(Company).count() >= 3)
+        self.assertTrue(session.query(Document).count() >= 5)
+        self.assertTrue(session.query(Claim).count() >= 8)
+        self.assertTrue(session.query(Thesis).count() >= 3)
+        self.assertTrue(session.query(ThesisStateHistory).count() >= 4)
+        self.assertTrue(session.query(PortfolioPosition).count() >= 2)
+        self.assertTrue(session.query(PortfolioReview).count() >= 1)
+        self.assertTrue(session.query(PortfolioDecision).count() >= 3)
+        session.close()
+
+    def test_demo_feed_non_empty(self):
+        from demo_fixtures import create_demo_session_factory
+        _engine, SessionFactory = create_demo_session_factory()
+        session = SessionFactory()
+        docs = get_recent_documents(session, limit=50)
+        self.assertTrue(len(docs) >= 5)
+        # Check that first doc has expected structure
+        d = docs[0]
+        self.assertIn("ticker", d)
+        self.assertIn("title", d)
+        self.assertIn("claim_count", d)
+        self.assertTrue(d["claim_count"] > 0)
+        session.close()
+
+    def test_demo_subjects_non_empty(self):
+        from demo_fixtures import create_demo_session_factory
+        from console_api import get_demo_subjects
+        _engine, SessionFactory = create_demo_session_factory()
+        session = SessionFactory()
+        subjects = get_demo_subjects(session)
+        self.assertIsNotNone(subjects["latest_thesis_delta"])
+        self.assertIsNotNone(subjects["latest_actionable"])
+        self.assertIsNotNone(subjects["latest_thesis_trigger"])
+        self.assertIsNotNone(subjects["latest_conviction_change"])
+        session.close()
+
+    def test_demo_what_changed_non_empty(self):
+        from demo_fixtures import create_demo_session_factory
+        from console_api import get_what_changed
+        _engine, SessionFactory = create_demo_session_factory()
+        session = SessionFactory()
+        result = get_what_changed(session, 1)
+        self.assertIsNotNone(result)
+        self.assertTrue(len(result["new_information"]) >= 2)
+        self.assertTrue(len(result["thesis_delta"]) >= 1)
+        session.close()
+
+    def test_demo_portfolio_non_empty(self):
+        from demo_fixtures import create_demo_session_factory
+        _engine, SessionFactory = create_demo_session_factory()
+        session = SessionFactory()
+        positions = get_portfolio_positions(session)
+        self.assertTrue(len(positions) >= 2)
+        review = get_latest_review(session)
+        self.assertIsNotNone(review)
+        self.assertTrue(len(review["decisions"]) >= 3)
+        session.close()
+
+
+# ===========================================================================
+# Test: Health Endpoint
+# ===========================================================================
+
+class TestHealthEndpoint(unittest.TestCase):
+    def setUp(self):
+        import db as db_module
+        self._orig_get_session = db_module.get_session
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        from contextlib import contextmanager
+        @contextmanager
+        def mock_get_session():
+            session = Session()
+            try:
+                yield session
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+
+        db_module.get_session = mock_get_session
+
+        session = Session()
+        _seed_basic(session)
+        session.commit()
+        session.close()
+
+        from console_app import create_console_app
+        app = create_console_app(graph=None, demo_mode=False)
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def tearDown(self):
+        import db as db_module
+        db_module.get_session = self._orig_get_session
+
+    def test_health_endpoint_exists(self):
+        resp = self.client.get("/api/health")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_health_reports_mode(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertEqual(data["mode"], "real")
+        self.assertFalse(data["demo_fixtures_loaded"])
+
+    def test_health_reports_counts(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertIn("counts", data)
+        self.assertEqual(data["counts"]["documents"], 1)
+        self.assertEqual(data["counts"]["claims"], 2)
+        self.assertEqual(data["counts"]["theses"], 1)
+
+    def test_health_api_reachable(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertTrue(data["api_reachable"])
+
+    def test_health_has_started_at(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertIn("started_at", data)
+        self.assertTrue(len(data["started_at"]) > 0)
+
+
+# ===========================================================================
+# Test: Demo Mode End-to-End (via Flask)
+# ===========================================================================
+
+class TestDemoModeEndToEnd(unittest.TestCase):
+    def setUp(self):
+        import db as db_module
+        self._orig_get_session = db_module.get_session
+
+        from console_app import create_console_app
+        app = create_console_app(graph=None, demo_mode=True)
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def tearDown(self):
+        import db as db_module
+        db_module.get_session = self._orig_get_session
+
+    def test_demo_health_reports_demo_mode(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertEqual(data["mode"], "demo")
+        self.assertTrue(data["demo_fixtures_loaded"])
+
+    def test_demo_feed_returns_data(self):
+        resp = self.client.get("/api/documents/recent?limit=50")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(len(data) >= 5)
+
+    def test_demo_status_has_counts(self):
+        resp = self.client.get("/api/status")
+        data = resp.get_json()
+        self.assertTrue(data["demo_mode"])
+        self.assertTrue(data["documents"] >= 5)
+        self.assertTrue(data["claims"] >= 8)
+        self.assertTrue(data["theses"] >= 3)
+
+    def test_demo_subjects_has_data(self):
+        resp = self.client.get("/api/demo/subjects")
+        data = resp.get_json()
+        self.assertIsNotNone(data["latest_thesis_delta"])
+        self.assertIsNotNone(data["latest_actionable"])
+
+    def test_demo_what_changed_has_data(self):
+        resp = self.client.get("/api/documents/1/what-changed")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(len(data["new_information"]) >= 2)
+        self.assertTrue(len(data["thesis_delta"]) >= 1)
+
+    def test_demo_positions_non_empty(self):
+        resp = self.client.get("/api/positions")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(len(data) >= 2)
+
+    def test_demo_review_has_decisions(self):
+        resp = self.client.get("/api/reviews/latest")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(len(data["decisions"]) >= 3)
+
+    def test_demo_narrative_has_stages(self):
+        resp = self.client.get("/api/documents/1/narrative")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        stages = [s["stage"] for s in data]
+        self.assertIn("INGEST", stages)
+        self.assertIn("CLAIMS", stages)
+
+
+# ===========================================================================
+# Test: Empty DB Diagnostic (real mode, no data)
+# ===========================================================================
+
+class TestEmptyDbDiagnostic(unittest.TestCase):
+    def setUp(self):
+        import db as db_module
+        self._orig_get_session = db_module.get_session
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        from contextlib import contextmanager
+        @contextmanager
+        def mock_get_session():
+            session = Session()
+            try:
+                yield session
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+
+        db_module.get_session = mock_get_session
+
+        from console_app import create_console_app
+        app = create_console_app(graph=None, demo_mode=False)
+        app.config["TESTING"] = True
+        self.client = app.test_client()
+
+    def tearDown(self):
+        import db as db_module
+        db_module.get_session = self._orig_get_session
+
+    def test_empty_feed_returns_empty_list(self):
+        resp = self.client.get("/api/documents/recent")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertEqual(data, [])
+
+    def test_empty_health_shows_zero_counts(self):
+        resp = self.client.get("/api/health")
+        data = resp.get_json()
+        self.assertEqual(data["mode"], "real")
+        self.assertEqual(data["counts"]["documents"], 0)
+        self.assertEqual(data["counts"]["claims"], 0)
+        self.assertEqual(data["counts"]["theses"], 0)
+
+    def test_empty_status_returns_zeros(self):
+        resp = self.client.get("/api/status")
+        data = resp.get_json()
+        self.assertEqual(data["documents"], 0)
+        self.assertFalse(data["demo_mode"])
+
+
 if __name__ == "__main__":
     unittest.main()
+

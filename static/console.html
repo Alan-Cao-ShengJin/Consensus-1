@@ -574,6 +574,56 @@ body.ribbon-open #main { height: calc(100vh - 106px); }
   font-style: italic;
   font-size: 11px;
 }
+
+/* ---- Status/Debug Bar ---- */
+#debug-bar {
+  height: 24px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 16px;
+  font-size: 10px;
+  color: var(--text-dim);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+#debug-bar .db-item { display: flex; align-items: center; gap: 4px; }
+#debug-bar .db-label { color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+#debug-bar .db-val { color: var(--text-secondary); }
+#debug-bar .db-val-ok { color: var(--accent-green); }
+#debug-bar .db-val-warn { color: var(--accent-amber); }
+#debug-bar .db-val-demo { color: var(--accent-purple); font-weight: 600; }
+#debug-bar .db-val-err { color: var(--accent-red); }
+
+/* Adjust main to not overlap debug bar */
+#main { height: calc(100vh - 96px); }
+body.ribbon-open #main { height: calc(100vh - 130px); }
+
+/* ---- Empty DB diagnostic ---- */
+.empty-db-diagnostic {
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  padding: 24px 32px;
+  margin: 16px;
+  text-align: center;
+}
+.empty-db-diagnostic h3 {
+  color: var(--accent-amber);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.empty-db-diagnostic p {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 4px 0;
+}
 </style>
 </head>
 <body>
@@ -873,6 +923,20 @@ body.ribbon-open #main { height: calc(100vh - 106px); }
 </div>
 
 <!-- ================================================================
+     STATUS / DEBUG BAR
+     ================================================================ -->
+<div id="debug-bar">
+  <div class="db-item"><span class="db-label">Mode:</span> <span id="db-mode" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">API:</span> <span id="db-api" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Docs:</span> <span id="db-docs" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Claims:</span> <span id="db-claims" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Theses:</span> <span id="db-theses" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Positions:</span> <span id="db-positions" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Graph:</span> <span id="db-graph" class="db-val">—</span></div>
+  <div class="db-item"><span class="db-label">Refreshed:</span> <span id="db-refreshed" class="db-val">—</span></div>
+</div>
+
+<!-- ================================================================
      JAVASCRIPT
      ================================================================ -->
 <script>
@@ -888,6 +952,7 @@ let state = {
   demoRibbonOpen: false,
   demoStep: 1,
   autoRefresh: true,
+  dbEmpty: false,
 };
 
 // ---- Utilities ----
@@ -1039,7 +1104,33 @@ updateClock();
 // ---- Status ----
 async function loadStatus() {
   const s = await api('/api/status');
-  if (!s) return;
+
+  // Update debug bar regardless
+  const now = new Date();
+  document.getElementById('db-refreshed').textContent = now.toLocaleTimeString();
+
+  if (!s) {
+    document.getElementById('db-api').textContent = 'UNREACHABLE';
+    document.getElementById('db-api').className = 'db-val db-val-err';
+    document.getElementById('db-mode').textContent = '—';
+    state.dbEmpty = true;
+    return;
+  }
+
+  // Debug bar
+  document.getElementById('db-api').textContent = 'OK';
+  document.getElementById('db-api').className = 'db-val db-val-ok';
+  document.getElementById('db-mode').textContent = s.demo_mode ? 'DEMO' : 'REAL';
+  document.getElementById('db-mode').className = s.demo_mode ? 'db-val db-val-demo' : 'db-val';
+  document.getElementById('db-docs').textContent = s.documents;
+  document.getElementById('db-docs').className = s.documents > 0 ? 'db-val db-val-ok' : 'db-val db-val-warn';
+  document.getElementById('db-claims').textContent = s.claims;
+  document.getElementById('db-theses').textContent = s.theses;
+  document.getElementById('db-positions').textContent = s.active_positions;
+  document.getElementById('db-graph').textContent = s.graph_loaded ? 'YES' : 'NO';
+  document.getElementById('db-graph').className = s.graph_loaded ? 'db-val db-val-ok' : 'db-val db-val-warn';
+
+  state.dbEmpty = s.documents === 0;
 
   const grid = document.getElementById('status-grid');
   const items = [
@@ -1069,8 +1160,25 @@ async function loadStatus() {
 // ---- Feed ----
 async function loadFeed() {
   const docs = await api('/api/documents/recent?limit=100');
-  if (!docs) { document.getElementById('feed-tbody').innerHTML = '<tr><td colspan="9" class="empty-state">No documents found</td></tr>'; return; }
+  if (!docs || docs.length === 0) {
+    document.getElementById('feed-count').textContent = '0 documents';
+    document.getElementById('feed-tbody').innerHTML = '';
+    // Show diagnostic instead of silent emptiness
+    const container = document.getElementById('what-changed-container');
+    container.style.display = 'block';
+    container.innerHTML = `<div class="empty-db-diagnostic">
+      <h3>No Documents Found</h3>
+      <p>The database contains no ingested documents.</p>
+      <p>If you expected data, check your pipeline or try <strong>--demo</strong> mode:</p>
+      <p style="color:var(--accent-cyan); font-family:var(--mono);">python scripts/run_console.py --demo</p>
+      <p style="margin-top:8px; color:var(--text-dim);">Demo mode seeds sample data so you can explore the full UI.</p>
+    </div>`;
+    state.documents = [];
+    return;
+  }
   state.documents = docs;
+  // Hide any previous diagnostic
+  document.getElementById('what-changed-container').style.display = 'none';
   document.getElementById('feed-count').textContent = `${docs.length} documents`;
 
   const tbody = document.getElementById('feed-tbody');

@@ -12,11 +12,13 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
 
 from flask import Flask, jsonify, request, send_from_directory
 
+import db as db_module
 from db import get_session
 from console_api import (
     get_recent_documents,
@@ -54,12 +56,41 @@ def create_console_app(
 
     Args:
         graph: Optional ConsensusGraph instance for graph views.
-        demo_mode: If True, UI shows DEMO badge.
+        demo_mode: If True, seeds in-memory demo fixtures and shows DEMO badge.
     """
     static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     app = Flask(__name__, static_folder=static_dir)
     app.config["DEMO_MODE"] = demo_mode
     app.config["GRAPH"] = graph
+    app.config["DEMO_FIXTURES_LOADED"] = False
+    app.config["STARTUP_WARNINGS"] = []
+    app.config["STARTED_AT"] = datetime.utcnow().isoformat()
+
+    # --- Demo mode: swap DB session to in-memory with fixtures ---
+    if demo_mode:
+        try:
+            from demo_fixtures import create_demo_session_factory
+            _engine, DemoSessionFactory = create_demo_session_factory()
+
+            @contextmanager
+            def demo_get_session():
+                session = DemoSessionFactory()
+                try:
+                    yield session
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
+                finally:
+                    session.close()
+
+            db_module.get_session = demo_get_session
+            app.config["DEMO_FIXTURES_LOADED"] = True
+            logger.info("Demo fixtures loaded into in-memory database.")
+        except Exception as e:
+            warning = f"Failed to load demo fixtures: {e}"
+            app.config["STARTUP_WARNINGS"].append(warning)
+            logger.warning(warning)
 
     # -----------------------------------------------------------------------
     # Static / SPA
@@ -79,7 +110,7 @@ def create_console_app(
 
     @app.route("/api/status")
     def api_status():
-        with get_session() as session:
+        with db_module.get_session() as session:
             status = get_system_status(session)
             status["demo_mode"] = app.config["DEMO_MODE"]
             status["graph_loaded"] = app.config["GRAPH"] is not None
@@ -88,19 +119,46 @@ def create_console_app(
             return jsonify(status)
 
     # -----------------------------------------------------------------------
+    # API: Health / debug
+    # -----------------------------------------------------------------------
+
+    @app.route("/api/health")
+    def api_health():
+        with db_module.get_session() as session:
+            status = get_system_status(session)
+            return jsonify({
+                "mode": "demo" if app.config["DEMO_MODE"] else "real",
+                "demo_fixtures_loaded": app.config["DEMO_FIXTURES_LOADED"],
+                "started_at": app.config["STARTED_AT"],
+                "graph_loaded": app.config["GRAPH"] is not None,
+                "startup_warnings": app.config["STARTUP_WARNINGS"],
+                "counts": {
+                    "companies": status.get("companies", 0),
+                    "documents": status.get("documents", 0),
+                    "claims": status.get("claims", 0),
+                    "theses": status.get("theses", 0),
+                    "themes": status.get("themes", 0),
+                    "active_positions": status.get("active_positions", 0),
+                    "candidates": status.get("candidates", 0),
+                    "reviews": status.get("reviews", 0),
+                },
+                "api_reachable": True,
+            })
+
+    # -----------------------------------------------------------------------
     # API: Documents
     # -----------------------------------------------------------------------
 
     @app.route("/api/documents/recent")
     def api_recent_documents():
         limit = request.args.get("limit", 50, type=int)
-        with get_session() as session:
+        with db_module.get_session() as session:
             docs = get_recent_documents(session, limit=min(limit, 200))
             return jsonify(docs)
 
     @app.route("/api/documents/<int:doc_id>")
     def api_document_detail(doc_id):
-        with get_session() as session:
+        with db_module.get_session() as session:
             detail = get_document_detail(session, doc_id)
             if not detail:
                 return jsonify({"error": "Document not found"}), 404
@@ -108,7 +166,7 @@ def create_console_app(
 
     @app.route("/api/documents/<int:doc_id>/timeline")
     def api_document_timeline(doc_id):
-        with get_session() as session:
+        with db_module.get_session() as session:
             timeline = get_event_timeline(session, doc_id)
             if not timeline:
                 return jsonify({"error": "Document not found"}), 404
@@ -120,7 +178,7 @@ def create_console_app(
 
     @app.route("/api/theses/<int:thesis_id>")
     def api_thesis_detail(thesis_id):
-        with get_session() as session:
+        with db_module.get_session() as session:
             detail = get_thesis_detail(session, thesis_id)
             if not detail:
                 return jsonify({"error": "Thesis not found"}), 404
@@ -128,7 +186,7 @@ def create_console_app(
 
     @app.route("/api/tickers/<ticker>/theses")
     def api_ticker_theses(ticker):
-        with get_session() as session:
+        with db_module.get_session() as session:
             theses = get_ticker_theses(session, ticker.upper())
             return jsonify(theses)
 
@@ -138,7 +196,7 @@ def create_console_app(
 
     @app.route("/api/reviews/latest")
     def api_latest_review():
-        with get_session() as session:
+        with db_module.get_session() as session:
             review = get_latest_review(session)
             if not review:
                 return jsonify({"error": "No reviews found"}), 404
@@ -146,12 +204,12 @@ def create_console_app(
 
     @app.route("/api/positions")
     def api_positions():
-        with get_session() as session:
+        with db_module.get_session() as session:
             return jsonify(get_portfolio_positions(session))
 
     @app.route("/api/candidates")
     def api_candidates():
-        with get_session() as session:
+        with db_module.get_session() as session:
             return jsonify(get_candidates(session))
 
     # -----------------------------------------------------------------------
@@ -160,7 +218,7 @@ def create_console_app(
 
     @app.route("/api/execution/latest")
     def api_latest_execution():
-        with get_session() as session:
+        with db_module.get_session() as session:
             execution = get_latest_execution(session)
             if not execution:
                 return jsonify({"error": "No execution data"}), 404
@@ -172,12 +230,12 @@ def create_console_app(
 
     @app.route("/api/tickers")
     def api_tickers():
-        with get_session() as session:
+        with db_module.get_session() as session:
             return jsonify(get_all_tickers(session))
 
     @app.route("/api/tickers/<ticker>/overview")
     def api_company_overview(ticker):
-        with get_session() as session:
+        with db_module.get_session() as session:
             overview = get_company_overview(session, ticker.upper())
             if not overview:
                 return jsonify({"error": "Company not found"}), 404
@@ -217,13 +275,13 @@ def create_console_app(
 
     @app.route("/api/demo/subjects")
     def api_demo_subjects():
-        with get_session() as session:
+        with db_module.get_session() as session:
             subjects = get_demo_subjects(session)
             return jsonify(subjects)
 
     @app.route("/api/documents/<int:doc_id>/what-changed")
     def api_what_changed(doc_id):
-        with get_session() as session:
+        with db_module.get_session() as session:
             result = get_what_changed(session, doc_id)
             if not result:
                 return jsonify({"error": "Document not found"}), 404
@@ -231,7 +289,7 @@ def create_console_app(
 
     @app.route("/api/documents/<int:doc_id>/narrative")
     def api_narrative(doc_id):
-        with get_session() as session:
+        with db_module.get_session() as session:
             result = get_narrative_export(session, doc_id)
             if not result:
                 return jsonify({"error": "Document not found"}), 404
