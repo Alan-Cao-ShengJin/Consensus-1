@@ -6,6 +6,12 @@ Handles the full path from DocumentPayload to persisted Document + Claims:
   3. Extract claims (stub or LLM)
   4. Create Claim rows with company/theme links
   5. Run post-extraction novelty classification
+  6. Assign event clusters (duplicate-event detection)
+  7. Detect and persist contradiction metadata
+
+Steps 6-7 were added in Step 13.1 to make event clustering and contradiction
+detection canonical ingestion-time operations rather than thesis-update-time
+transient computations.
 
 This is the single ingestion path for Step 6 connector sources.
 Manual/file-based ingestion (ingest.py, ingest_runner.py) remains separate.
@@ -136,14 +142,68 @@ def _extract_and_link_claims(
 
     session.flush()
 
-    # Post-extraction novelty classification
+    # Post-extraction novelty classification + contradiction detection
     if claim_ids:
         from novelty_classifier import classify_novelty
         db_claims = session.scalars(
             select(Claim).where(Claim.id.in_(claim_ids))
         ).all()
         if db_claims:
-            classify_novelty(session, db_claims, company_ticker=ticker)
+            novelty_results = classify_novelty(session, db_claims, company_ticker=ticker)
+            # Wire contradiction metadata: when novelty_type is CONFLICTING,
+            # persist the contradicts_claim_id and is_contradicted flag.
+            _apply_contradiction_metadata(session, novelty_results)
             session.flush()
 
+    # Post-extraction event clustering: assign stable event_cluster_id at
+    # ingestion time so downstream thesis updates consume persisted cluster
+    # state rather than recomputing from scratch.
+    if claim_ids:
+        _assign_ingestion_event_clusters(session, claim_ids, ticker)
+        session.flush()
+
     return claim_ids
+
+
+def _apply_contradiction_metadata(
+    session: Session,
+    novelty_results: list[tuple[int, object, float, int | None]],
+) -> None:
+    """Persist contradiction flags on claims detected as CONFLICTING.
+
+    Simple bounded contradiction detection:
+    - A claim is contradicted if novelty_classifier found it CONFLICTING with
+      a prior claim (same company, similar topic, opposite direction).
+    - We store the prior claim ID it contradicts for audit/explainability.
+    """
+    from models import NoveltyType
+    for claim_id, novelty_type, _sim, prior_claim_id in novelty_results:
+        if novelty_type == NoveltyType.CONFLICTING and prior_claim_id is not None:
+            claim = session.get(Claim, claim_id)
+            if claim:
+                claim.is_contradicted = True
+                claim.contradicts_claim_id = prior_claim_id
+                logger.info(
+                    "Contradiction detected: claim %d contradicts prior claim %d",
+                    claim_id, prior_claim_id,
+                )
+
+
+def _assign_ingestion_event_clusters(
+    session: Session,
+    claim_ids: list[int],
+    ticker: str,
+) -> None:
+    """Assign event clusters at ingestion time.
+
+    This is the canonical cluster assignment step. Claims get a stable
+    event_cluster_id that downstream thesis updates can consume directly.
+    """
+    try:
+        from event_clustering import assign_event_clusters
+        assign_event_clusters(session, claim_ids, ticker)
+    except Exception as e:
+        # Graceful degradation: clustering failure should not block ingestion.
+        # Claims will still have event_cluster_id=None, and thesis update
+        # can fall back to recomputation if needed.
+        logger.warning("Ingestion-time event clustering failed (non-fatal): %s", e)

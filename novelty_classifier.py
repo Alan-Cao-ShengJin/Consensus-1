@@ -45,7 +45,7 @@ def classify_novelty(
     session: Session,
     new_claims: list[Claim],
     company_ticker: str | None = None,
-) -> list[tuple[int, NoveltyType, float]]:
+) -> list[tuple[int, NoveltyType, float, int | None]]:
     """Classify novelty of new claims against existing DB claims.
 
     Args:
@@ -54,7 +54,9 @@ def classify_novelty(
         company_ticker: Optional ticker to scope prior claim lookup
 
     Returns:
-        List of (claim_id, new_novelty_type, best_similarity_score) tuples.
+        List of (claim_id, new_novelty_type, best_similarity_score, best_prior_claim_id) tuples.
+        best_prior_claim_id is the ID of the most-similar prior claim (used for
+        contradiction tracking when novelty_type is CONFLICTING).
         Also updates the claim.novelty_type in-place.
     """
     if not new_claims:
@@ -82,7 +84,7 @@ def classify_novelty(
 
     if not prior_claims:
         # No prior claims = everything is genuinely new
-        return [(c.id, NoveltyType.NEW, 0.0) for c in new_claims]
+        return [(c.id, NoveltyType.NEW, 0.0, None) for c in new_claims]
 
     results = []
     for new_claim in new_claims:
@@ -119,6 +121,9 @@ def classify_novelty(
             )
             new_claim.novelty_type = novelty
 
-        results.append((new_claim.id, novelty, round(best_sim, 3)))
+        # For contradiction tracking: return the prior claim ID that this
+        # claim most closely matches (especially relevant for CONFLICTING)
+        prior_id = best_prior.id if best_prior and best_sim >= CONFIRMING_THRESHOLD else None
+        results.append((new_claim.id, novelty, round(best_sim, 3), prior_id))
 
     return results

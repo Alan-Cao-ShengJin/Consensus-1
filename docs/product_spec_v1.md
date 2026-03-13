@@ -28,19 +28,23 @@ The system is a decision-support tool, not an autonomous trading agent.
 |--------|-------------|
 | **Structured claims** | Typed, directional, scored evidence extracted from documents with full provenance |
 | **Novelty classification** | Each claim classified as new, confirming, conflicting, or repetitive vs. prior memory |
+| **Event clustering** | Duplicate articles about the same event are clustered at ingestion time; cluster IDs are persisted on claims |
+| **Contradiction detection** | Claims contradicting prior evidence are flagged at ingestion with the contradicted claim ID |
 | **Evidence scores** | Deterministic per-claim scores considering source tier, freshness, duplication, and contradiction |
+| **Evidence assessments** | Persisted per-claim-per-thesis enriched evidence state (weight, freshness, cluster penalty, impact, delta) for downstream reuse |
 | **Thesis state** | Per-company thesis with state (forming → strengthening → stable → weakening → broken) and conviction score (0–100) |
 | **Memory snapshots** | Bounded, prioritized prior context retrieved for each thesis update |
 | **Portfolio decisions** | Deterministic recommendations (initiate/add/hold/trim/exit) with reason codes and blocking conditions |
-| **Audit trail** | Complete provenance chain: document → claims → evidence scores → thesis update → portfolio decision |
+| **Audit trail** | Complete provenance chain: document → claims → evidence assessments → thesis update → portfolio decision |
 
 ## What "Good" Looks Like for v1
 
-1. **Evidence is trustworthy**: Claims have provenance. Duplicate events don't overcount. Stale evidence is downweighted. Source quality matters.
-2. **Memory is bounded and predictable**: Thesis updates retrieve a known budget of prior claims, prioritized by relevance, with deterministic ordering.
-3. **Thesis updates are explainable**: Every conviction change traces back to specific claims, their evidence scores, and the scoring formula.
-4. **The system is honest about uncertainty**: LLMs interpret; code decides. Scoring, state transitions, and retrieval policy are deterministic.
-5. **Replay produces the same result**: Given the same DB state and inputs, the system produces identical outputs.
+1. **Evidence is trustworthy**: Claims have provenance. Duplicate events don't overcount (event clustering at ingestion). Stale evidence is downweighted. Source quality matters. Contradictions are detected and tracked.
+2. **Evidence state is canonical and reusable**: Event clusters, contradiction flags, and evidence assessments are persisted — not recomputed ad hoc. Downstream layers (replay, console, explainability) can query persisted state.
+3. **Memory is bounded and predictable**: Thesis updates retrieve a known budget of prior claims, prioritized by relevance, with deterministic ordering.
+4. **Thesis updates are explainable**: Every conviction change traces back to specific claims, their evidence scores, and the scoring formula. Persisted `EvidenceAssessment` records capture the full scoring context.
+5. **The system is honest about uncertainty**: LLMs interpret; code decides. Scoring, state transitions, and retrieval policy are deterministic.
+6. **Replay produces the same result**: Given the same DB state and inputs, the system produces identical outputs.
 
 ## Explicit Non-Goals (v1)
 

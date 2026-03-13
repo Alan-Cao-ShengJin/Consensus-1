@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from models import (
     Claim, Thesis, ThesisClaimLink, ThesisStateHistory,
-    ThesisState, SourceTier, ValuationProvenance,
+    ThesisState, SourceTier, ValuationProvenance, EvidenceAssessment,
 )
 
 logger = logging.getLogger(__name__)
@@ -393,33 +393,68 @@ def update_thesis_from_claims(
     else:
         llm_result = _build_stub_response(claims, thesis)
 
-    # --- Event clustering: assign cluster positions for duplicate-event downweighting ---
+    # --- Event clustering: consume persisted cluster state from ingestion ---
+    # Primary path: use event_cluster_id already assigned at ingestion time.
+    # Fallback: if claims lack persisted cluster IDs (e.g., legacy data or
+    # ingestion-time clustering failure), recompute as an explicit bounded fallback.
     cluster_positions: dict[int, int] = {}
-    try:
-        from event_clustering import assign_event_clusters
-        cluster_positions = assign_event_clusters(
-            session, claim_ids, thesis.company_ticker,
+    used_fallback_clustering = False
+
+    # Snapshot which claims are missing clusters BEFORE fallback modifies them
+    claims_missing_cluster_ids = {c.id for c in claims if not c.event_cluster_id}
+    claims_missing_cluster = [c for c in claims if c.id in claims_missing_cluster_ids]
+    if claims_missing_cluster:
+        # EXPLICIT FALLBACK: recompute clustering for claims that weren't
+        # clustered at ingestion time. This is visible in assessments and logs.
+        used_fallback_clustering = True
+        logger.info(
+            "Fallback event clustering for %d claims missing persisted cluster_id",
+            len(claims_missing_cluster),
         )
-    except Exception as e:
-        logger.warning("Event clustering failed (continuing without): %s", e)
+        try:
+            from event_clustering import assign_event_clusters
+            cluster_positions = assign_event_clusters(
+                session, [c.id for c in claims_missing_cluster],
+                thesis.company_ticker,
+            )
+        except Exception as e:
+            logger.warning("Fallback event clustering failed (continuing without): %s", e)
+
+    # For claims WITH persisted cluster IDs, derive position from cluster membership
+    if not used_fallback_clustering or claims_missing_cluster != list(claims):
+        from event_clustering import cluster_claims_for_company
+        # Build positions from persisted cluster IDs for clustered claims
+        clustered = [c for c in claims if c.event_cluster_id]
+        if clustered:
+            clusters = cluster_claims_for_company(clustered)
+            for cluster in clusters:
+                for cid in cluster.member_claim_ids:
+                    if cid not in cluster_positions:
+                        cluster_positions[cid] = cluster.member_claim_ids.index(cid) + 1
 
     # --- Compute evidence scores and conviction deltas (code decides, not LLM) ---
     from evidence_scoring import score_evidence
 
     deltas: list[float] = []
     assessments: list[dict] = []
+    evidence_assessment_records: list[EvidenceAssessment] = []
     for claim in claims:
         assessment = _find_assessment(llm_result, claim.id)
         impact = assessment.impact if assessment else "neutral"
         materiality = assessment.materiality if assessment else 0.5
 
         # Full evidence scoring: source tier + freshness + novelty + cluster penalty
+        # + contradiction metadata from persisted claim state
         ev_score = score_evidence(
             claim_id=claim.id,
             source_tier=claim.document.source_tier if claim.document else SourceTier.TIER_2,
             novelty_type=claim.novelty_type,
             published_at=claim.published_at,
             cluster_position=cluster_positions.get(claim.id, 1),
+            is_contradicted=claim.is_contradicted,
+            contradiction_claim_ids=(
+                [claim.contradicts_claim_id] if claim.contradicts_claim_id else []
+            ),
         )
 
         confidence = claim.confidence or 0.7
@@ -440,7 +475,27 @@ def update_thesis_from_claims(
             "evidence_weight": round(ev_score.evidence_weight, 4),
             "cluster_position": cluster_positions.get(claim.id, 1),
             "freshness": round(ev_score.freshness_factor, 4),
+            "is_contradicted": claim.is_contradicted,
+            "used_fallback_clustering": used_fallback_clustering and claim.id in claims_missing_cluster_ids,
         })
+
+        # Persist enriched evidence state for downstream reuse
+        evidence_assessment_records.append(EvidenceAssessment(
+            thesis_id=thesis.id,
+            claim_id=claim.id,
+            source_tier_weight=ev_score.source_tier_weight,
+            freshness_factor=round(ev_score.freshness_factor, 6),
+            novelty_factor=ev_score.novelty_factor,
+            cluster_penalty=round(ev_score.cluster_penalty, 6),
+            evidence_weight=round(ev_score.evidence_weight, 6),
+            cluster_position=cluster_positions.get(claim.id, 1),
+            event_cluster_id=claim.event_cluster_id,
+            is_contradicted=claim.is_contradicted,
+            contradicts_claim_id=claim.contradicts_claim_id,
+            impact=impact,
+            materiality=materiality,
+            delta=round(delta, 6),
+        ))
 
         # Map impact to link_type for the DB
         link_type_map = {
@@ -480,6 +535,27 @@ def update_thesis_from_claims(
         ),
         note=llm_result.summary_note,
     ))
+
+    # Persist enriched evidence assessments for downstream reuse
+    for ea_record in evidence_assessment_records:
+        # Upsert: if already assessed (e.g., re-run), update rather than duplicate
+        existing = session.scalars(
+            select(EvidenceAssessment).where(
+                EvidenceAssessment.thesis_id == ea_record.thesis_id,
+                EvidenceAssessment.claim_id == ea_record.claim_id,
+            )
+        ).first()
+        if existing:
+            for attr in (
+                "source_tier_weight", "freshness_factor", "novelty_factor",
+                "cluster_penalty", "evidence_weight", "cluster_position",
+                "event_cluster_id", "is_contradicted", "contradicts_claim_id",
+                "impact", "materiality", "delta",
+            ):
+                setattr(existing, attr, getattr(ea_record, attr))
+            existing.assessed_at = datetime.utcnow()
+        else:
+            session.add(ea_record)
 
     session.flush()
 

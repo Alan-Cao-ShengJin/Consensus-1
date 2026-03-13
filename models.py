@@ -216,6 +216,10 @@ class Claim(Base):
     source_excerpt: Mapped[Optional[str]] = mapped_column(Text)        # raw text span from document
     event_cluster_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)  # event dedup cluster
 
+    # Contradiction tracking (Step 13.1)
+    is_contradicted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    contradicts_claim_id: Mapped[Optional[int]] = mapped_column(Integer, index=True)  # claim this contradicts
+
     document = relationship("Document", back_populates="claims")
 
 
@@ -424,6 +428,45 @@ class CompanyPeerGroupLink(Base):
     company_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
     peer_group_id: Mapped[int] = mapped_column(ForeignKey("peer_groups.id"), nullable=False, index=True)
     role: Mapped[Optional[str]] = mapped_column(String(50))  # current / target / alt
+
+
+# ---------- Step 13.1: Evidence Assessment (persisted evidence state) ----------
+
+class EvidenceAssessment(Base):
+    """Persisted evidence state for a claim assessed against a thesis.
+
+    Captures the enriched evidence metadata used when a claim contributed to
+    a thesis update.  Downstream layers (replay, console, explainability) can
+    query this table instead of recomputing evidence scores from scratch.
+    """
+    __tablename__ = "evidence_assessments"
+    __table_args__ = (
+        UniqueConstraint("thesis_id", "claim_id", name="uq_evidence_assessment"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    thesis_id: Mapped[int] = mapped_column(ForeignKey("theses.id"), nullable=False, index=True)
+    claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), nullable=False, index=True)
+
+    # Evidence scoring inputs
+    source_tier_weight: Mapped[float] = mapped_column(Float, nullable=False)
+    freshness_factor: Mapped[float] = mapped_column(Float, nullable=False)
+    novelty_factor: Mapped[float] = mapped_column(Float, nullable=False)
+    cluster_penalty: Mapped[float] = mapped_column(Float, nullable=False)
+    evidence_weight: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Cluster / contradiction context
+    cluster_position: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    event_cluster_id: Mapped[Optional[str]] = mapped_column(String(100))
+    is_contradicted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    contradicts_claim_id: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # LLM/stub assessment
+    impact: Mapped[str] = mapped_column(String(20), nullable=False)  # supports/weakens/neutral/conflicting
+    materiality: Mapped[float] = mapped_column(Float, nullable=False)
+    delta: Mapped[float] = mapped_column(Float, nullable=False)
+
+    assessed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 # ---------- Step 9: Execution Artifacts ----------

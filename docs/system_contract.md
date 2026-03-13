@@ -1,4 +1,4 @@
-# System Contract v1 — Consensus-1
+# System Contract v1.1 — Consensus-1
 
 This document defines the foundational contracts for the evidence/memory layer. Every component that reads or writes claims, evidence, memory, or thesis state must honor these rules.
 
@@ -37,8 +37,12 @@ A **claim** is a single, typed assertion extracted from a document. Claims are t
 | `confidence` | 0.0–1.0, extraction confidence |
 | `document_id` | FK to the source document (provenance) |
 | `published_at` | Inherited from document if not set (used for freshness) |
+| `source_excerpt` | Raw text span from source document (nullable) |
+| `event_cluster_id` | Assigned at ingestion time by event clustering (nullable) |
+| `is_contradicted` | True if this claim contradicts a prior claim (set at ingestion) |
+| `contradicts_claim_id` | ID of the prior claim this contradicts (nullable) |
 
-**Claim ownership**: Claims are always extracted by the claim extractor (stub or LLM). The LLM proposes claim content; deterministic code validates, classifies novelty, and scores evidence weight.
+**Claim ownership**: Claims are always extracted by the claim extractor (stub or LLM). The LLM proposes claim content; deterministic code validates, classifies novelty, scores evidence weight, assigns event clusters, and detects contradictions.
 
 ---
 
@@ -50,7 +54,31 @@ A **claim** is a single, typed assertion extracted from a document. Claims are t
 2. **Freshness**: Claims decay over time. A claim from today is worth more than a claim from 6 months ago.
 3. **Novelty**: New evidence > confirming > conflicting > repetitive
 4. **Duplicate-event penalty**: Multiple articles covering the same real-world event are collapsed. The first article gets full weight; subsequent articles in the same event cluster get a steep penalty.
-5. **Contradiction awareness**: If a claim contradicts prior claims on the same topic for the same company, this is tracked and the contradiction metadata is preserved.
+5. **Contradiction awareness**: If a claim contradicts prior claims on the same topic for the same company, this is tracked and the contradiction metadata is preserved and propagated into evidence scoring.
+
+### Evidence state lifecycle
+
+Evidence state is created and persisted at two canonical points:
+
+| Stage | What happens | Where | Persisted? |
+|-------|-------------|-------|-----------|
+| **Ingestion** | Event clustering assigns `event_cluster_id`. Contradiction detection sets `is_contradicted` + `contradicts_claim_id`. | `document_ingestion_service.py` | Yes — on Claim rows |
+| **Thesis update** | Full evidence scoring computes weight from tier + freshness + novelty + cluster penalty + contradiction. Results are persisted as `EvidenceAssessment` records. | `thesis_update_service.py` | Yes — `evidence_assessments` table |
+
+### Canonical vs. derived evidence state
+
+| Field | Canonical (persisted) | Where stored |
+|-------|----------------------|--------------|
+| `event_cluster_id` | Yes | `claims.event_cluster_id` |
+| `is_contradicted` | Yes | `claims.is_contradicted` |
+| `contradicts_claim_id` | Yes | `claims.contradicts_claim_id` |
+| `evidence_weight` | Yes | `evidence_assessments.evidence_weight` |
+| `freshness_factor` | Yes | `evidence_assessments.freshness_factor` |
+| `cluster_penalty` | Yes | `evidence_assessments.cluster_penalty` |
+| `novelty_factor` | Yes | `evidence_assessments.novelty_factor` |
+| `impact` | Yes | `evidence_assessments.impact` |
+| `materiality` | Yes | `evidence_assessments.materiality` |
+| `delta` | Yes | `evidence_assessments.delta` |
 
 Evidence scores are computed in `evidence_scoring.py` and consumed by `thesis_update_service.py`. They are **never** computed by the LLM.
 
@@ -127,7 +155,7 @@ forming → strengthening → stable → weakening → probation → broken
 - Updated by `compute_claim_delta()` and `apply_conviction_update()`
 - Per-document cap: ±15 points maximum per ingestion batch
 - Dampened at extremes (sigmoid-inspired): full effect near 50, reduced near 0/100
-- Formula: `base × materiality × novelty_mult × confidence × source_tier_weight`
+- Formula: `base × materiality × novelty_mult × confidence × evidence_weight`
 
 ---
 
@@ -142,27 +170,66 @@ Every claim/evidence must support drilldown to answer:
 | When was it ingested? | `Document.ingested_at` |
 | What source/document generated it? | `Document.source_key`, `Document.external_id`, `Document.source_tier` |
 | What text supports it? | `Claim.claim_text_normalized`, `Claim.source_excerpt` (the raw text span from the document) |
-| Is this part of a duplicate-event cluster? | `Claim.event_cluster_id` (nullable — set when event clustering detects duplicates) |
+| Is this part of a duplicate-event cluster? | `Claim.event_cluster_id` (assigned at ingestion time by event clustering) |
+| Does it contradict prior evidence? | `Claim.is_contradicted`, `Claim.contradicts_claim_id` |
+| What evidence state was used for thesis update? | `EvidenceAssessment` record (evidence_weight, freshness, cluster_penalty, impact, delta) |
 
 ### Provenance chain:
 ```
-Document → Claim → Evidence Score → Thesis Update → Portfolio Decision
-    ↓          ↓
-source_key   claim_text_normalized
-external_id  source_excerpt
-url          event_cluster_id
-hash
+Document → Claim → Evidence Assessment → Thesis Update → Portfolio Decision
+    ↓          ↓           ↓
+source_key   claim_text   evidence_weight
+external_id  source_excerpt  freshness_factor
+url          event_cluster_id  cluster_penalty
+hash         is_contradicted   impact + delta
+             contradicts_claim_id
 ```
 
 ---
 
-## 8. Deterministic vs. LLM-Owned Responsibilities
+## 8. Canonical Pipeline Stages
+
+The evidence pipeline has well-defined stages with clear ownership:
+
+```
+1. INGESTION (document_ingestion_service.py)
+   ├── Parse raw text
+   ├── Insert Document row
+   ├── Extract claims (LLM or stub)
+   ├── Create company/theme links
+   ├── Classify novelty (deterministic code)
+   ├── Detect contradictions → persist is_contradicted + contradicts_claim_id
+   └── Assign event clusters → persist event_cluster_id
+
+2. THESIS UPDATE (thesis_update_service.py)
+   ├── Retrieve bounded memory context
+   ├── LLM/stub classify claim impacts
+   ├── Consume persisted cluster state (fallback recompute if missing)
+   ├── Compute evidence scores with contradiction metadata
+   ├── Compute conviction deltas
+   ├── Apply conviction update with dampening
+   ├── Resolve state with guardrails
+   ├── Persist EvidenceAssessment records ← NEW canonical evidence state
+   └── Persist ThesisStateHistory + ThesisClaimLinks
+
+3. PORTFOLIO DECISION (portfolio_decision_engine.py)
+   └── Consumes thesis state + valuation, not raw evidence
+```
+
+### Fallback behavior:
+If claims arrive at thesis update without persisted `event_cluster_id` (legacy data or ingestion failure), the system performs an **explicit fallback recomputation**. This is logged and visible in the assessment metadata (`used_fallback_clustering: true`).
+
+---
+
+## 9. Deterministic vs. LLM-Owned Responsibilities
 
 | Responsibility | Owner | Rationale |
 |---------------|-------|-----------|
 | Claim extraction (text → structured claim) | **LLM** | Requires natural language understanding |
 | Claim assessment (impact on thesis) | **LLM** | Requires domain interpretation |
 | Novelty classification | **Code** | Text similarity + direction comparison against DB |
+| Contradiction detection | **Code** | Same company, similar topic, opposite direction |
+| Event clustering | **Code** | Text similarity + temporal proximity at ingestion time |
 | Evidence scoring | **Code** | Deterministic formula with defined inputs |
 | Conviction score update | **Code** | Arithmetic with caps and dampening |
 | State transition resolution | **Code** | Guardrails, inertia rules, score thresholds |
