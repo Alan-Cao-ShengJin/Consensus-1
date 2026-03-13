@@ -274,9 +274,49 @@ PROBATION_IMPROVEMENT_DELTA = 3.0       # conviction must improve by this much t
 COOLDOWN_DAYS = 21                      # re-entry blocked for N days after exit
 
 # Weight sizing
-DEFAULT_INITIATION_WEIGHT = 3.0         # starting weight for new positions
-ADD_INCREMENT = 1.5                     # weight increment per add
+DEFAULT_INITIATION_WEIGHT = 3.0         # starting weight for new positions (fallback)
+ADD_INCREMENT = 1.5                     # weight increment per add (fallback)
 TRIM_DECREMENT = 2.0                    # weight decrement per trim
+MAX_POSITION_WEIGHT = 10.0              # hard cap per position
+
+
+def conviction_weighted_initiation_size(conviction: float) -> float:
+    """Scale initiation weight by conviction score.
+
+    conviction 50 (floor) -> 2.0%
+    conviction 65         -> ~3.8%
+    conviction 80         -> ~5.5%
+    conviction 95+        -> 7.0%
+
+    Linear interpolation between floor and ceiling.
+    """
+    floor = ADD_CONVICTION_FLOOR  # ~45
+    ceiling = 95.0
+    min_weight = 2.0
+    max_weight = 7.0
+    t = max(0.0, min(1.0, (conviction - floor) / (ceiling - floor)))
+    return round(min_weight + t * (max_weight - min_weight), 1)
+
+
+def conviction_weighted_add_increment(conviction: float, current_weight: float) -> float:
+    """Scale add increment by conviction. Higher conviction -> larger adds.
+
+    conviction 50-60  -> 1.0% add
+    conviction 60-70  -> 1.5% add
+    conviction 70-80  -> 2.0% add
+    conviction 80+    -> 2.5% add
+
+    Capped so total never exceeds MAX_POSITION_WEIGHT.
+    """
+    if conviction >= 80:
+        increment = 2.5
+    elif conviction >= 70:
+        increment = 2.0
+    elif conviction >= 60:
+        increment = 1.5
+    else:
+        increment = 1.0
+    return min(increment, MAX_POSITION_WEIGHT - current_weight)
 
 # Price move threshold
 IMMEDIATE_REVIEW_PRICE_MOVE_PCT = 8.0   # flag for immediate review
@@ -491,11 +531,12 @@ def evaluate_holding(
 
         if is_winner:
             if holding.thesis_state in (ThesisState.STRENGTHENING, ThesisState.STABLE):
+                add_size = conviction_weighted_add_increment(holding.conviction_score, holding.current_weight)
                 decision.action = ActionType.ADD
                 decision.action_score = 50.0
                 decision.recommendation_priority = PRIORITY_GROWTH
-                decision.target_weight_change = ADD_INCREMENT
-                decision.suggested_weight = holding.current_weight + ADD_INCREMENT
+                decision.target_weight_change = add_size
+                decision.suggested_weight = holding.current_weight + add_size
                 reasons.append(ReasonCode.ADD_TO_WINNER)
                 reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
                 if holding.thesis_state == ThesisState.STRENGTHENING:
@@ -511,11 +552,12 @@ def evaluate_holding(
             )
 
             if has_confirming_evidence and thesis_intact:
+                add_size = conviction_weighted_add_increment(holding.conviction_score, holding.current_weight)
                 decision.action = ActionType.ADD
                 decision.action_score = 40.0
                 decision.recommendation_priority = PRIORITY_GROWTH
-                decision.target_weight_change = ADD_INCREMENT
-                decision.suggested_weight = holding.current_weight + ADD_INCREMENT
+                decision.target_weight_change = add_size
+                decision.suggested_weight = holding.current_weight + add_size
                 reasons.append(ReasonCode.ADD_TO_LOSER_CONFIRMED)
                 reasons.append(ReasonCode.SUFFICIENT_NOVEL_EVIDENCE)
                 reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
@@ -696,11 +738,12 @@ def evaluate_candidate(
         gate_reasons.append(ReasonCode.BETTER_THAN_WEAKEST_HOLDING)
 
     # All gates passed + relative hurdle passed → INITIATE
+    sized_weight = conviction_weighted_initiation_size(candidate_score)
     decision.action = ActionType.INITIATE
     decision.action_score = candidate_score
     decision.recommendation_priority = PRIORITY_GROWTH
-    decision.target_weight_change = DEFAULT_INITIATION_WEIGHT
-    decision.suggested_weight = DEFAULT_INITIATION_WEIGHT
+    decision.target_weight_change = sized_weight
+    decision.suggested_weight = sized_weight
     decision.reason_codes = gate_reasons
     decision.rationale = (
         f"All entry gates passed — conviction {candidate_score:.0f}, "

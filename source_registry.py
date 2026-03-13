@@ -125,6 +125,60 @@ _register(SourceConfig(
     notes="User pastes or uploads transcript. Highest-value text source for claims.",
 ))
 
+# --- FMP Earnings Transcripts (automated) ---
+
+_register(SourceConfig(
+    key="earnings_transcript_fmp",
+    source_type=SourceType.EARNINGS_TRANSCRIPT,
+    source_tier=SourceTier.TIER_1,
+    provider="fmp",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="external_id",
+    api_key_env_var="FMP_API_KEY",
+    rate_limit_per_second=5.0,
+    notes="FMP earnings call transcripts. Highest-value automated text source.",
+))
+
+# --- FMP Structured Financials ---
+
+_register(SourceConfig(
+    key="financials_fmp",
+    source_type=SourceType.TEN_Q,
+    source_tier=SourceTier.TIER_1,
+    provider="fmp",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="external_id",
+    api_key_env_var="FMP_API_KEY",
+    rate_limit_per_second=5.0,
+    notes="FMP structured financials (income, balance sheet, cash flow). JSON->text for claims.",
+))
+
+# --- FMP Consensus Estimates ---
+
+_register(SourceConfig(
+    key="consensus_estimates_fmp",
+    source_type=SourceType.NEWS,
+    source_tier=SourceTier.TIER_2,
+    provider="fmp",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="external_id",
+    api_key_env_var="FMP_API_KEY",
+    rate_limit_per_second=5.0,
+    notes="FMP analyst consensus estimates. Beat/miss comparison drives conviction.",
+))
+
 # --- Press Releases ---
 
 _register(SourceConfig(
@@ -156,7 +210,7 @@ _register(SourceConfig(
     dedupe_key="url",
     api_key_env_var="FINNHUB_API_KEY",
     rate_limit_per_second=1.0,
-    enabled=False,  # registered but no connector built yet — v2
+    enabled=True,
     notes="Free tier: 60 req/min. /company-news endpoint filters by ticker natively. 1-year archive.",
 ))
 

@@ -56,6 +56,8 @@ class HistoricalEvalConfig:
     backfill_sec_filings: bool = True
     backfill_news_rss: bool = True
     backfill_pr_rss: bool = True
+    backfill_finnhub: bool = True
+    backfill_fmp: bool = True
 
     # --- Thesis regeneration ---
     rebuild_from_scratch: bool = True           # True = clean DB, False = incremental

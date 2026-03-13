@@ -65,7 +65,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .detail-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; }
 .detail-panel h3 { font-size: 16px; margin-bottom: 12px; color: var(--text); }
 .detail-panel .chain { display: flex; align-items: stretch; gap: 0; margin: 16px 0; flex-wrap: wrap; }
-.chain-step { flex: 1; min-width: 180px; padding: 12px; background: var(--bg3); border: 1px solid var(--border); position: relative; }
+.chain-step { flex: 1; min-width: 140px; padding: 12px; background: var(--bg3); border: 1px solid var(--border); position: relative; }
 .chain-step:first-child { border-radius: 8px 0 0 8px; }
 .chain-step:last-child { border-radius: 0 8px 8px 0; }
 .chain-arrow { display: flex; align-items: center; padding: 0 4px; color: var(--green); font-size: 20px; }
@@ -77,10 +77,19 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .claim-item.negative-claim { border-left-color: var(--red); }
 .claim-meta { color: var(--text2); font-size: 11px; margin-top: 4px; }
 
+/* Weight change badges */
+.wt-badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.wt-up { background: rgba(63,185,80,0.15); color: var(--green); }
+.wt-down { background: rgba(248,81,73,0.15); color: var(--red); }
+.wt-flat { background: rgba(139,148,158,0.15); color: var(--text2); }
+
 /* Compare */
 .compare-row { display: grid; grid-template-columns: 200px 1fr 1fr 120px; gap: 0; border-bottom: 1px solid var(--border); }
 .compare-row.header { background: var(--bg3); font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--text2); }
 .compare-row > div { padding: 8px 12px; }
+
+/* Composition date picker */
+.date-picker-row { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
 
 /* Misc */
 .empty-state { text-align: center; padding: 48px; color: var(--text2); }
@@ -105,7 +114,8 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab-btn" data-tab="timeline" onclick="switchTab('timeline')">Timeline</button>
   <button class="tab-btn" data-tab="decisions" onclick="switchTab('decisions')">Decisions</button>
-  <button class="tab-btn" data-tab="portfolio" onclick="switchTab('portfolio')">Portfolio</button>
+  <button class="tab-btn" data-tab="changes" onclick="switchTab('changes')">Weight Changes</button>
+  <button class="tab-btn" data-tab="portfolio" onclick="switchTab('portfolio')">Composition</button>
   <button class="tab-btn" data-tab="failures" onclick="switchTab('failures')">Failures</button>
   <button class="tab-btn" data-tab="compare" onclick="switchTab('compare')">Compare</button>
 </div>
@@ -120,6 +130,7 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
   <div class="section" id="sec-timeline">
     <div class="section-title">Portfolio Value Over Time</div>
     <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+    <div id="timelineEvents"></div>
     <div id="timelineTable"></div>
   </div>
 
@@ -131,9 +142,16 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="detail-panel" id="decisionDetail" style="display:none;"></div>
   </div>
 
-  <!-- PORTFOLIO -->
+  <!-- WEIGHT CHANGES -->
+  <div class="section" id="sec-changes">
+    <div class="section-title">Meaningful Portfolio Changes</div>
+    <div id="changesContent"></div>
+    <div class="detail-panel" id="changeDetail" style="display:none;"></div>
+  </div>
+
+  <!-- PORTFOLIO / COMPOSITION -->
   <div class="section" id="sec-portfolio">
-    <div class="section-title">Portfolio Composition</div>
+    <div class="section-title">Portfolio Composition Over Time</div>
     <div id="portfolioContent"></div>
   </div>
 
@@ -180,8 +198,11 @@ const API = {
   buckets: (id) => fetch(`/api/replay/runs/${id}/conviction-buckets`).then(r => r.json()),
   timeline: (id) => fetch(`/api/replay/runs/${id}/timeline`).then(r => r.json()),
   trades: (id) => fetch(`/api/replay/runs/${id}/trades`).then(r => r.json()),
+  composition: (id) => fetch(`/api/replay/runs/${id}/composition`).then(r => r.json()),
+  changes: (id) => fetch(`/api/replay/runs/${id}/changes`).then(r => r.json()),
   failures: (id) => fetch(`/api/replay/runs/${id}/failures`).then(r => r.json()),
   evidence: (id, d, t) => fetch(`/api/replay/runs/${id}/evidence/${d}/${t}`).then(r => r.json()),
+  drilldown: (id, d, t) => fetch(`/api/replay/runs/${id}/drilldown/${d}/${t}`).then(r => r.json()),
   compare: (a, b) => fetch(`/api/replay/compare?run1=${a}&run2=${b}`).then(r => r.json()),
 };
 
@@ -195,7 +216,7 @@ async function init() {
     const c1 = document.getElementById('compare1');
     const c2 = document.getElementById('compare2');
     S.runs.forEach(r => {
-      const opt = `<option value="${r.run_id}">${r.run_id} (${r.extractor_mode || '?'}, ${r.universe_size || '?'} names)</option>`;
+      const opt = `<option value="${r.run_id}">${r.run_id} (${r.extractor_mode || '?'}, ${r.universe_size || '?'} names, ${r.date_range?.cadence_days || '7'}d)</option>`;
       sel.innerHTML += opt;
       c1.innerHTML += opt;
       c2.innerHTML += opt;
@@ -227,6 +248,7 @@ async function loadTab(tab) {
     if (tab === 'overview') await renderOverview();
     else if (tab === 'timeline') await renderTimeline();
     else if (tab === 'decisions') await renderDecisions();
+    else if (tab === 'changes') await renderChanges();
     else if (tab === 'portfolio') await renderPortfolio();
     else if (tab === 'failures') await renderFailures();
   } catch(e) { console.error(`Tab ${tab} failed:`, e); }
@@ -245,7 +267,7 @@ function updateRunMeta() {
   html += `<span class="badge ${m.extractor_mode === 'real_llm' ? 'badge-green' : 'badge-amber'}">${m.extractor_mode || 'stub'}</span>`;
   if (m.exit_policy && m.exit_policy !== 'baseline') html += `<span class="badge badge-blue">${m.exit_policy}</span>`;
   if (flags.length) html += `<span class="badge badge-red">${flags.length} degraded</span>`;
-  if (m.cadence_days) html += `<span>Cadence: ${m.cadence_days}d</span>`;
+  html += `<span class="badge badge-blue">${m.cadence_days || 7}d cadence</span>`;
   document.getElementById('runMeta').innerHTML = html;
 }
 
@@ -333,10 +355,11 @@ async function renderOverview() {
 }
 
 // -----------------------------------------------------------------------
-// TIMELINE
+// TIMELINE (with event markers)
 // -----------------------------------------------------------------------
 async function renderTimeline() {
   const tl = await cached('timeline', () => API.timeline(S.currentRun));
+  const changes = await cached('changes', () => API.changes(S.currentRun));
 
   if (!tl.length) {
     document.getElementById('timelineTable').innerHTML = '<div class="empty-state">No portfolio timeline data. Re-generate the proof pack to include portfolio_timeline.csv.</div>';
@@ -346,7 +369,6 @@ async function renderTimeline() {
   const labels = tl.map(r => r.review_date);
   const values = tl.map(r => parseFloat(r.total_value));
   const cash = tl.map(r => parseFloat(r.cash));
-  const positions = tl.map(r => parseInt(r.num_positions));
 
   // Benchmark line (approximate from final return)
   const bm = S.runData?.benchmark;
@@ -360,6 +382,20 @@ async function renderTimeline() {
     });
   }
 
+  // Build event markers on timeline (changes that moved the portfolio)
+  const eventPoints = new Array(labels.length).fill(null);
+  const eventLabels = {};
+  if (changes.length) {
+    changes.forEach(c => {
+      const idx = labels.indexOf(c.review_date);
+      if (idx >= 0) {
+        eventPoints[idx] = values[idx];
+        if (!eventLabels[idx]) eventLabels[idx] = [];
+        eventLabels[idx].push(`${c.ticker} ${c.event_type} (${fmtWt(c.delta_weight)})`);
+      }
+    });
+  }
+
   if (S.timelineChart) S.timelineChart.destroy();
   const datasets = [
     { label: 'Portfolio Value', data: values, borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.2, pointRadius: 3 },
@@ -368,6 +404,19 @@ async function renderTimeline() {
   if (bmData) {
     datasets.push({ label: `${bm.benchmark_ticker || 'Benchmark'} (approx)`, data: bmData, borderColor: '#58a6ff', borderDash: [6,3], fill: false, tension: 0.2, pointRadius: 0 });
   }
+  // Event markers
+  if (eventPoints.some(p => p !== null)) {
+    datasets.push({
+      label: 'Portfolio Changes',
+      data: eventPoints,
+      borderColor: '#d29922',
+      backgroundColor: '#d29922',
+      pointRadius: 8,
+      pointStyle: 'triangle',
+      showLine: false,
+      pointHoverRadius: 12,
+    });
+  }
 
   const ctx = document.getElementById('timelineChart').getContext('2d');
   S.timelineChart = new Chart(ctx, {
@@ -375,34 +424,76 @@ async function renderTimeline() {
     data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#c9d1d9' } } },
+      plugins: {
+        legend: { labels: { color: '#c9d1d9' } },
+        tooltip: {
+          callbacks: {
+            afterLabel: function(ctx) {
+              if (ctx.datasetIndex === datasets.length - 1 && eventLabels[ctx.dataIndex]) {
+                return eventLabels[ctx.dataIndex].join('\n');
+              }
+              return '';
+            }
+          }
+        },
+      },
       scales: {
         x: { ticks: { color: '#8b949e', maxTicksLimit: 12 }, grid: { color: '#21262d' } },
         y: { ticks: { color: '#8b949e', callback: v => '$' + v.toLocaleString() }, grid: { color: '#21262d' } },
       },
+      onClick: function(evt, elems) {
+        if (!elems.length) return;
+        const idx = elems[0].index;
+        const rd = labels[idx];
+        // Show changes at this date
+        if (eventLabels[idx]) {
+          const firstChange = changes.find(c => c.review_date === rd);
+          if (firstChange) showDrilldown(rd, firstChange.ticker, 'timelineEvents');
+        }
+      },
     },
   });
 
-  // Trades table below chart
-  const trades = await cached('trades', () => API.trades(S.currentRun));
-  if (trades.length) {
-    let html = `<div class="sub-title">Trade History (${trades.length} trades)</div>`;
-    html += `<div class="table-wrap"><table><tr><th>Date</th><th>Ticker</th><th>Action</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Notional</th><th>Reason</th></tr>`;
-    trades.forEach(t => {
-      const actionClass = t.action === 'exit' ? 'negative' : (t.action === 'initiate' ? 'positive' : '');
-      html += `<tr><td>${t.trade_date}</td><td><b>${t.ticker}</b></td><td class="${actionClass}">${t.action}</td>
-        <td class="num">${parseFloat(t.shares || 0).toFixed(1)}</td><td class="num">$${parseFloat(t.price || 0).toFixed(2)}</td>
-        <td class="num">$${parseFloat(t.notional || 0).toLocaleString()}</td><td style="max-width:300px;font-size:12px;color:var(--text2)">${t.reason || ''}</td></tr>`;
+  // Changes event list below chart
+  if (changes.length) {
+    let html = `<div class="sub-title">Portfolio Change Events (${changes.length} meaningful changes)</div>`;
+    html += `<div class="table-wrap"><table><tr><th>Date</th><th>Ticker</th><th>Event</th><th class="num">Prior Wt</th><th class="num">New Wt</th><th class="num">&Delta; Wt</th><th class="num">Conv Before</th><th class="num">Conv After</th><th class="num">20D Fwd</th></tr>`;
+    changes.forEach(c => {
+      const dw = parseFloat(c.delta_weight || 0);
+      const wtCls = dw > 0.1 ? 'wt-up' : (dw < -0.1 ? 'wt-down' : 'wt-flat');
+      html += `<tr class="clickable" onclick="showDrilldown('${c.review_date}','${c.ticker}','timelineEvents')">
+        <td>${c.review_date}</td><td><b>${c.ticker}</b></td>
+        <td><span class="wt-badge ${evtColor(c.event_type)}">${c.event_type}</span></td>
+        <td class="num">${fmtWtCell(c.prior_weight)}</td><td class="num">${fmtWtCell(c.new_weight)}</td>
+        <td class="num"><span class="wt-badge ${wtCls}">${fmtWt(c.delta_weight)}</span></td>
+        <td class="num">${r1(c.conviction_before)}</td><td class="num">${r1(c.conviction_after)}</td>
+        <td class="num">${fmtPctCell(c.forward_20d_pct)}</td></tr>`;
     });
     html += `</table></div>`;
     document.getElementById('timelineTable').innerHTML = html;
   } else {
-    document.getElementById('timelineTable').innerHTML = '';
+    // Fallback to trade list
+    const trades = await cached('trades', () => API.trades(S.currentRun));
+    if (trades.length) {
+      let html = `<div class="sub-title">Trade History (${trades.length} trades)</div>`;
+      html += `<div class="table-wrap"><table><tr><th>Date</th><th>Ticker</th><th>Action</th><th class="num">Shares</th><th class="num">Price</th><th class="num">Notional</th><th>Reason</th></tr>`;
+      trades.forEach(t => {
+        const actionClass = t.action === 'exit' ? 'negative' : (t.action === 'initiate' ? 'positive' : '');
+        html += `<tr><td>${t.trade_date}</td><td><b>${t.ticker}</b></td><td class="${actionClass}">${t.action}</td>
+          <td class="num">${parseFloat(t.shares || 0).toFixed(1)}</td><td class="num">$${parseFloat(t.price || 0).toFixed(2)}</td>
+          <td class="num">$${parseFloat(t.notional || 0).toLocaleString()}</td><td style="max-width:300px;font-size:12px;color:var(--text2)">${t.reason || ''}</td></tr>`;
+      });
+      html += `</table></div>`;
+      document.getElementById('timelineTable').innerHTML = html;
+    } else {
+      document.getElementById('timelineTable').innerHTML = '';
+    }
   }
+  document.getElementById('timelineEvents').innerHTML = '';
 }
 
 // -----------------------------------------------------------------------
-// DECISIONS
+// DECISIONS (with weight columns)
 // -----------------------------------------------------------------------
 async function renderDecisions() {
   const outcomes = await cached('outcomes', () => API.outcomes(S.currentRun));
@@ -418,7 +509,7 @@ async function renderDecisions() {
   tickers.forEach(t => filterHtml += `<option value="${t}">${t}</option>`);
   filterHtml += `</select> <select id="filterAction" onchange="filterDecisions()" class="run-select" style="min-width:120px;"><option value="">All actions</option>`;
   actions.forEach(a => filterHtml += `<option value="${a}">${a}</option>`);
-  filterHtml += `</select>`;
+  filterHtml += `</select> <label style="margin-left:12px;font-size:12px;color:var(--text2);"><input type="checkbox" id="filterChangesOnly" onchange="filterDecisions()"> Changes only</label>`;
   document.getElementById('decisionsFilter').innerHTML = filterHtml;
 
   S.cache._outcomes = outcomes;
@@ -429,16 +520,29 @@ function filterDecisions() {
   const outcomes = S.cache._outcomes || [];
   const ft = document.getElementById('filterTicker')?.value || '';
   const fa = document.getElementById('filterAction')?.value || '';
+  const changesOnly = document.getElementById('filterChangesOnly')?.checked;
 
-  const filtered = outcomes.filter(o => (!ft || o.ticker === ft) && (!fa || o.action === fa));
+  let filtered = outcomes.filter(o => (!ft || o.ticker === ft) && (!fa || o.action === fa));
+  if (changesOnly) filtered = filtered.filter(o => o.action !== 'hold' && o.action !== 'probation');
 
-  let html = `<table><tr><th>Date</th><th>Ticker</th><th>Action</th><th class="num">Conviction</th><th class="num">Score</th><th>Bucket</th><th class="num">Price</th><th class="num">5D</th><th class="num">20D</th><th class="num">60D</th></tr>`;
+  const hasWeights = filtered.some(o => o.prior_weight != null || o.new_weight != null);
+
+  let html = `<table><tr><th>Date</th><th>Ticker</th><th>Action</th><th class="num">Conv</th><th class="num">Score</th>`;
+  if (hasWeights) html += `<th class="num">Prior Wt</th><th class="num">New Wt</th><th class="num">&Delta; Wt</th>`;
+  html += `<th>Bucket</th><th class="num">Price</th><th class="num">5D</th><th class="num">20D</th><th class="num">60D</th></tr>`;
   filtered.forEach(o => {
     const conv = o.thesis_conviction || o.conviction || '';
     const score = o.action_score || '';
-    html += `<tr class="clickable" onclick="showDecisionDetail('${o.review_date}','${o.ticker}')">
-      <td>${o.review_date}</td><td><b>${o.ticker}</b></td><td>${o.action}</td>
-      <td class="num">${conv}</td><td class="num">${score}</td><td>${o.conviction_bucket || ''}</td>
+    const dw = parseFloat(o.weight_change || 0);
+    html += `<tr class="clickable" onclick="showDrilldown('${o.review_date}','${o.ticker}','decisionDetail')">
+      <td>${o.review_date}</td><td><b>${o.ticker}</b></td><td><span class="wt-badge ${evtColor(o.action)}">${o.action}</span></td>
+      <td class="num">${conv}</td><td class="num">${score}</td>`;
+    if (hasWeights) {
+      const wtCls = dw > 0.1 ? 'wt-up' : (dw < -0.1 ? 'wt-down' : 'wt-flat');
+      html += `<td class="num">${fmtWtCell(o.prior_weight)}</td><td class="num">${fmtWtCell(o.new_weight)}</td>
+        <td class="num"><span class="wt-badge ${wtCls}">${fmtWt(o.weight_change)}</span></td>`;
+    }
+    html += `<td>${o.conviction_bucket || ''}</td>
       <td class="num">${o.price_at_decision ? '$'+parseFloat(o.price_at_decision).toFixed(2) : '-'}</td>
       <td class="num">${fmtPctCell(o.forward_5d_pct)}</td><td class="num">${fmtPctCell(o.forward_20d_pct)}</td><td class="num">${fmtPctCell(o.forward_60d_pct)}</td></tr>`;
   });
@@ -446,37 +550,74 @@ function filterDecisions() {
   document.getElementById('decisionsTable').innerHTML = html;
 }
 
-async function showDecisionDetail(reviewDate, ticker) {
-  const panel = document.getElementById('decisionDetail');
+// -----------------------------------------------------------------------
+// Full causality drilldown (shared by timeline, decisions, changes)
+// -----------------------------------------------------------------------
+async function showDrilldown(reviewDate, ticker, targetEl) {
+  const panel = document.getElementById(targetEl);
   panel.style.display = 'block';
-  panel.innerHTML = '<div class="loading">Loading evidence chain...</div>';
+  panel.innerHTML = '<div class="loading">Loading causality chain...</div>';
 
-  const data = await API.evidence(S.currentRun, reviewDate, ticker);
+  const data = await API.drilldown(S.currentRun, reviewDate, ticker);
   const dec = data.decision || {};
   const out = data.outcome || {};
+  const chg = data.change || {};
   const ev = data.evidence || {};
 
   let html = `<h3>${ticker} on ${reviewDate}</h3>`;
 
-  // Causality chain: Evidence → Thesis → Action → Outcome
+  // Five-step causality chain: Evidence → Conviction → Action → Weight → Outcome
   html += `<div class="chain">`;
-  html += chainStep('Evidence', ev.available ? `${(ev.claims || []).length} claims` : 'No regen DB', ev.source_mix ? Object.entries(ev.source_mix).map(([k,v]) => `${k}: ${v}`).join(', ') : '');
+
+  // Step 1: Evidence
+  const claimCount = ev.available ? (ev.claims || []).length : 0;
+  const posClaims = (ev.claims || []).filter(c => c.direction === 'POSITIVE').length;
+  const negClaims = (ev.claims || []).filter(c => c.direction === 'NEGATIVE').length;
+  html += chainStep('Evidence',
+    ev.available ? `${claimCount} claims` : 'No regen DB',
+    ev.available ? `+${posClaims} / -${negClaims}` : '');
   html += `<div class="chain-arrow">&rarr;</div>`;
 
+  // Step 2: Conviction change
+  const convBefore = chg.conviction_before || dec.thesis_conviction || '?';
+  const convAfter = chg.conviction_after || dec.thesis_conviction || '?';
   const thesis = ev.thesis;
-  html += chainStep('Thesis State', thesis ? `${thesis.state} (${thesis.conviction_score})` : dec.thesis_conviction || dec.conviction || '?',
-    thesis ? (thesis.title || '').substring(0, 80) : '');
+  html += chainStep('Conviction',
+    `${r1(convBefore)} &rarr; ${r1(convAfter)}`,
+    thesis ? `${thesis.state} — ${(thesis.title || '').substring(0, 60)}` : '');
   html += `<div class="chain-arrow">&rarr;</div>`;
 
-  const action = dec.action || out.action || '?';
-  const conv = dec.thesis_conviction || dec.conviction || '';
-  html += chainStep('Action', action, `Conviction: ${conv}, Score: ${dec.action_score || '0'}`);
+  // Step 3: Action
+  const action = dec.action || out.action || chg.event_type || '?';
+  html += chainStep('Action',
+    `<span class="wt-badge ${evtColor(action)}">${action}</span>`,
+    `Score: ${dec.action_score || '0'}`);
   html += `<div class="chain-arrow">&rarr;</div>`;
 
+  // Step 4: Weight change
+  const pw = parseFloat(dec.prior_weight || chg.prior_weight || 0);
+  const nw = parseFloat(dec.new_weight || chg.new_weight || 0);
+  const dw = nw - pw;
+  const wtCls = dw > 0.1 ? 'wt-up' : (dw < -0.1 ? 'wt-down' : 'wt-flat');
+  html += chainStep('Weight',
+    `${pw.toFixed(1)}% &rarr; ${nw.toFixed(1)}%`,
+    `<span class="wt-badge ${wtCls}">${fmtWt(dw)}</span>`);
+  html += `<div class="chain-arrow">&rarr;</div>`;
+
+  // Step 5: Outcome
   const f20 = out.forward_20d_pct;
   html += chainStep('Outcome',
     f20 != null ? `${fmtPctCell(f20)} (20D)` : 'No data',
     out.forward_5d_pct != null ? `5D: ${fmtPctCell(out.forward_5d_pct)}, 60D: ${fmtPctCell(out.forward_60d_pct)}` : '');
+  html += `</div>`;
+
+  // Narrative sentence
+  html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;margin:12px 0;font-size:13px;">`;
+  html += `Because of <b>${claimCount} evidence claims</b> (+${posClaims}/-${negClaims}), `;
+  html += `conviction moved from <b>${r1(convBefore)}</b> to <b>${r1(convAfter)}</b>, `;
+  html += `so action changed to <b>${action}</b>, `;
+  html += `and weight changed from <b>${pw.toFixed(1)}%</b> to <b>${nw.toFixed(1)}%</b>`;
+  if (f20 != null) html += `. Result: <b>${fmtPctCell(f20)}</b> over 20 days.`;
   html += `</div>`;
 
   // Rationale
@@ -513,7 +654,21 @@ async function showDecisionDetail(reviewDate, ticker) {
     });
     html += `</div>`;
   } else if (!ev.available) {
-    html += `<div style="color:var(--amber);font-size:12px;margin-top:12px;">Evidence drilldown not available: ${ev.reason || 'regen DB not found'}. Re-generate the proof pack to enable evidence queries.</div>`;
+    html += `<div style="color:var(--amber);font-size:12px;margin-top:12px;">Evidence drilldown not available: ${ev.reason || 'regen DB not found'}. Re-generate proof pack to enable evidence queries.</div>`;
+  }
+
+  // Portfolio at this date
+  const comp = data.portfolio_at_date || [];
+  if (comp.length) {
+    html += `<div class="sub-title">Portfolio at ${reviewDate}</div>`;
+    html += `<div class="table-wrap"><table><tr><th>Ticker</th><th class="num">Weight</th><th class="num">Market Value</th></tr>`;
+    comp.sort((a,b) => parseFloat(b.weight_pct) - parseFloat(a.weight_pct)).forEach(p => {
+      const isCurrent = p.ticker === ticker;
+      html += `<tr${isCurrent ? ' style="background:var(--bg3)"' : ''}><td>${isCurrent ? '<b>' : ''}${p.ticker}${isCurrent ? '</b>' : ''}</td>
+        <td class="num">${parseFloat(p.weight_pct).toFixed(1)}%</td>
+        <td class="num">$${parseFloat(p.market_value).toLocaleString()}</td></tr>`;
+    });
+    html += `</table></div>`;
   }
 
   panel.innerHTML = html;
@@ -521,74 +676,163 @@ async function showDecisionDetail(reviewDate, ticker) {
 }
 
 // -----------------------------------------------------------------------
-// PORTFOLIO
+// WEIGHT CHANGES tab
+// -----------------------------------------------------------------------
+async function renderChanges() {
+  const changes = await cached('changes', () => API.changes(S.currentRun));
+
+  if (!changes.length) {
+    document.getElementById('changesContent').innerHTML = '<div class="empty-state">No portfolio change events. Re-generate the proof pack to include portfolio_changes.csv.</div>';
+    return;
+  }
+
+  // Summary cards
+  const inits = changes.filter(c => c.event_type === 'initiate').length;
+  const exits = changes.filter(c => c.event_type === 'exit').length;
+  const adds = changes.filter(c => c.event_type === 'add').length;
+  const trims = changes.filter(c => c.event_type === 'trim').length;
+  const totalDelta = changes.reduce((s, c) => s + Math.abs(parseFloat(c.delta_weight || 0)), 0);
+
+  let html = `<div class="cards">`;
+  html += card('Total Changes', changes.length, 'Excludes holds');
+  html += card('Initiations', inits, '');
+  html += card('Exits', exits, '');
+  html += card('Adds / Trims', `${adds} / ${trims}`, '');
+  html += card('Total Turnover', totalDelta.toFixed(1) + '%', 'Sum of abs weight changes');
+  html += `</div>`;
+
+  // Changes table
+  html += `<div class="table-wrap"><table><tr><th>Date</th><th>Ticker</th><th>Event</th><th class="num">Prior Wt</th><th class="num">New Wt</th><th class="num">&Delta; Wt</th><th class="num">Conv Before</th><th class="num">Conv After</th><th class="num">5D</th><th class="num">20D</th><th class="num">60D</th><th>Rationale</th></tr>`;
+  changes.forEach(c => {
+    const dw = parseFloat(c.delta_weight || 0);
+    const wtCls = dw > 0.1 ? 'wt-up' : (dw < -0.1 ? 'wt-down' : 'wt-flat');
+    html += `<tr class="clickable" onclick="showDrilldown('${c.review_date}','${c.ticker}','changeDetail')">
+      <td>${c.review_date}</td><td><b>${c.ticker}</b></td>
+      <td><span class="wt-badge ${evtColor(c.event_type)}">${c.event_type}</span></td>
+      <td class="num">${fmtWtCell(c.prior_weight)}</td><td class="num">${fmtWtCell(c.new_weight)}</td>
+      <td class="num"><span class="wt-badge ${wtCls}">${fmtWt(c.delta_weight)}</span></td>
+      <td class="num">${r1(c.conviction_before)}</td><td class="num">${r1(c.conviction_after)}</td>
+      <td class="num">${fmtPctCell(c.forward_5d_pct)}</td><td class="num">${fmtPctCell(c.forward_20d_pct)}</td><td class="num">${fmtPctCell(c.forward_60d_pct)}</td>
+      <td style="font-size:12px;max-width:200px;color:var(--text2)">${(c.rationale_summary || '').substring(0,80)}</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  document.getElementById('changesContent').innerHTML = html;
+}
+
+// -----------------------------------------------------------------------
+// PORTFOLIO / COMPOSITION
 // -----------------------------------------------------------------------
 async function renderPortfolio() {
+  const comp = await cached('composition', () => API.composition(S.currentRun));
   const tl = await cached('timeline', () => API.timeline(S.currentRun));
-  const trades = await cached('trades', () => API.trades(S.currentRun));
-  const outcomes = await cached('outcomes', () => API.outcomes(S.currentRun));
 
   let html = '';
 
+  if (!comp.length && !tl.length) {
+    html = '<div class="empty-state">No portfolio composition data. Re-generate proof pack to include portfolio_composition.csv.</div>';
+    document.getElementById('portfolioContent').innerHTML = html;
+    return;
+  }
+
+  // Summary cards from timeline
   if (tl.length) {
-    // Holdings count over time
-    html += `<div class="sub-title">Portfolio Size Over Time</div><div class="cards">`;
     const first = tl[0], last = tl[tl.length - 1];
+    html += `<div class="cards">`;
     html += card('Start Value', '$' + parseFloat(first.total_value).toLocaleString(), first.review_date);
     html += card('End Value', '$' + parseFloat(last.total_value).toLocaleString(), last.review_date);
     html += card('Peak Positions', Math.max(...tl.map(r => parseInt(r.num_positions))), '');
-    html += card('End Cash', '$' + parseFloat(last.cash).toLocaleString(), `${(parseFloat(last.cash)/parseFloat(last.total_value)*100).toFixed(1)}% of portfolio`);
-    html += `</div>`;
-
-    // Composition snapshots
-    html += `<div class="sub-title">Portfolio Snapshots</div>`;
-    html += `<div class="table-wrap"><table><tr><th>Date</th><th class="num">Value</th><th class="num">Cash</th><th class="num">Invested</th><th class="num">Positions</th></tr>`;
-    tl.forEach(r => {
-      html += `<tr><td>${r.review_date}</td><td class="num">$${parseFloat(r.total_value).toLocaleString()}</td>
-        <td class="num">$${parseFloat(r.cash).toLocaleString()}</td><td class="num">$${parseFloat(r.invested).toLocaleString()}</td>
-        <td class="num">${r.num_positions}</td></tr>`;
-    });
-    html += `</table></div>`;
-  } else {
-    html += '<div class="empty-state">No portfolio timeline data. Re-generate proof pack to include portfolio_timeline.csv.</div>';
-  }
-
-  // Turnover summary from trades
-  if (trades.length) {
-    const initiations = trades.filter(t => t.action === 'initiate').length;
-    const exits = trades.filter(t => t.action === 'exit').length;
-    const adds = trades.filter(t => t.action === 'add').length;
-    const trims = trades.filter(t => t.action === 'trim').length;
-    html += `<div class="sub-title">Turnover Summary</div><div class="cards">`;
-    html += card('Initiations', initiations, '');
-    html += card('Exits', exits, '');
-    html += card('Adds', adds, '');
-    html += card('Trims', trims, '');
-    html += card('Total Trades', trades.length, '');
+    html += card('End Cash Wt', (last.cash_weight_pct || (parseFloat(last.cash)/parseFloat(last.total_value)*100).toFixed(1)) + '%', '');
+    if (last.top_holding) html += card('Top Holding', last.top_holding, `${last.top_holding_weight || '?'}%`);
     html += `</div>`;
   }
 
-  // Position changes by ticker
-  if (outcomes.length) {
-    const byTicker = {};
-    outcomes.forEach(o => {
-      if (!byTicker[o.ticker]) byTicker[o.ticker] = [];
-      byTicker[o.ticker].push(o);
+  // Composition over time: date-selectable
+  if (comp.length) {
+    const dates = [...new Set(comp.map(c => c.review_date))].sort();
+    html += `<div class="date-picker-row">`;
+    html += `<span style="font-size:12px;color:var(--text2);">Review date:</span>`;
+    html += `<select class="run-select" id="compDateSelect" onchange="renderCompAtDate()" style="min-width:160px;">`;
+    dates.forEach((d, i) => {
+      html += `<option value="${d}" ${i === dates.length - 1 ? 'selected' : ''}>${d}</option>`;
     });
+    html += `</select>`;
+    html += `<button onclick="prevCompDate()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px 12px;border-radius:4px;cursor:pointer;">&laquo; Prev</button>`;
+    html += `<button onclick="nextCompDate()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:4px 12px;border-radius:4px;cursor:pointer;">Next &raquo;</button>`;
+    html += `</div>`;
+    html += `<div id="compAtDate"></div>`;
 
-    html += `<div class="sub-title">Position Activity by Ticker</div>`;
-    html += `<div class="table-wrap"><table><tr><th>Ticker</th><th>Timeline</th></tr>`;
-    Object.entries(byTicker).sort((a,b) => a[0].localeCompare(b[0])).forEach(([ticker, actions]) => {
-      const timeline = actions.map(a => {
-        const c = a.action === 'initiate' ? 'positive' : (a.action === 'exit' ? 'negative' : '');
-        return `<span class="${c}" title="${a.review_date}: ${a.action}">${a.action.substring(0,4)}</span>`;
-      }).join(' &rarr; ');
-      html += `<tr><td><b>${ticker}</b></td><td style="font-size:12px;">${timeline}</td></tr>`;
+    // Stacked weight table showing all dates
+    const allTickers = [...new Set(comp.map(c => c.ticker))].sort();
+    html += `<div class="sub-title">Weight History by Ticker</div>`;
+    html += `<div class="table-wrap" style="max-height:400px;overflow-y:auto;"><table><tr><th>Ticker</th>`;
+    dates.forEach(d => html += `<th class="num" style="font-size:10px;">${d.substring(5)}</th>`);
+    html += `</tr>`;
+    allTickers.forEach(t => {
+      html += `<tr><td><b>${t}</b></td>`;
+      dates.forEach(d => {
+        const row = comp.find(c => c.review_date === d && c.ticker === t);
+        const wt = row ? parseFloat(row.weight_pct) : 0;
+        const bg = wt > 0 ? `rgba(63,185,80,${Math.min(wt/10, 0.4)})` : 'transparent';
+        html += `<td class="num" style="background:${bg};font-size:11px;">${wt > 0 ? wt.toFixed(1) : '-'}</td>`;
+      });
+      html += `</tr>`;
     });
-    html += `</table></div>`;
+    // Cash row
+    html += `<tr><td><i>Cash</i></td>`;
+    dates.forEach(d => {
+      const row = comp.find(c => c.review_date === d);
+      const cashWt = row ? parseFloat(row.cash_weight_pct) : 100;
+      html += `<td class="num" style="font-size:11px;color:var(--text2);">${cashWt.toFixed(1)}</td>`;
+    });
+    html += `</tr></table></div>`;
   }
 
   document.getElementById('portfolioContent').innerHTML = html;
+  if (comp.length) renderCompAtDate();
+}
+
+function renderCompAtDate() {
+  const comp = S.cache.composition || [];
+  const sel = document.getElementById('compDateSelect');
+  if (!sel) return;
+  const d = sel.value;
+  const atDate = comp.filter(c => c.review_date === d).sort((a,b) => parseFloat(b.weight_pct) - parseFloat(a.weight_pct));
+  const tl = (S.cache.timeline || []).find(r => r.review_date === d);
+
+  let html = '';
+  if (tl) {
+    html += `<div class="cards">`;
+    html += card('Total Value', '$' + parseFloat(tl.total_value).toLocaleString(), '');
+    html += card('Cash', '$' + parseFloat(tl.cash).toLocaleString(), `${tl.cash_weight_pct || '?'}%`);
+    html += card('Positions', tl.num_positions, '');
+    html += `</div>`;
+  }
+  if (atDate.length) {
+    html += `<div class="table-wrap"><table><tr><th>Ticker</th><th class="num">Weight %</th><th class="num">Market Value</th></tr>`;
+    atDate.forEach(p => {
+      const wt = parseFloat(p.weight_pct);
+      const barW = Math.min(wt * 3, 100);
+      html += `<tr><td><b>${p.ticker}</b></td>
+        <td class="num"><div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+          <div style="background:var(--green);height:8px;width:${barW}px;border-radius:4px;"></div>
+          ${wt.toFixed(1)}%</div></td>
+        <td class="num">$${parseFloat(p.market_value).toLocaleString()}</td></tr>`;
+    });
+    html += `</table></div>`;
+  } else {
+    html += `<div style="color:var(--text2);font-size:13px;">No positions at ${d}.</div>`;
+  }
+  document.getElementById('compAtDate').innerHTML = html;
+}
+
+function prevCompDate() {
+  const sel = document.getElementById('compDateSelect');
+  if (sel && sel.selectedIndex > 0) { sel.selectedIndex--; renderCompAtDate(); }
+}
+function nextCompDate() {
+  const sel = document.getElementById('compDateSelect');
+  if (sel && sel.selectedIndex < sel.options.length - 1) { sel.selectedIndex++; renderCompAtDate(); }
 }
 
 // -----------------------------------------------------------------------
@@ -599,20 +843,16 @@ async function renderFailures() {
   const fa = data.failure_analysis || {};
   let html = '';
 
-  // Degraded flags
   const flags = fa.degraded_flags || [];
-  if (flags.length) {
-    html += `<div class="warning-bar">Degraded: ${flags.join(', ')}</div>`;
-  }
+  if (flags.length) html += `<div class="warning-bar">Degraded: ${flags.join(', ')}</div>`;
 
-  // Worst decisions
   const worst = data.worst_decisions || [];
   if (worst.length) {
     html += `<div class="sub-title">Worst Decisions (by 20D forward return)</div>`;
     html += `<div class="table-wrap"><table><tr><th>Date</th><th>Ticker</th><th>Action</th><th class="num">Conv</th><th class="num">5D</th><th class="num">20D</th><th class="num">60D</th><th>Rationale</th></tr>`;
     worst.forEach(w => {
       const conv = w.thesis_conviction || w.conviction || '';
-      html += `<tr class="clickable" onclick="switchTab('decisions');setTimeout(()=>showDecisionDetail('${w.review_date}','${w.ticker}'),100)">
+      html += `<tr class="clickable" onclick="switchTab('decisions');setTimeout(()=>showDrilldown('${w.review_date}','${w.ticker}','decisionDetail'),100)">
         <td>${w.review_date}</td><td><b>${w.ticker}</b></td><td class="negative">${w.action}</td>
         <td class="num">${conv}</td><td class="num">${fmtPctCell(w.forward_5d_pct)}</td><td class="num">${fmtPctCell(w.forward_20d_pct)}</td><td class="num">${fmtPctCell(w.forward_60d_pct)}</td>
         <td style="font-size:12px;max-width:250px;color:var(--text2)">${(w.rationale || '').substring(0,100)}</td></tr>`;
@@ -620,7 +860,6 @@ async function renderFailures() {
     html += `</table></div>`;
   }
 
-  // Premature exits
   const exits = data.exit_events || [];
   if (exits.length) {
     html += `<div class="sub-title">Exit Events (${exits.length})</div>`;
@@ -635,7 +874,6 @@ async function renderFailures() {
     html += `</table></div>`;
   }
 
-  // Probation events
   const probation = data.probation_events || [];
   if (probation.length) {
     html += `<div class="sub-title">Probation Events (${probation.length})</div>`;
@@ -650,7 +888,6 @@ async function renderFailures() {
     html += `</table></div>`;
   }
 
-  // Sparse coverage
   const sparse = fa.sparse_coverage_tickers || [];
   if (sparse.length) {
     html += `<div class="sub-title">Sparse Coverage Tickers</div>`;
@@ -661,7 +898,6 @@ async function renderFailures() {
     html += `</table></div>`;
   }
 
-  // Repeated bad
   const repeated = fa.repeated_bad_recommendations || [];
   if (repeated.length) {
     html += `<div class="sub-title">Repeated Bad Recommendations</div>`;
@@ -692,14 +928,13 @@ async function runComparison() {
 
   let html = '';
 
-  // Metadata comparison
   html += `<div class="sub-title">Run Configuration</div>`;
   html += compareRow('Extractor', m1.extractor_mode || man1.extractor_mode, m2.extractor_mode || man2.extractor_mode);
   html += compareRow('Exit Policy', m1.exit_policy || man1.exit_policy, m2.exit_policy || man2.exit_policy);
   html += compareRow('Memory', String(m1.memory_enabled ?? man1.memory_enabled), String(m2.memory_enabled ?? man2.memory_enabled));
+  html += compareRow('Cadence', `${man1.cadence_days || 7}d`, `${man2.cadence_days || 7}d`);
   html += compareRow('Period', `${(man1.date_range||{}).eval_start} to ${(man1.date_range||{}).eval_end}`, `${(man2.date_range||{}).eval_start} to ${(man2.date_range||{}).eval_end}`);
 
-  // Metrics comparison
   html += `<div class="sub-title" style="margin-top:20px">Performance</div>`;
   html += compareRowNum('Total Return', m1.total_return_pct, m2.total_return_pct, '%');
   html += compareRowNum('Annualized Return', m1.annualized_return_pct, m2.annualized_return_pct, '%');
@@ -708,7 +943,6 @@ async function runComparison() {
   html += compareRowNum('Excess Return', m1.excess_return_pct, m2.excess_return_pct, '%');
   html += compareRowNum('EW Return', m1.equal_weight_return_pct, m2.equal_weight_return_pct, '%');
 
-  // Action counts
   const ac1 = m1.action_counts || {};
   const ac2 = m2.action_counts || {};
   const allActions = [...new Set([...Object.keys(ac1), ...Object.keys(ac2)])].sort();
@@ -719,7 +953,6 @@ async function runComparison() {
     });
   }
 
-  // Per-name deltas
   const pn1 = data.per_name?.run1 || {};
   const pn2 = data.per_name?.run2 || {};
   const allTickers = [...new Set([...Object.keys(pn1), ...Object.keys(pn2)])].sort();
@@ -776,6 +1009,34 @@ function fmtPctCell(v) {
   if (isNaN(n)) return '-';
   const cls = n > 0 ? 'positive' : (n < 0 ? 'negative' : '');
   return `<span class="${cls}">${n > 0 ? '+' : ''}${n.toFixed(2)}%</span>`;
+}
+
+function fmtWt(v) {
+  if (v == null || v === '' || v === 'None') return '0.0%';
+  const n = parseFloat(v);
+  if (isNaN(n)) return '0.0%';
+  return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+}
+
+function fmtWtCell(v) {
+  if (v == null || v === '' || v === 'None') return '0.0%';
+  const n = parseFloat(v);
+  return isNaN(n) ? '0.0%' : n.toFixed(1) + '%';
+}
+
+function r1(v) {
+  if (v == null || v === '' || v === 'None') return '?';
+  const n = parseFloat(v);
+  return isNaN(n) ? v : n.toFixed(1);
+}
+
+function evtColor(action) {
+  if (!action) return 'wt-flat';
+  if (action === 'initiate') return 'wt-up';
+  if (action === 'add') return 'wt-up';
+  if (action === 'exit') return 'wt-down';
+  if (action === 'trim') return 'wt-down';
+  return 'wt-flat';
 }
 
 async function cached(key, fn) {

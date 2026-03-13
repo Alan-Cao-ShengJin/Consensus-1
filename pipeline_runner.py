@@ -9,9 +9,13 @@ One thesis update per ticker-run (not per document).
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -117,6 +121,21 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
     newsapi = NewsAPIConnector()
     if newsapi.available:
         all_connectors.append(newsapi)
+
+    # Finnhub news
+    from connectors.finnhub_connector import FinnhubNewsConnector
+    finnhub = FinnhubNewsConnector()
+    if finnhub.available:
+        all_connectors.append(finnhub)
+
+    # FMP connectors (transcripts, financials, estimates)
+    from connectors.fmp_connector import (
+        FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector,
+    )
+    for ConnCls in (FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector):
+        conn = ConnCls()
+        if conn.available:
+            all_connectors.append(conn)
 
     if source_filter:
         return [c for c in all_connectors if c.source_key in source_filter]

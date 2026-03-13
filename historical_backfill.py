@@ -120,6 +120,16 @@ def run_backfill(session: Session, config: HistoricalEvalConfig) -> BackfillResu
         pr_result = _backfill_pr_rss(session, tickers, backfill_days, config)
         result.source_results.append(pr_result)
 
+    # 5. Finnhub news
+    if config.backfill_finnhub:
+        finnhub_result = _backfill_finnhub(session, tickers, backfill_days, config)
+        result.source_results.append(finnhub_result)
+
+    # 6. FMP (transcripts, financials, estimates)
+    if config.backfill_fmp:
+        fmp_result = _backfill_fmp(session, tickers, backfill_days, config)
+        result.source_results.append(fmp_result)
+
     # Aggregate totals
     for sr in result.source_results:
         result.total_errors += len(sr.errors)
@@ -333,6 +343,113 @@ def _backfill_pr_rss(
 
     logger.info(
         "PR RSS backfill: %d tickers, %d docs fetched, %d inserted",
+        result.tickers_attempted, result.docs_fetched, result.docs_inserted,
+    )
+    return result
+
+
+def _backfill_finnhub(
+    session: Session,
+    tickers: list[str],
+    days: int,
+    config: HistoricalEvalConfig,
+) -> BackfillSourceResult:
+    """Backfill news from Finnhub. 1-year archive with ticker filtering."""
+    result = BackfillSourceResult(source="news_finnhub")
+
+    try:
+        from connectors.finnhub_connector import FinnhubNewsConnector
+        from document_ingestion_service import ingest_document_payload
+        from dedupe import is_duplicate_document
+        connector = FinnhubNewsConnector()
+        if not connector.available:
+            result.warnings.append("Finnhub: FINNHUB_API_KEY not set, skipping")
+            return result
+    except ImportError as e:
+        result.errors.append(f"Finnhub connector not available: {e}")
+        return result
+
+    for ticker in tickers:
+        result.tickers_attempted += 1
+        try:
+            payloads = connector.fetch(ticker, days=min(days, 365))
+            result.docs_fetched += len(payloads)
+
+            for payload in payloads:
+                if is_duplicate_document(session, payload):
+                    result.docs_skipped_duplicate += 1
+                    continue
+                try:
+                    ingest_document_payload(session, payload, ticker, use_llm=config.use_llm)
+                    result.docs_inserted += 1
+                except Exception as e:
+                    result.errors.append(f"{ticker} finnhub ingest: {e}")
+
+            result.tickers_succeeded += 1
+        except Exception as e:
+            result.tickers_failed += 1
+            result.errors.append(f"{ticker}: {e}")
+
+    logger.info(
+        "Finnhub backfill: %d tickers, %d docs fetched, %d inserted",
+        result.tickers_attempted, result.docs_fetched, result.docs_inserted,
+    )
+    return result
+
+
+def _backfill_fmp(
+    session: Session,
+    tickers: list[str],
+    days: int,
+    config: HistoricalEvalConfig,
+) -> BackfillSourceResult:
+    """Backfill FMP data: transcripts, financials, estimates."""
+    result = BackfillSourceResult(source="fmp")
+
+    try:
+        from connectors.fmp_connector import (
+            FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector,
+        )
+        from document_ingestion_service import ingest_document_payload
+        from dedupe import is_duplicate_document
+
+        connectors = []
+        for ConnCls in (FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector):
+            conn = ConnCls()
+            if conn.available:
+                connectors.append(conn)
+
+        if not connectors:
+            result.warnings.append("FMP: FMP_API_KEY not set, skipping")
+            return result
+    except ImportError as e:
+        result.errors.append(f"FMP connector not available: {e}")
+        return result
+
+    for ticker in tickers:
+        result.tickers_attempted += 1
+        try:
+            for connector in connectors:
+                payloads = connector.fetch(ticker, days=min(days, 365))
+                result.docs_fetched += len(payloads)
+
+                for payload in payloads:
+                    if is_duplicate_document(session, payload):
+                        result.docs_skipped_duplicate += 1
+                        continue
+                    try:
+                        ingest_document_payload(session, payload, ticker, use_llm=config.use_llm)
+                        result.docs_inserted += 1
+                    except Exception as e:
+                        result.errors.append(f"{ticker} fmp ingest: {e}")
+
+            result.tickers_succeeded += 1
+        except Exception as e:
+            result.tickers_failed += 1
+            result.errors.append(f"{ticker}: {e}")
+
+    logger.info(
+        "FMP backfill: %d tickers, %d docs fetched, %d inserted",
         result.tickers_attempted, result.docs_fetched, result.docs_inserted,
     )
     return result

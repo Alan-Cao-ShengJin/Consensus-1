@@ -76,6 +76,167 @@ class StubClaimExtractor(ClaimExtractorBase):
                 thesis_link_type="supports",
             ))
 
+        # Heuristic 4: earnings beat/miss (FMP estimates format)
+        beat_match = re.search(r"(?:Actual\s+(?:Revenue|EPS)).*?\(beat by (\d+\.?\d*)%\)", clean_text, re.IGNORECASE)
+        if beat_match:
+            beat_pct = float(beat_match.group(1))
+            claims.append(ExtractedClaim(
+                claim_text_normalized=f"Company beat consensus estimates by {beat_pct:.1f}%",
+                claim_text_short="Earnings beat",
+                claim_type=ClaimType.GUIDANCE,
+                economic_channel=EconomicChannel.EARNINGS,
+                direction=Direction.POSITIVE,
+                strength=min(0.95, 0.7 + beat_pct / 100),
+                novelty_type=NoveltyType.NEW,
+                confidence=0.9,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Earnings Surprise"],
+                thesis_link_type="supports",
+                is_structural=True,
+            ))
+
+        miss_match = re.search(r"(?:Actual\s+(?:Revenue|EPS)).*?\(missed by (\d+\.?\d*)%\)", clean_text, re.IGNORECASE)
+        if miss_match:
+            miss_pct = float(miss_match.group(1))
+            claims.append(ExtractedClaim(
+                claim_text_normalized=f"Company missed consensus estimates by {miss_pct:.1f}%",
+                claim_text_short="Earnings miss",
+                claim_type=ClaimType.GUIDANCE,
+                economic_channel=EconomicChannel.EARNINGS,
+                direction=Direction.NEGATIVE,
+                strength=min(0.95, 0.7 + miss_pct / 100),
+                novelty_type=NoveltyType.NEW,
+                confidence=0.9,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Earnings Surprise"],
+                thesis_link_type="weakens",
+                is_structural=True,
+            ))
+
+        # Heuristic 5: structured financial data (FMP financials format)
+        rev_match = re.search(r"Revenue:\s*\$(\d+\.?\d*)B", clean_text)
+        fcf_match = re.search(r"Free Cash Flow:\s*\$(-?\d+\.?\d*)B", clean_text)
+
+        if rev_match:
+            growth_match = re.search(r"Revenue Growth:\s*(-?\d+\.?\d*)%", clean_text)
+            if growth_match:
+                growth = float(growth_match.group(1))
+                rev_b = float(rev_match.group(1))
+                direction = Direction.POSITIVE if growth > 0 else Direction.NEGATIVE
+                claims.append(ExtractedClaim(
+                    claim_text_normalized=f"Revenue of ${rev_b:.1f}B with {growth:+.1f}% growth",
+                    claim_text_short=f"Revenue {'growth' if growth > 0 else 'decline'} {growth:+.1f}%",
+                    claim_type=ClaimType.DEMAND,
+                    economic_channel=EconomicChannel.REVENUE,
+                    direction=direction,
+                    strength=min(0.95, 0.6 + abs(growth) / 100),
+                    novelty_type=NoveltyType.NEW,
+                    confidence=0.95,
+                    affected_tickers=[ticker] if ticker else [],
+                    themes=["Revenue Trend"],
+                    thesis_link_type="supports" if growth > 0 else "weakens",
+                    is_structural=True,
+                ))
+
+        if re.search(r"Gross Profit.*?margin\s+(\d+\.?\d*)%", clean_text, re.IGNORECASE):
+            gm_match = re.search(r"Gross Profit.*?margin\s+(\d+\.?\d*)%", clean_text, re.IGNORECASE)
+            gm_pct = float(gm_match.group(1))
+            claims.append(ExtractedClaim(
+                claim_text_normalized=f"Gross margin at {gm_pct:.1f}%",
+                claim_text_short=f"Gross margin {gm_pct:.1f}%",
+                claim_type=ClaimType.MARGIN,
+                economic_channel=EconomicChannel.GROSS_MARGIN,
+                direction=Direction.POSITIVE if gm_pct > 40 else Direction.NEUTRAL,
+                strength=0.7,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.95,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Margin Profile"],
+                thesis_link_type="supports",
+                is_structural=True,
+            ))
+
+        if fcf_match:
+            fcf_b = float(fcf_match.group(1))
+            direction = Direction.POSITIVE if fcf_b > 0 else Direction.NEGATIVE
+            claims.append(ExtractedClaim(
+                claim_text_normalized=f"Free cash flow of ${fcf_b:.1f}B",
+                claim_text_short=f"FCF ${fcf_b:.1f}B",
+                claim_type=ClaimType.CAPITAL_ALLOCATION,
+                economic_channel=EconomicChannel.LIQUIDITY,
+                direction=direction,
+                strength=0.75,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.95,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Cash Generation"],
+                thesis_link_type="supports" if fcf_b > 0 else "weakens",
+                is_structural=True,
+            ))
+
+        # Heuristic 6: earnings transcript / management commentary signals
+        if re.search(r"(accelerat|re-?accelerat).{0,30}(growth|revenue|demand)", clean_text, re.IGNORECASE):
+            claims.append(ExtractedClaim(
+                claim_text_normalized="Management highlighted growth acceleration",
+                claim_text_short="Growth acceleration",
+                claim_type=ClaimType.DEMAND,
+                economic_channel=EconomicChannel.REVENUE,
+                direction=Direction.POSITIVE,
+                strength=0.85,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.7,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Growth Acceleration"],
+                thesis_link_type="supports",
+            ))
+
+        if re.search(r"(headwind|decelerat|slowdown|weaken).{0,30}(demand|growth|revenue|macro)", clean_text, re.IGNORECASE):
+            claims.append(ExtractedClaim(
+                claim_text_normalized="Headwinds or deceleration flagged",
+                claim_text_short="Growth headwinds",
+                claim_type=ClaimType.DEMAND,
+                economic_channel=EconomicChannel.REVENUE,
+                direction=Direction.NEGATIVE,
+                strength=0.8,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.65,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Growth Deceleration"],
+                thesis_link_type="weakens",
+            ))
+
+        if re.search(r"(raised|increased|upgraded).{0,20}(guidance|outlook|forecast|target)", clean_text, re.IGNORECASE):
+            claims.append(ExtractedClaim(
+                claim_text_normalized="Company raised forward guidance",
+                claim_text_short="Guidance raised",
+                claim_type=ClaimType.GUIDANCE,
+                economic_channel=EconomicChannel.EARNINGS,
+                direction=Direction.POSITIVE,
+                strength=0.9,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.8,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Earnings Momentum"],
+                thesis_link_type="supports",
+                is_structural=True,
+            ))
+
+        if re.search(r"(lowered|cut|reduced|downgraded).{0,20}(guidance|outlook|forecast|target)", clean_text, re.IGNORECASE):
+            claims.append(ExtractedClaim(
+                claim_text_normalized="Company lowered forward guidance",
+                claim_text_short="Guidance cut",
+                claim_type=ClaimType.GUIDANCE,
+                economic_channel=EconomicChannel.EARNINGS,
+                direction=Direction.NEGATIVE,
+                strength=0.9,
+                novelty_type=NoveltyType.NEW,
+                confidence=0.8,
+                affected_tickers=[ticker] if ticker else [],
+                themes=["Earnings Risk"],
+                thesis_link_type="weakens",
+                is_structural=True,
+            ))
+
         # Fallback: always return at least one generic claim
         if not claims:
             claims.append(ExtractedClaim(

@@ -73,6 +73,9 @@ def generate_proof_pack(
         _write_portfolio_timeline_csv(output_dir, eval_result)
         _write_portfolio_trades_csv(output_dir, eval_result)
 
+        _write_portfolio_composition_csv(output_dir, eval_result)
+        _write_portfolio_changes_csv(output_dir, eval_result)
+
     # 5. Memory comparison CSV
     if memory_comparison:
         _write_memory_comparison_csv(output_dir, memory_comparison)
@@ -548,7 +551,11 @@ def _write_markdown_report(
 def _write_decisions_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
     """Write per-review-date decisions CSV."""
     path = os.path.join(output_dir, "decisions.csv")
-    fieldnames = ["review_date", "ticker", "action", "thesis_conviction", "action_score", "conviction_bucket", "rationale"]
+    fieldnames = [
+        "review_date", "ticker", "action", "thesis_conviction", "action_score",
+        "conviction_bucket", "prior_weight", "new_weight", "weight_change",
+        "suggested_weight", "rationale",
+    ]
 
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -564,7 +571,7 @@ def _write_action_outcomes_csv(output_dir: str, eval_result: HistoricalEvalResul
     path = os.path.join(output_dir, "action_outcomes.csv")
     fieldnames = [
         "review_date", "ticker", "action", "thesis_conviction", "action_score",
-        "conviction_bucket",
+        "conviction_bucket", "prior_weight", "new_weight", "weight_change",
         "price_at_decision", "forward_5d_pct", "forward_20d_pct", "forward_60d_pct",
     ]
 
@@ -736,7 +743,10 @@ def _write_portfolio_timeline_csv(output_dir: str, eval_result: HistoricalEvalRe
         return
 
     path = os.path.join(output_dir, "portfolio_timeline.csv")
-    fieldnames = ["review_date", "total_value", "cash", "invested", "num_positions"]
+    fieldnames = [
+        "review_date", "total_value", "cash", "invested", "num_positions",
+        "cash_weight_pct", "top_holding", "top_holding_weight",
+    ]
 
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -745,12 +755,21 @@ def _write_portfolio_timeline_csv(output_dir: str, eval_result: HistoricalEvalRe
             snap = rec.snapshot
             if not snap:
                 continue
+            cash_weight = (snap.cash / snap.total_value * 100.0) if snap.total_value > 0 else 100.0
+            top_holding = ""
+            top_weight = 0.0
+            if snap.weights:
+                top_holding = max(snap.weights, key=snap.weights.get)
+                top_weight = snap.weights[top_holding]
             writer.writerow({
                 "review_date": snap.date.isoformat() if snap.date else rec.review_date.isoformat(),
                 "total_value": round(snap.total_value, 2),
                 "cash": round(snap.cash, 2),
                 "invested": round(snap.invested, 2),
                 "num_positions": snap.num_positions,
+                "cash_weight_pct": round(cash_weight, 2),
+                "top_holding": top_holding,
+                "top_holding_weight": round(top_weight, 2),
             })
 
     logger.info("Portfolio timeline CSV: %s", path)
@@ -780,6 +799,125 @@ def _write_portfolio_trades_csv(output_dir: str, eval_result: HistoricalEvalResu
             })
 
     logger.info("Portfolio trades CSV: %s (%d trades)", path, len(portfolio.trades))
+
+
+def _write_portfolio_composition_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write per-position weights at each review date.
+
+    Each row is (review_date, ticker, weight_pct, market_value, shares).
+    This is the data that was computed in PortfolioSnapshot.weights but previously discarded.
+    """
+    rr = eval_result.run_result
+    if not rr or not rr.review_records:
+        return
+
+    path = os.path.join(output_dir, "portfolio_composition.csv")
+    fieldnames = [
+        "review_date", "ticker", "weight_pct", "market_value",
+        "portfolio_total", "cash", "cash_weight_pct", "num_positions",
+    ]
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for rec in rr.review_records:
+            snap = rec.snapshot
+            if not snap:
+                continue
+            rd = snap.date.isoformat() if snap.date else rec.review_date.isoformat()
+            cash_weight = (snap.cash / snap.total_value * 100.0) if snap.total_value > 0 else 100.0
+            for ticker in sorted(snap.weights.keys()):
+                writer.writerow({
+                    "review_date": rd,
+                    "ticker": ticker,
+                    "weight_pct": round(snap.weights[ticker], 2),
+                    "market_value": round(snap.positions.get(ticker, 0), 2),
+                    "portfolio_total": round(snap.total_value, 2),
+                    "cash": round(snap.cash, 2),
+                    "cash_weight_pct": round(cash_weight, 2),
+                    "num_positions": snap.num_positions,
+                })
+
+    logger.info("Portfolio composition CSV: %s", path)
+
+
+def _write_portfolio_changes_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write meaningful portfolio change events.
+
+    A 'change' is a decision where the portfolio actually moved (not hold/no_action).
+    Includes before/after weights, conviction, and action context.
+    """
+    rr = eval_result.run_result
+    if not rr or not rr.review_records:
+        return
+
+    path = os.path.join(output_dir, "portfolio_changes.csv")
+    fieldnames = [
+        "review_date", "ticker", "event_type", "prior_weight", "new_weight",
+        "delta_weight", "conviction_before", "conviction_after",
+        "rationale_summary", "forward_5d_pct", "forward_20d_pct", "forward_60d_pct",
+    ]
+
+    # Build outcome lookup
+    outcome_lookup = {}
+    for ao in eval_result.action_outcomes:
+        key = (ao.review_date.isoformat(), ao.ticker)
+        outcome_lookup[key] = ao
+
+    # Build per-review-date conviction lookup from decisions
+    # (conviction_before = prior review's conviction for that ticker)
+    prev_conviction = {}  # ticker -> last known conviction
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        prev_snap = None
+        for rec in rr.review_records:
+            snap = rec.snapshot
+            rd = rec.review_date.isoformat()
+
+            for decision in rec.result.decisions:
+                action = decision.action.value
+                # Only meaningful changes
+                if action in ("no_action", "hold"):
+                    # Update conviction tracking even for holds
+                    prev_conviction[decision.ticker] = decision.thesis_conviction
+                    continue
+
+                ticker = decision.ticker
+                prior_weight = prev_snap.weights.get(ticker, 0.0) if prev_snap else 0.0
+                new_weight = snap.weights.get(ticker, 0.0) if snap else 0.0
+                conv_before = prev_conviction.get(ticker, 0.0)
+                conv_after = decision.thesis_conviction
+
+                # Map action to event type
+                event_type = action  # initiate, add, trim, exit, probation
+
+                # Get forward returns from outcomes
+                ao = outcome_lookup.get((rd, ticker))
+
+                writer.writerow({
+                    "review_date": rd,
+                    "ticker": ticker,
+                    "event_type": event_type,
+                    "prior_weight": round(prior_weight, 2),
+                    "new_weight": round(new_weight, 2),
+                    "delta_weight": round(new_weight - prior_weight, 2),
+                    "conviction_before": round(conv_before, 1),
+                    "conviction_after": round(conv_after, 1),
+                    "rationale_summary": (decision.rationale or "")[:200],
+                    "forward_5d_pct": round(ao.forward_5d, 2) if ao and ao.forward_5d is not None else None,
+                    "forward_20d_pct": round(ao.forward_20d, 2) if ao and ao.forward_20d is not None else None,
+                    "forward_60d_pct": round(ao.forward_60d, 2) if ao and ao.forward_60d is not None else None,
+                })
+
+                prev_conviction[ticker] = conv_after
+
+            if snap:
+                prev_snap = snap
+
+    logger.info("Portfolio changes CSV: %s", path)
 
 
 def _write_memory_comparison_csv(

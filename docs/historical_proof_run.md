@@ -268,6 +268,63 @@ python scripts/run_historical_proof.py --usefulness-run --start 2024-03-01 --end
 python scripts/run_historical_proof.py --usefulness-run --use-llm --start 2024-06-01 --end 2025-01-01 --cadence 7 --run-id my_usefulness_test
 ```
 
+### Daily vs Weekly Cadence
+
+The system supports daily (`--cadence 1`) and weekly (`--cadence 7`) review cadences.
+Daily cadence evaluates every business day; weekly is the default.
+
+```bash
+# Daily cadence proof run
+python scripts/run_historical_proof.py --usefulness-run --cadence 1
+
+# Weekly cadence (default)
+python scripts/run_historical_proof.py --usefulness-run --cadence 7
+
+# Daily with real LLM
+python scripts/run_historical_proof.py --usefulness-run --cadence 1 --use-llm
+```
+
+**Cadence trade-offs:**
+- Daily produces ~5× more review dates and decisions
+- Daily may generate higher turnover and more short-hold exits
+- Probation windows compress at daily cadence (2 reviews = 2 days vs 2 weeks)
+- The weekly turnover cap (20%) applies per-review regardless of cadence
+
+### Cadence Comparison
+
+Compare daily vs weekly cadence on the same regeneration DB. Runs both cadences
+and produces a side-by-side `cadence_comparison.csv`.
+
+```bash
+# Compare daily vs weekly (requires existing regen DB)
+python scripts/run_cadence_comparison.py --regen-db historical_proof_runs/usefulness_llm_v7_regen.db
+
+# With real LLM
+python scripts/run_cadence_comparison.py --regen-db historical_proof_runs/usefulness_llm_v7_regen.db --use-llm
+
+# Custom tickers
+python scripts/run_cadence_comparison.py --regen-db historical_proof_runs/usefulness_llm_v7_regen.db --tickers AAPL,NVDA
+```
+
+Output: `cadence_comparison.csv` with metrics: total_return, annualized_return,
+max_drawdown, review_dates, trades, turnover, recommendation_changes, short_hold_exits.
+
+### Replay UI
+
+Launch the standalone replay server to browse proof packs interactively:
+
+```bash
+python replay_server.py --run-dir historical_proof_runs --port 5001
+# Then open http://localhost:5001
+```
+
+The UI provides:
+- **Timeline tab**: Review dates with event markers for portfolio changes; click markers for drilldown
+- **Decisions tab**: Per-ticker decisions with prior/new weight columns; "Changes only" filter
+- **Weight Changes tab**: Summary cards (initiations, exits, adds/trims, turnover) and full change event table
+- **Composition tab**: Date-selectable portfolio view with weight bars; weight history heatmap across all dates
+- **Causality drilldown panel**: Click any event to see the 5-step chain: Evidence → Conviction → Action → Weight → Outcome
+
 ### Policy Comparison
 
 Compare exit policy variants on the same universe and window. Shared backfill
@@ -339,10 +396,15 @@ historical_proof_runs/usefulness_run/
 ├── coverage_by_month.csv      # Source coverage by month
 ├── benchmark.csv              # Benchmark comparison
 ├── conviction_buckets.csv     # Conviction bucket summary
+├── portfolio_timeline.csv     # Portfolio NAV, cash, positions per review date
+├── portfolio_trades.csv       # All executed shadow trades
+├── portfolio_composition.csv  # Per-position weights at each review date
+├── portfolio_changes.csv      # Meaningful weight-change events (excludes holds)
 ├── probation_events.csv       # Probation event details + forward returns
 ├── exit_events.csv            # Exit event details + forward returns
 ├── memory_comparison.csv      # (only with --memory-ablation)
 ├── policy_comparison.csv      # (only with run_policy_comparison.py)
+├── cadence_comparison.csv     # (only with run_cadence_comparison.py)
 └── window_summary.csv         # (only with run_multi_window.py)
 ```
 

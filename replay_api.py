@@ -128,6 +128,7 @@ def get_run(run_id):
             "worst_decisions.csv", "per_name_summary.csv", "benchmark.csv",
             "conviction_buckets.csv", "coverage_diagnostics.csv",
             "portfolio_timeline.csv", "portfolio_trades.csv",
+            "portfolio_composition.csv", "portfolio_changes.csv",
             "probation_events.csv", "exit_events.csv",
             "memory_comparison.csv", "policy_comparison.csv",
         ]
@@ -199,6 +200,84 @@ def get_timeline(run_id):
 @replay_bp.route("/api/replay/runs/<run_id>/trades")
 def get_trades(run_id):
     return jsonify(_load_csv(run_id, "portfolio_trades.csv"))
+
+
+@replay_bp.route("/api/replay/runs/<run_id>/composition")
+def get_composition(run_id):
+    """Per-position weights at each review date."""
+    return jsonify(_load_csv(run_id, "portfolio_composition.csv"))
+
+
+@replay_bp.route("/api/replay/runs/<run_id>/composition/<review_date>")
+def get_composition_at_date(run_id, review_date):
+    """Portfolio composition at a specific review date."""
+    rows = _load_csv(run_id, "portfolio_composition.csv")
+    at_date = [r for r in rows if r.get("review_date") == review_date]
+    if not at_date and rows:
+        return jsonify({"error": "Date not found in composition data"}), 404
+    # Also get timeline row for portfolio-level context
+    timeline = _load_csv(run_id, "portfolio_timeline.csv")
+    tl_row = next((r for r in timeline if r.get("review_date") == review_date), None)
+    return jsonify({
+        "review_date": review_date,
+        "positions": at_date,
+        "portfolio": tl_row,
+    })
+
+
+@replay_bp.route("/api/replay/runs/<run_id>/changes")
+def get_changes(run_id):
+    """Meaningful portfolio change events (not holds)."""
+    return jsonify(_load_csv(run_id, "portfolio_changes.csv"))
+
+
+@replay_bp.route("/api/replay/runs/<run_id>/drilldown/<review_date>/<ticker>")
+def get_drilldown(run_id, review_date, ticker):
+    """Full causality drilldown for a specific decision/change event.
+
+    Returns: evidence summary, conviction before/after, weight before/after,
+    thesis state, action, outcome — everything needed for the causality panel.
+    """
+    # Decision from CSV (includes weight data)
+    decisions = _load_csv(run_id, "decisions.csv")
+    decision = next(
+        (d for d in decisions
+         if d.get("review_date") == review_date and d.get("ticker") == ticker),
+        None,
+    )
+
+    # Outcome from CSV (includes forward returns + weights)
+    outcomes = _load_csv(run_id, "action_outcomes.csv")
+    outcome = next(
+        (o for o in outcomes
+         if o.get("review_date") == review_date and o.get("ticker") == ticker),
+        None,
+    )
+
+    # Change event if it exists
+    changes = _load_csv(run_id, "portfolio_changes.csv")
+    change = next(
+        (c for c in changes
+         if c.get("review_date") == review_date and c.get("ticker") == ticker),
+        None,
+    )
+
+    # Evidence from regen DB (existing function)
+    evidence = _query_evidence_from_regen_db(run_id, review_date, ticker)
+
+    # Composition at this date
+    composition = _load_csv(run_id, "portfolio_composition.csv")
+    comp_at_date = [r for r in composition if r.get("review_date") == review_date]
+
+    return jsonify({
+        "review_date": review_date,
+        "ticker": ticker,
+        "decision": decision,
+        "outcome": outcome,
+        "change": change,
+        "evidence": evidence,
+        "portfolio_at_date": comp_at_date,
+    })
 
 
 @replay_bp.route("/api/replay/runs/<run_id>/failures")

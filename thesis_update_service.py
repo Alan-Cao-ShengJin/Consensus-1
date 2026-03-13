@@ -51,6 +51,10 @@ SOURCE_TIER_WEIGHTS = {
 
 MAX_PER_DOCUMENT_DELTA = 15.0  # cap total absolute move from one document
 
+# Tier-1 sources (transcripts, financials) get a higher cap to reflect their
+# higher informational value.  Tier-2/3 keep the standard 15.
+MAX_PER_DOCUMENT_DELTA_TIER1 = 20.0
+
 
 def compute_claim_delta(
     impact: str,
@@ -79,18 +83,25 @@ def compute_claim_delta(
     return base * materiality * novelty_mult * confidence * source_tier_weight
 
 
-def apply_conviction_update(current_score: float, deltas: list[float]) -> float:
+def apply_conviction_update(
+    current_score: float,
+    deltas: list[float],
+    source_tier: str | None = None,
+) -> float:
     """Apply deltas with dampening near extremes and per-document cap.
 
     Uses sigmoid-inspired dampening: as score approaches 0 or 100, the
     effective delta shrinks, preventing instant saturation and ensuring
     conviction can always move back on meaningful counter-evidence.
+
+    Tier-1 sources (transcripts, financials) get a higher per-document cap.
     """
     raw_total = sum(deltas)
 
-    # Per-document cap: limit total absolute move
-    if abs(raw_total) > MAX_PER_DOCUMENT_DELTA:
-        raw_total = MAX_PER_DOCUMENT_DELTA if raw_total > 0 else -MAX_PER_DOCUMENT_DELTA
+    # Per-document cap: Tier-1 sources get higher cap
+    cap = MAX_PER_DOCUMENT_DELTA_TIER1 if source_tier == "tier_1" else MAX_PER_DOCUMENT_DELTA
+    if abs(raw_total) > cap:
+        raw_total = cap if raw_total > 0 else -cap
 
     # Dampening near extremes: reduce effective delta as score approaches bounds
     # The "headroom" is how far we are from the boundary we're moving toward
@@ -510,7 +521,13 @@ def update_thesis_from_claims(
             session, thesis.id, claim.id, link_type_map.get(impact, "context")
         )
 
-    new_score = apply_conviction_update(before_score, deltas)
+    # Determine source tier for conviction cap (use highest-tier claim)
+    doc_tiers = [
+        c.document.source_tier.value for c in claims
+        if c.document and c.document.source_tier
+    ]
+    best_tier = min(doc_tiers) if doc_tiers else None  # "tier_1" < "tier_2" < "tier_3"
+    new_score = apply_conviction_update(before_score, deltas, source_tier=best_tier)
     score_delta = new_score - before_score
     new_state = resolve_state(
         before_state.value,

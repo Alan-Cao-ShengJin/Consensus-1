@@ -49,6 +49,9 @@ class ActionOutcome:
     action_score: float            # decision-engine urgency score
     conviction_bucket: str
     rationale: str
+    prior_weight: float = 0.0
+    new_weight: float = 0.0
+    weight_change: float = 0.0
     price_at_decision: Optional[float] = None
     forward_5d: Optional[float] = None
     forward_20d: Optional[float] = None
@@ -67,6 +70,9 @@ class ActionOutcome:
             "thesis_conviction": round(self.thesis_conviction, 1),
             "action_score": round(self.action_score, 1),
             "conviction_bucket": self.conviction_bucket,
+            "prior_weight": round(self.prior_weight, 2),
+            "new_weight": round(self.new_weight, 2),
+            "weight_change": round(self.weight_change, 2),
             "rationale": self.rationale[:200] if self.rationale else "",
             "price_at_decision": round(self.price_at_decision, 2) if self.price_at_decision else None,
             "forward_5d_pct": round(self.forward_5d, 2) if self.forward_5d is not None else None,
@@ -316,7 +322,21 @@ def run_historical_evaluation(
     tickers = config.effective_tickers()
     prices_by_ticker = _preload_prices(session, tickers)
 
-    # 4. Compute per-decision forward returns
+    # 4. Compute per-decision forward returns (with weight tracking)
+    # Build snapshot index for weight lookups: review_date -> snapshot
+    snapshot_by_date = {}
+    for rec in run_result.review_records:
+        if rec.snapshot:
+            snapshot_by_date[rec.review_date] = rec.snapshot
+
+    # Build previous-snapshot index for before-weights
+    prev_snapshot_by_date = {}
+    prev_snap = None
+    for rec in run_result.review_records:
+        prev_snapshot_by_date[rec.review_date] = prev_snap
+        if rec.snapshot:
+            prev_snap = rec.snapshot
+
     for rec in run_result.review_records:
         for decision in rec.result.decisions:
             if decision.action.value in ("no_action",):
@@ -326,9 +346,24 @@ def run_historical_evaluation(
                 decision, rec.review_date, prices_by_ticker,
                 config,
             )
+
+            # Get weight data from snapshots
+            prev_snap = prev_snapshot_by_date.get(rec.review_date)
+            post_snap = snapshot_by_date.get(rec.review_date)
+
+            prior_weight = prev_snap.weights.get(decision.ticker, 0.0) if prev_snap else 0.0
+            new_weight = post_snap.weights.get(decision.ticker, 0.0) if post_snap else 0.0
+            # For decisions that don't trade (hold/probation), weight doesn't change intentionally
+            if decision.action.value in ("hold", "probation"):
+                new_weight = prior_weight  # weight may drift with price, but action didn't change it
+
+            # Set weight data on outcome
+            outcome.prior_weight = prior_weight
+            outcome.new_weight = new_weight
+            outcome.weight_change = new_weight - prior_weight
             result.action_outcomes.append(outcome)
 
-            # Decision row for CSV
+            # Decision row for CSV (enriched with weights)
             result.decision_rows.append({
                 "review_date": rec.review_date.isoformat(),
                 "ticker": decision.ticker,
@@ -336,6 +371,10 @@ def run_historical_evaluation(
                 "thesis_conviction": round(decision.thesis_conviction, 1),
                 "action_score": round(decision.action_score, 1),
                 "conviction_bucket": outcome.conviction_bucket,
+                "prior_weight": round(prior_weight, 2),
+                "new_weight": round(new_weight, 2),
+                "weight_change": round(new_weight - prior_weight, 2),
+                "suggested_weight": round(decision.suggested_weight, 2) if decision.suggested_weight else None,
                 "rationale": (decision.rationale or "")[:200],
             })
 
