@@ -15,6 +15,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from exit_policy import ExitPolicyConfig, BASELINE_POLICY
 from historical_eval_config import HistoricalEvalConfig
 from replay_runner import run_replay
 from replay_engine import ReplayRunResult, _preload_prices
@@ -33,11 +34,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ActionOutcome:
-    """Outcome record for a single decision action."""
+    """Outcome record for a single decision action.
+
+    conviction fields:
+      - thesis_conviction: the raw thesis conviction score (0-100), meaningful
+        for ALL action types including hold.  Use this for analysis.
+      - action_score: the decision-engine urgency score (0 for holds, 50-100
+        for active actions).  Use only for priority/urgency analysis.
+    """
     review_date: date
     ticker: str
     action: str
-    conviction: float
+    thesis_conviction: float       # raw thesis conviction, always meaningful
+    action_score: float            # decision-engine urgency score
     conviction_bucket: str
     rationale: str
     price_at_decision: Optional[float] = None
@@ -45,12 +54,18 @@ class ActionOutcome:
     forward_20d: Optional[float] = None
     forward_60d: Optional[float] = None
 
+    @property
+    def conviction(self) -> float:
+        """Alias for thesis_conviction (backwards compat for bucket logic)."""
+        return self.thesis_conviction
+
     def to_dict(self) -> dict:
         return {
             "review_date": self.review_date.isoformat(),
             "ticker": self.ticker,
             "action": self.action,
-            "conviction": round(self.conviction, 1),
+            "thesis_conviction": round(self.thesis_conviction, 1),
+            "action_score": round(self.action_score, 1),
             "conviction_bucket": self.conviction_bucket,
             "rationale": self.rationale[:200] if self.rationale else "",
             "price_at_decision": round(self.price_at_decision, 2) if self.price_at_decision else None,
@@ -207,6 +222,10 @@ class HistoricalEvalResult:
     per_name_summary: list[PerNameSummary] = field(default_factory=list)
     coverage_diagnostics: Optional[CoverageDiagnostics] = None
     failure_analysis: Optional[FailureAnalysis] = None
+    exit_policy_label: str = "baseline"
+    # Empirical diagnostics (populated for usefulness runs)
+    deterioration_diagnostics: Optional[object] = None  # DeteriorationDiagnostics
+    enhanced_failure_analysis: Optional[object] = None   # EnhancedFailureAnalysis
 
     def to_dict(self) -> dict:
         return {
@@ -229,6 +248,7 @@ class HistoricalEvalResult:
 def run_historical_evaluation(
     session: Session,
     config: HistoricalEvalConfig,
+    exit_policy: ExitPolicyConfig = BASELINE_POLICY,
 ) -> HistoricalEvalResult:
     """Run evaluation on regenerated historical state.
 
@@ -244,6 +264,7 @@ def run_historical_evaluation(
         config: Historical evaluation config.
     """
     result = HistoricalEvalResult(config=config)
+    result.exit_policy_label = exit_policy.label()
 
     # 1. Run replay
     try:
@@ -257,6 +278,7 @@ def run_historical_evaluation(
             transaction_cost_bps=config.transaction_cost_bps,
             strict_replay=config.strict_replay,
             relaxed_gates=config.is_usefulness_run(),
+            exit_policy=exit_policy,
         )
     except Exception as e:
         result.warnings.append(f"Replay failed: {e}")
@@ -311,7 +333,8 @@ def run_historical_evaluation(
                 "review_date": rec.review_date.isoformat(),
                 "ticker": decision.ticker,
                 "action": decision.action.value,
-                "conviction": round(decision.action_score, 1),
+                "thesis_conviction": round(decision.thesis_conviction, 1),
+                "action_score": round(decision.action_score, 1),
                 "conviction_bucket": outcome.conviction_bucket,
                 "rationale": (decision.rationale or "")[:200],
             })
@@ -356,6 +379,23 @@ def run_historical_evaluation(
         result, config,
     )
 
+    # 11. Empirical diagnostics (probation/exit)
+    try:
+        from empirical_diagnostics import (
+            compute_deterioration_diagnostics,
+            compute_enhanced_failure_analysis,
+        )
+        result.deterioration_diagnostics = compute_deterioration_diagnostics(
+            result.action_outcomes,
+        )
+        result.enhanced_failure_analysis = compute_enhanced_failure_analysis(
+            result.action_outcomes,
+            result.deterioration_diagnostics,
+            result.per_name_summary,
+        )
+    except Exception as e:
+        result.warnings.append(f"Empirical diagnostics failed: {e}")
+
     return result
 
 
@@ -371,8 +411,9 @@ def _compute_action_outcome(
         review_date=review_date,
         ticker=ticker,
         action=decision.action.value,
-        conviction=decision.action_score,
-        conviction_bucket=config.conviction_bucket_for(decision.action_score),
+        thesis_conviction=decision.thesis_conviction,
+        action_score=decision.action_score,
+        conviction_bucket=config.conviction_bucket_for(decision.thesis_conviction),
         rationale=decision.rationale or "",
     )
 
@@ -514,7 +555,8 @@ def _compute_best_worst(
             "review_date": o.review_date.isoformat(),
             "ticker": o.ticker,
             "action": o.action,
-            "conviction": round(o.conviction, 1),
+            "thesis_conviction": round(o.thesis_conviction, 1),
+            "action_score": round(o.action_score, 1),
             "conviction_bucket": o.conviction_bucket,
             "price_at_decision": round(o.price_at_decision, 2) if o.price_at_decision else None,
             "forward_5d_pct": round(o.forward_5d, 2) if o.forward_5d is not None else None,

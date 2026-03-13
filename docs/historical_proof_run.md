@@ -124,7 +124,9 @@ A valid proof-run report pack must contain:
 - Thesis state snapshots count
 
 ### 3. Decision Summary Table (per review date)
-- Review date, ticker, action, conviction, rationale summary
+- Review date, ticker, action, thesis_conviction, action_score, rationale summary
+- `thesis_conviction`: raw thesis conviction (0-100), meaningful for ALL actions including hold
+- `action_score`: decision-engine urgency score (0 for holds, 50-100 for active actions)
 - CSV export: `decisions.csv`
 
 ### 4. Forward-Return Analysis (per action)
@@ -186,7 +188,43 @@ A valid proof-run report pack must contain:
 
 ### 14. Run Manifest
 - `manifest.json`: run_id, code_hash, universe, date range, extractor mode,
-  source toggles, degraded flags, warnings
+  source toggles, exit_policy, degraded flags, warnings
+
+### 15. Probation/Exit Diagnostics
+- Full deterioration path tracking: prior action, conviction trajectory, forward returns
+- Premature exit detection: exit followed by >5% recovery at 20D or >10% at 60D
+- False alarm probation: probation where stock subsequently rose (positive 20D forward return)
+- CSV exports: `probation_events.csv`, `exit_events.csv`
+
+### 16. Enhanced Failure Analysis
+- Premature exits with forward recovery data
+- Correct warning counts (exit that avoided further decline)
+- False alarm counts (probation on recovering stock)
+- Repeated negative tickers
+
+## Exit Policy Variants
+
+The system supports bounded exit-policy variants for empirical comparison.
+All variants are defined in `exit_policy.py`.
+
+| Policy | Exit ≤ | Probation ≤ | Max Reviews | Special |
+|--------|--------|-------------|-------------|---------|
+| **baseline** | 25 | 35 | 2 | — |
+| **patient** | 20 | 35 | 3 | Higher bar to exit, more review cycles |
+| **graduated** | 25 | 35 | 2 | Sharp drop ≥15pts → immediate exit |
+
+- **baseline**: Current default. Exit when conviction ≤25, probation when ≤35, max 2 reviews.
+- **patient**: More tolerant. Exit only at ≤20, allows 3 probation reviews before forced exit.
+- **graduated**: Same thresholds as baseline, but a sharp single-period conviction drop (≥15 points) triggers immediate exit regardless of absolute level.
+
+Pass `--policy baseline|patient|graduated` to any runner that accepts it.
+
+### Conviction Fields
+
+- `thesis_conviction`: The raw thesis conviction score (0-100). Meaningful for ALL action types including hold. **Use this for analysis.**
+- `action_score`: The decision-engine urgency/priority score. 0 for holds, 50-100 for active actions. Use only for priority/urgency analysis.
+
+The old `conviction` field in CSVs has been replaced by these two fields. `thesis_conviction` is the one to use for conviction-vs-return analysis, conviction trajectory tracking, and deterioration diagnostics.
 
 ## Usefulness Run Mode
 
@@ -230,6 +268,61 @@ python scripts/run_historical_proof.py --usefulness-run --start 2024-03-01 --end
 python scripts/run_historical_proof.py --usefulness-run --use-llm --start 2024-06-01 --end 2025-01-01 --cadence 7 --run-id my_usefulness_test
 ```
 
+### Policy Comparison
+
+Compare exit policy variants on the same universe and window. Shared backfill
+and regeneration, per-policy evaluation only.
+
+```bash
+# Compare all 3 policies (default)
+python scripts/run_policy_comparison.py
+
+# With real LLM
+python scripts/run_policy_comparison.py --use-llm
+
+# Custom tickers and policies
+python scripts/run_policy_comparison.py --tickers AAPL,NVDA --policies baseline,graduated
+```
+
+Output: `historical_proof_runs/<run_id>/policy_comparison.csv`, per-policy
+proof packs, and `comparison_report.md`.
+
+### Multi-Window Runs
+
+Run the same config across multiple date windows to surface instability.
+
+```bash
+# Default 3 windows
+python scripts/run_multi_window.py
+
+# With real LLM
+python scripts/run_multi_window.py --use-llm
+
+# Custom windows
+python scripts/run_multi_window.py --windows "2025-01-01:2025-07-01,2025-04-01:2025-10-01"
+
+# Custom tickers
+python scripts/run_multi_window.py --tickers AAPL,NVDA,MSFT
+```
+
+Output: `window_summary.csv`, `multi_window_report.md`, `multi_window_summary.json`.
+
+Warnings are generated for:
+- Return sign changes across windows (positive in one, negative in another)
+- Fewer than 3 windows (small sample)
+
+### What Conclusions Should / Shouldn't Be Drawn
+
+**Can conclude:**
+- Whether conviction-vs-return correlation holds across windows and policies
+- Whether a policy variant reduces premature exits or false alarms
+- Whether results are stable across time windows or suspiciously fragile
+
+**Cannot conclude (with stub extractor):**
+- Absolute return numbers are meaningful (stub claims are synthetic)
+- One policy is "better" from a single window (need multiple windows + real LLM)
+- Any result generalizes beyond the test universe
+
 ### Expected Output
 
 ```
@@ -237,7 +330,7 @@ historical_proof_runs/usefulness_run/
 ├── manifest.json              # Run manifest with metadata + degraded flags
 ├── summary.json               # Machine-readable full report
 ├── report.md                  # Human-readable markdown report
-├── decisions.csv              # Per-review-date decisions
+├── decisions.csv              # Per-review-date decisions (thesis_conviction + action_score)
 ├── action_outcomes.csv        # Per-action forward returns
 ├── best_decisions.csv         # Top 10 best decisions by forward return
 ├── worst_decisions.csv        # Top 10 worst decisions by forward return
@@ -246,7 +339,11 @@ historical_proof_runs/usefulness_run/
 ├── coverage_by_month.csv      # Source coverage by month
 ├── benchmark.csv              # Benchmark comparison
 ├── conviction_buckets.csv     # Conviction bucket summary
-└── memory_comparison.csv      # (only with --memory-ablation)
+├── probation_events.csv       # Probation event details + forward returns
+├── exit_events.csv            # Exit event details + forward returns
+├── memory_comparison.csv      # (only with --memory-ablation)
+├── policy_comparison.csv      # (only with run_policy_comparison.py)
+└── window_summary.csv         # (only with run_multi_window.py)
 ```
 
 ### Degraded Run Warnings

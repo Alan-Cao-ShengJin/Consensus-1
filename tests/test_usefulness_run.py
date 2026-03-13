@@ -133,37 +133,37 @@ def sample_outcomes() -> list[ActionOutcome]:
     return [
         ActionOutcome(
             review_date=date(2024, 7, 1), ticker="AAPL",
-            action="initiate", conviction=75, conviction_bucket="high",
+            action="initiate", thesis_conviction=75, action_score=75.0, conviction_bucket="high",
             rationale="Strong valuation", price_at_decision=155.0,
             forward_5d=2.5, forward_20d=8.0, forward_60d=12.0,
         ),
         ActionOutcome(
             review_date=date(2024, 7, 1), ticker="MSFT",
-            action="initiate", conviction=60, conviction_bucket="medium",
+            action="initiate", thesis_conviction=60, action_score=60.0, conviction_bucket="medium",
             rationale="Moderate growth", price_at_decision=355.0,
             forward_5d=-1.0, forward_20d=-3.0, forward_60d=-5.0,
         ),
         ActionOutcome(
             review_date=date(2024, 7, 15), ticker="NVDA",
-            action="add", conviction=80, conviction_bucket="high",
+            action="add", thesis_conviction=80, action_score=80.0, conviction_bucket="high",
             rationale="AI tailwind", price_at_decision=510.0,
             forward_5d=3.0, forward_20d=10.0, forward_60d=15.0,
         ),
         ActionOutcome(
             review_date=date(2024, 7, 15), ticker="AMD",
-            action="initiate", conviction=55, conviction_bucket="medium",
+            action="initiate", thesis_conviction=55, action_score=55.0, conviction_bucket="medium",
             rationale="Peer momentum", price_at_decision=125.0,
             forward_5d=-2.0, forward_20d=-7.0, forward_60d=-10.0,
         ),
         ActionOutcome(
             review_date=date(2024, 8, 1), ticker="AAPL",
-            action="hold", conviction=70, conviction_bucket="high",
+            action="hold", thesis_conviction=70, action_score=0.0, conviction_bucket="high",
             rationale="Maintain", price_at_decision=158.0,
             forward_5d=0.5, forward_20d=1.0,
         ),
         ActionOutcome(
             review_date=date(2024, 8, 1), ticker="AMD",
-            action="initiate", conviction=50, conviction_bucket="medium",
+            action="initiate", thesis_conviction=50, action_score=50.0, conviction_bucket="medium",
             rationale="Re-entry", price_at_decision=122.0,
             forward_5d=-1.5, forward_20d=-6.0, forward_60d=-8.0,
         ),
@@ -303,7 +303,7 @@ class TestBestWorstDecisions:
         assert "review_date" in d
         assert "ticker" in d
         assert "action" in d
-        assert "conviction" in d
+        assert "thesis_conviction" in d
         assert "forward_5d_pct" in d
         assert "forward_20d_pct" in d
         assert "forward_60d_pct" in d

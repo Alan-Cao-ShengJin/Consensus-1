@@ -362,6 +362,7 @@ def run_replay_review(
     *,
     strict_replay: bool = False,
     relaxed_gates: bool = False,
+    exit_policy=None,
 ) -> ReplayReviewRecord:
     """Run a single replay review at the given date.
 
@@ -462,6 +463,8 @@ def run_replay_review(
         candidates=candidates,
         relaxed_gates=relaxed_gates,
     )
+    if exit_policy is not None:
+        engine_input.exit_policy = exit_policy
     result = run_decision_engine(engine_input)
     result.review_type = "replay"
     record.result = result

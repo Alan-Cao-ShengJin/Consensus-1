@@ -69,6 +69,7 @@ def generate_proof_pack(
         _write_per_name_csv(output_dir, eval_result)
         _write_coverage_diagnostics_csv(output_dir, eval_result)
         _write_coverage_by_month_csv(output_dir, eval_result)
+        _write_empirical_diagnostics_csv(output_dir, eval_result)
 
     # 5. Memory comparison CSV
     if memory_comparison:
@@ -137,6 +138,7 @@ def _write_manifest(
         "cadence_days": config.cadence_days,
         "memory_enabled": config.memory_enabled,
         "strict_replay": config.strict_replay,
+        "exit_policy": eval_result.exit_policy_label if eval_result else "baseline",
         "seed": config.seed,
         "degraded_flags": degraded_flags,
         "warnings_count": len(warnings),
@@ -315,10 +317,11 @@ def _write_markdown_report(
             lines.append("| Date | Ticker | Action | Conviction | 5D | 20D | 60D |")
             lines.append("|------|--------|--------|------------|-----|------|------|")
             for d in eval_result.best_decisions[:10]:
+                conv = d.get('thesis_conviction', d.get('conviction', 0))
                 f5 = f"{d['forward_5d_pct']:+.2f}%" if d.get('forward_5d_pct') is not None else "—"
                 f20 = f"{d['forward_20d_pct']:+.2f}%" if d.get('forward_20d_pct') is not None else "—"
                 f60 = f"{d['forward_60d_pct']:+.2f}%" if d.get('forward_60d_pct') is not None else "—"
-                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {d['conviction']} | {f5} | {f20} | {f60} |")
+                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {conv} | {f5} | {f20} | {f60} |")
             lines.append("")
 
         # Worst decisions
@@ -327,10 +330,11 @@ def _write_markdown_report(
             lines.append("| Date | Ticker | Action | Conviction | 5D | 20D | 60D |")
             lines.append("|------|--------|--------|------------|-----|------|------|")
             for d in eval_result.worst_decisions[:10]:
+                conv = d.get('thesis_conviction', d.get('conviction', 0))
                 f5 = f"{d['forward_5d_pct']:+.2f}%" if d.get('forward_5d_pct') is not None else "—"
                 f20 = f"{d['forward_20d_pct']:+.2f}%" if d.get('forward_20d_pct') is not None else "—"
                 f60 = f"{d['forward_60d_pct']:+.2f}%" if d.get('forward_60d_pct') is not None else "—"
-                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {d['conviction']} | {f5} | {f20} | {f60} |")
+                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {conv} | {f5} | {f20} | {f60} |")
             lines.append("")
 
         # Per-name summary
@@ -440,6 +444,20 @@ def _write_markdown_report(
                     lines.append(f"- {lep['concern']}")
                 lines.append("")
 
+    # Empirical diagnostics sections
+    if eval_result:
+        try:
+            from empirical_diagnostics import (
+                format_deterioration_section,
+                format_enhanced_failure_section,
+            )
+            if eval_result.deterioration_diagnostics:
+                lines.extend(format_deterioration_section(eval_result.deterioration_diagnostics))
+            if eval_result.enhanced_failure_analysis:
+                lines.extend(format_enhanced_failure_section(eval_result.enhanced_failure_analysis))
+        except Exception:
+            pass
+
     # Memory comparison
     if memory_comparison and memory_comparison.comparison:
         lines.append("## Memory Ablation: ON vs OFF")
@@ -509,6 +527,8 @@ def _write_markdown_report(
     lines.append("| coverage_by_month.csv | Source coverage by month |")
     lines.append("| benchmark.csv | Benchmark comparison |")
     lines.append("| conviction_buckets.csv | Conviction bucket summary |")
+    lines.append("| probation_events.csv | Probation event diagnostics |")
+    lines.append("| exit_events.csv | Exit event diagnostics |")
     if memory_comparison:
         lines.append("| memory_comparison.csv | Memory ON vs OFF comparison |")
     lines.append("")
@@ -526,7 +546,7 @@ def _write_markdown_report(
 def _write_decisions_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
     """Write per-review-date decisions CSV."""
     path = os.path.join(output_dir, "decisions.csv")
-    fieldnames = ["review_date", "ticker", "action", "conviction", "conviction_bucket", "rationale"]
+    fieldnames = ["review_date", "ticker", "action", "thesis_conviction", "action_score", "conviction_bucket", "rationale"]
 
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -541,7 +561,8 @@ def _write_action_outcomes_csv(output_dir: str, eval_result: HistoricalEvalResul
     """Write per-action forward-return outcomes CSV."""
     path = os.path.join(output_dir, "action_outcomes.csv")
     fieldnames = [
-        "review_date", "ticker", "action", "conviction", "conviction_bucket",
+        "review_date", "ticker", "action", "thesis_conviction", "action_score",
+        "conviction_bucket",
         "price_at_decision", "forward_5d_pct", "forward_20d_pct", "forward_60d_pct",
     ]
 
@@ -608,7 +629,8 @@ def _write_conviction_buckets_csv(output_dir: str, eval_result: HistoricalEvalRe
 def _write_best_worst_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
     """Write best and worst decisions CSVs."""
     fieldnames = [
-        "review_date", "ticker", "action", "conviction", "conviction_bucket",
+        "review_date", "ticker", "action", "thesis_conviction", "action_score",
+        "conviction_bucket",
         "price_at_decision", "forward_5d_pct", "forward_20d_pct", "forward_60d_pct",
         "rationale",
     ]
@@ -688,6 +710,21 @@ def _write_coverage_by_month_csv(output_dir: str, eval_result: HistoricalEvalRes
             writer.writerow({"month": month, "doc_count": count})
 
     logger.info("Coverage by month CSV: %s", path)
+
+
+def _write_empirical_diagnostics_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write probation/exit event CSVs if diagnostics are available."""
+    try:
+        from empirical_diagnostics import (
+            write_probation_events_csv,
+            write_exit_events_csv,
+        )
+        diag = eval_result.deterioration_diagnostics
+        if diag:
+            write_probation_events_csv(output_dir, diag.probation_events)
+            write_exit_events_csv(output_dir, diag.exit_events)
+    except Exception as e:
+        logger.warning("Failed to write empirical diagnostics CSVs: %s", e)
 
 
 def _write_memory_comparison_csv(

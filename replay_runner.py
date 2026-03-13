@@ -37,6 +37,7 @@ def run_replay(
     transaction_cost_bps: float = 10.0,
     strict_replay: bool = False,
     relaxed_gates: bool = False,
+    exit_policy=None,
 ) -> tuple[ReplayRunResult, ShadowPortfolio, ReplayMetrics]:
     """Run a full replay over the given date range.
 
@@ -93,6 +94,7 @@ def run_replay(
             apply_trades=apply_trades,
             strict_replay=strict_replay,
             relaxed_gates=relaxed_gates,
+            exit_policy=exit_policy,
         )
         run_result.review_records.append(record)
 

@@ -309,17 +309,17 @@ class TestForwardReturns:
         outcomes = [
             ActionOutcome(
                 review_date=date(2024, 7, 1), ticker="AAPL",
-                action="initiate", conviction=70, conviction_bucket="high",
+                action="initiate", thesis_conviction=70, action_score=70.0, conviction_bucket="high",
                 rationale="", forward_5d=1.5, forward_20d=3.0, forward_60d=5.0,
             ),
             ActionOutcome(
                 review_date=date(2024, 7, 1), ticker="MSFT",
-                action="initiate", conviction=60, conviction_bucket="medium",
+                action="initiate", thesis_conviction=60, action_score=60.0, conviction_bucket="medium",
                 rationale="", forward_5d=0.5, forward_20d=2.0, forward_60d=4.0,
             ),
             ActionOutcome(
                 review_date=date(2024, 7, 1), ticker="NVDA",
-                action="hold", conviction=50, conviction_bucket="medium",
+                action="hold", thesis_conviction=50, action_score=0.0, conviction_bucket="medium",
                 rationale="", forward_5d=-0.5,
             ),
         ]
@@ -338,12 +338,12 @@ class TestForwardReturns:
         outcomes = [
             ActionOutcome(
                 review_date=date(2024, 7, 1), ticker="AAPL",
-                action="initiate", conviction=75, conviction_bucket="high",
+                action="initiate", thesis_conviction=75, action_score=75.0, conviction_bucket="high",
                 rationale="", forward_20d=5.0,
             ),
             ActionOutcome(
                 review_date=date(2024, 7, 1), ticker="MSFT",
-                action="initiate", conviction=30, conviction_bucket="low",
+                action="initiate", thesis_conviction=30, action_score=30.0, conviction_bucket="low",
                 rationale="", forward_20d=1.0,
             ),
         ]
@@ -548,7 +548,8 @@ class TestActionOutcome:
             review_date=date(2024, 7, 1),
             ticker="AAPL",
             action="initiate",
-            conviction=75.0,
+            thesis_conviction=75.0,
+            action_score=75.0,
             conviction_bucket="high",
             rationale="Strong valuation",
             price_at_decision=155.0,
@@ -567,7 +568,8 @@ class TestActionOutcome:
             review_date=date(2024, 7, 1),
             ticker="AAPL",
             action="hold",
-            conviction=50.0,
+            thesis_conviction=50.0,
+            action_score=0.0,
             conviction_bucket="medium",
             rationale="",
         )

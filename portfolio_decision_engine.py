@@ -27,6 +27,7 @@ from typing import Optional
 from models import (
     ActionType, ThesisState, ZoneState, PositionStatus,
 )
+from exit_policy import ExitPolicyConfig, ExitPolicyMode, BASELINE_POLICY
 from valuation_policy import zone_from_thesis_and_price, ZoneThresholds, DEFAULT_THRESHOLDS
 
 logger = logging.getLogger(__name__)
@@ -107,6 +108,7 @@ class HoldingSnapshot:
     novel_claim_count_7d: int = 0       # new/confirming claims in last 7 days
     confirming_claim_count_7d: int = 0
     price_change_pct_5d: Optional[float] = None   # 5-day price move %
+    prior_conviction: Optional[float] = None       # conviction at previous review (for graduated policy)
 
 
 @dataclass
@@ -142,6 +144,7 @@ class DecisionInput:
     min_initiation_weight: float = 2.0        # minimum starting weight %
     zone_thresholds: ZoneThresholds = field(default_factory=lambda: DEFAULT_THRESHOLDS)
     relaxed_gates: bool = False               # relax entry gates for historical usefulness runs
+    exit_policy: ExitPolicyConfig = field(default_factory=lambda: BASELINE_POLICY)
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +161,7 @@ class TickerDecision:
     ticker: str
     action: ActionType
     action_score: float = 0.0                   # higher = more urgent
+    thesis_conviction: float = 0.0              # raw thesis conviction (0-100), preserved for all actions
     recommendation_priority: int = PRIORITY_NEUTRAL  # deterministic tier (1=highest)
     target_weight_change: Optional[float] = None
     suggested_weight: Optional[float] = None
@@ -179,6 +183,7 @@ class TickerDecision:
             "ticker": self.ticker,
             "action": self.action.value,
             "action_score": round(self.action_score, 2),
+            "thesis_conviction": round(self.thesis_conviction, 2),
             "recommendation_priority": self.recommendation_priority,
             "target_weight_change": round(self.target_weight_change, 2) if self.target_weight_change is not None else None,
             "suggested_weight": round(self.suggested_weight, 2) if self.suggested_weight is not None else None,
@@ -281,25 +286,31 @@ IMMEDIATE_REVIEW_PRICE_MOVE_PCT = 8.0   # flag for immediate review
 # Core decision logic: per-holding evaluation
 # ---------------------------------------------------------------------------
 
-def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecision:
+def evaluate_holding(
+    holding: HoldingSnapshot,
+    review_date: date,
+    exit_policy: ExitPolicyConfig = BASELINE_POLICY,
+) -> TickerDecision:
     """Evaluate a current holding and produce a decision.
 
     This is pure deterministic logic using thesis state, conviction, valuation zone,
-    and checkpoint context.
+    and checkpoint context. The exit_policy controls thresholds for probation/exit.
 
     Decision precedence (checked in this order — first match wins):
       1. FORCED EXIT:  thesis broken (score 100)
       2. FORCED EXIT:  probation expired after max reviews (score 90)
       3. STRONG EXIT:  thesis achieved + not in BUY zone (score 85)
       4. STRONG EXIT:  FULL_EXIT valuation zone (score 80)
-      5. STRONG EXIT:  conviction critically low ≤ EXIT_CONVICTION_CEILING (score 95)
+      5. STRONG EXIT:  conviction critically low (score 95)
+        - graduated mode: also immediate exit on sharp conviction drop
       6. DEFENSIVE:    continue probation if already on probation (score 60)
-      7. DEFENSIVE:    enter probation if conviction ≤ PROBATION_CONVICTION_CEILING (score 65)
+      7. DEFENSIVE:    enter probation if conviction below threshold (score 65)
       8. DEFENSIVE:    trim on TRIM zone or conviction < TRIM + weakening (score 55-70)
       9. GROWTH:       add to winner or loser (score 40-55)
      10. NEUTRAL:      hold (score 0)
     """
     decision = TickerDecision(ticker=holding.ticker, action=ActionType.HOLD)
+    decision.thesis_conviction = holding.conviction_score
     reasons: list[ReasonCode] = []
 
     # --- Immediate review trigger (informational, does not imply execution) ---
@@ -335,7 +346,7 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
     # ---------------------------------------------------------------
     if holding.probation_flag:
         reasons.append(ReasonCode.PROBATION_ACTIVE)
-        if holding.probation_reviews_count >= PROBATION_MAX_REVIEWS:
+        if holding.probation_reviews_count >= exit_policy.probation_max_reviews:
             decision.action = ActionType.EXIT
             decision.action_score = 90.0
             decision.recommendation_priority = PRIORITY_FORCED_EXIT
@@ -375,12 +386,34 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         return decision
 
     # ---------------------------------------------------------------
-    # Priority 2 — STRONG EXIT: conviction critically low
-    # Must be checked BEFORE probation entry (conviction ≤ 25 is a subset
-    # of conviction ≤ 35, so without this ordering the weaker probation
-    # rule would swallow the stronger exit rule).
+    # Priority 2 — STRONG EXIT: graduated policy — sharp conviction drop
+    # If conviction dropped by more than sharp_drop_threshold in one
+    # review period, exit immediately regardless of absolute level.
     # ---------------------------------------------------------------
-    if holding.conviction_score <= EXIT_CONVICTION_CEILING:
+    if exit_policy.mode == ExitPolicyMode.GRADUATED and holding.prior_conviction is not None:
+        drop = holding.prior_conviction - holding.conviction_score
+        if drop >= exit_policy.sharp_drop_threshold:
+            decision.action = ActionType.EXIT
+            decision.action_score = 92.0
+            decision.recommendation_priority = PRIORITY_STRONG_EXIT
+            decision.target_weight_change = -holding.current_weight
+            decision.suggested_weight = 0.0
+            reasons.append(ReasonCode.CONVICTION_LOW)
+            decision.rationale = (
+                f"Sharp conviction drop {drop:.0f}pts "
+                f"({holding.prior_conviction:.0f} -> {holding.conviction_score:.0f}) "
+                f"— graduated policy immediate exit"
+            )
+            decision.reason_codes = reasons
+            return decision
+
+    # ---------------------------------------------------------------
+    # Priority 2 — STRONG EXIT: conviction critically low
+    # Must be checked BEFORE probation entry (conviction ≤ exit_ceiling is
+    # a subset of conviction ≤ probation_ceiling, so without this ordering
+    # the weaker probation rule would swallow the stronger exit rule).
+    # ---------------------------------------------------------------
+    if holding.conviction_score <= exit_policy.exit_conviction_ceiling:
         decision.action = ActionType.EXIT
         decision.action_score = 95.0
         decision.recommendation_priority = PRIORITY_STRONG_EXIT
@@ -401,20 +434,20 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
         decision.action_score = 60.0
         decision.recommendation_priority = PRIORITY_DEFENSIVE
         decision.required_followup.append("Mandatory next-week review — probation active")
-        decision.rationale = f"On probation (review {holding.probation_reviews_count + 1}/{PROBATION_MAX_REVIEWS}) — no adds allowed"
+        decision.rationale = f"On probation (review {holding.probation_reviews_count + 1}/{exit_policy.probation_max_reviews}) — no adds allowed"
         decision.reason_codes = reasons
         return decision
 
     # ---------------------------------------------------------------
     # Priority 3 — DEFENSIVE: enter probation (conviction ≤ 35, not yet on probation)
     # ---------------------------------------------------------------
-    if holding.conviction_score <= PROBATION_CONVICTION_CEILING:
+    if holding.conviction_score <= exit_policy.probation_conviction_ceiling:
         decision.action = ActionType.PROBATION
         decision.action_score = 65.0
         decision.recommendation_priority = PRIORITY_DEFENSIVE
         decision.required_followup.append("Enter probation — mandatory next-week review")
         reasons.append(ReasonCode.CONVICTION_LOW)
-        decision.rationale = f"Conviction {holding.conviction_score:.0f} below probation threshold {PROBATION_CONVICTION_CEILING:.0f}"
+        decision.rationale = f"Conviction {holding.conviction_score:.0f} below probation threshold {exit_policy.probation_conviction_ceiling:.0f}"
         decision.reason_codes = reasons
         return decision
 
@@ -620,6 +653,7 @@ def evaluate_candidate(
     When relaxed_gates=True, valuation/checkpoint gates are non-blocking.
     """
     decision = TickerDecision(ticker=candidate.ticker, action=ActionType.NO_ACTION)
+    decision.thesis_conviction = candidate.conviction_score or 0.0
     decision.recommendation_priority = PRIORITY_NEUTRAL
 
     # Cooldown check — blocks initiation even if all other gates pass
@@ -708,7 +742,7 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     # Step 1: Evaluate holdings
     holding_decisions: list[TickerDecision] = []
     for h in inputs.holdings:
-        d = evaluate_holding(h, inputs.review_date)
+        d = evaluate_holding(h, inputs.review_date, exit_policy=inputs.exit_policy)
         holding_decisions.append(d)
 
     # Step 2: Find weakest holding (lowest conviction among active, non-probation)
