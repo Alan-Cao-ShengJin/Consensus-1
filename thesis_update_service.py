@@ -393,7 +393,19 @@ def update_thesis_from_claims(
     else:
         llm_result = _build_stub_response(claims, thesis)
 
-    # --- Compute conviction deltas (code decides, not LLM) ---
+    # --- Event clustering: assign cluster positions for duplicate-event downweighting ---
+    cluster_positions: dict[int, int] = {}
+    try:
+        from event_clustering import assign_event_clusters
+        cluster_positions = assign_event_clusters(
+            session, claim_ids, thesis.company_ticker,
+        )
+    except Exception as e:
+        logger.warning("Event clustering failed (continuing without): %s", e)
+
+    # --- Compute evidence scores and conviction deltas (code decides, not LLM) ---
+    from evidence_scoring import score_evidence
+
     deltas: list[float] = []
     assessments: list[dict] = []
     for claim in claims:
@@ -401,16 +413,23 @@ def update_thesis_from_claims(
         impact = assessment.impact if assessment else "neutral"
         materiality = assessment.materiality if assessment else 0.5
 
-        stw = _source_tier_weight(claim)
+        # Full evidence scoring: source tier + freshness + novelty + cluster penalty
+        ev_score = score_evidence(
+            claim_id=claim.id,
+            source_tier=claim.document.source_tier if claim.document else SourceTier.TIER_2,
+            novelty_type=claim.novelty_type,
+            published_at=claim.published_at,
+            cluster_position=cluster_positions.get(claim.id, 1),
+        )
+
         confidence = claim.confidence or 0.7
-        novelty = claim.novelty_type.value
 
         delta = compute_claim_delta(
             impact=impact,
             materiality=materiality,
-            novelty_type=novelty,
+            novelty_type=claim.novelty_type.value,
             confidence=confidence,
-            source_tier_weight=stw,
+            source_tier_weight=ev_score.evidence_weight,
         )
         deltas.append(delta)
         assessments.append({
@@ -418,6 +437,9 @@ def update_thesis_from_claims(
             "impact": impact,
             "materiality": materiality,
             "delta": round(delta, 4),
+            "evidence_weight": round(ev_score.evidence_weight, 4),
+            "cluster_position": cluster_positions.get(claim.id, 1),
+            "freshness": round(ev_score.freshness_factor, 4),
         })
 
         # Map impact to link_type for the DB

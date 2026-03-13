@@ -212,6 +212,10 @@ class Claim(Base):
     is_structural: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_ephemeral: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    # Provenance hardening (Step 13)
+    source_excerpt: Mapped[Optional[str]] = mapped_column(Text)        # raw text span from document
+    event_cluster_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)  # event dedup cluster
+
     document = relationship("Document", back_populates="claims")
 
 

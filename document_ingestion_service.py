@@ -118,6 +118,7 @@ def _extract_and_link_claims(
             published_at=item.published_at or doc.published_at,
             is_structural=item.is_structural,
             is_ephemeral=item.is_ephemeral,
+            source_excerpt=item.source_excerpt,
         )
         session.add(claim)
         session.flush()

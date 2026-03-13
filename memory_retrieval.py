@@ -1,12 +1,23 @@
 """Temporal memory retrieval: build a compact memory snapshot for thesis updates.
 
-Retrieval priority:
-  1. Thesis-linked claims (directly linked via thesis_claim_links)
-  2. Same-company claims (via claim_company_links, excluding already-fetched)
-  3. Same-theme claims (via claim_theme_links + thesis_theme_links, excluding above)
-  4. Upcoming checkpoint context
+Retrieval policy (v1 contract):
+  Priority 1: Thesis-linked claims (via thesis_claim_links)        — limit 10
+  Priority 2: Same-company claims (via claim_company_links)        — limit 5
+  Priority 3: Same-theme claims (via claim_theme_links)            — limit 5
+  Priority 4: Upcoming checkpoints                                 — limit 3
+  Also: State history                                              — limit 5
 
-All queries are bounded (top-N) and deterministic (ordered by published_at DESC).
+  Total memory budget: ≤28 items per thesis update (hard ceiling).
+
+Determinism guarantee:
+  All queries use ORDER BY published_at DESC NULLS LAST, id DESC for
+  tie-breaking. For the same DB state and thesis_id, retrieve_memory()
+  always returns identical results.
+
+Exclusion rules:
+  - Claims in the "new batch" (exclude_claim_ids) are never retrieved
+  - Claims already fetched at a higher priority level are excluded from lower levels
+  - This prevents double-counting in the memory snapshot
 """
 from __future__ import annotations
 
@@ -85,6 +96,23 @@ class MemorySnapshot:
     @property
     def total_prior_claims(self) -> int:
         return len(self.thesis_claims) + len(self.company_claims) + len(self.theme_claims)
+
+    def retrieval_policy_summary(self) -> dict:
+        """Return a machine-readable summary of what was retrieved and why.
+
+        Useful for console/audit display to explain why certain memory was pulled in.
+        """
+        return {
+            "thesis_id": self.thesis_id,
+            "company_ticker": self.company_ticker,
+            "total_items": self.total_prior_claims + len(self.state_history) + len(self.checkpoints),
+            "thesis_claims_count": len(self.thesis_claims),
+            "company_claims_count": len(self.company_claims),
+            "theme_claims_count": len(self.theme_claims),
+            "state_history_count": len(self.state_history),
+            "checkpoints_count": len(self.checkpoints),
+            "policy": "priority: thesis_linked > company > theme; ordered by published_at DESC, id DESC",
+        }
 
     def to_prompt_text(self) -> str:
         """Format the snapshot as structured text for inclusion in the LLM prompt."""
@@ -242,7 +270,7 @@ def _fetch_state_history(
     rows = session.scalars(
         select(ThesisStateHistory)
         .where(ThesisStateHistory.thesis_id == thesis_id)
-        .order_by(ThesisStateHistory.created_at.desc())
+        .order_by(ThesisStateHistory.created_at.desc(), ThesisStateHistory.id.desc())
         .limit(limit)
     ).all()
     return [
@@ -271,7 +299,7 @@ def _fetch_thesis_claims(
     )
     if exclude:
         stmt = stmt.where(Claim.id.notin_(exclude))
-    stmt = stmt.order_by(Claim.published_at.desc().nulls_last()).limit(limit)
+    stmt = stmt.order_by(Claim.published_at.desc().nulls_last(), Claim.id.desc()).limit(limit)
 
     rows = session.execute(stmt).all()
     claims = []
@@ -299,7 +327,7 @@ def _fetch_company_claims(
     )
     if exclude:
         stmt = stmt.where(Claim.id.notin_(exclude))
-    stmt = stmt.order_by(Claim.published_at.desc().nulls_last()).limit(limit)
+    stmt = stmt.order_by(Claim.published_at.desc().nulls_last(), Claim.id.desc()).limit(limit)
 
     rows = session.execute(stmt).all()
     claims = []
@@ -336,7 +364,7 @@ def _fetch_theme_claims(
         stmt = stmt.where(Claim.id.notin_(exclude))
     stmt = (
         stmt.group_by(Claim.id, Document.source_tier)
-        .order_by(Claim.published_at.desc().nulls_last())
+        .order_by(Claim.published_at.desc().nulls_last(), Claim.id.desc())
         .limit(limit)
     )
 
@@ -353,7 +381,7 @@ def _fetch_checkpoints(
     stmt = (
         select(Checkpoint)
         .where(Checkpoint.linked_company_ticker == company_ticker)
-        .order_by(Checkpoint.date_expected.asc().nulls_last())
+        .order_by(Checkpoint.date_expected.asc().nulls_last(), Checkpoint.id.asc())
         .limit(limit)
     )
     rows = session.scalars(stmt).all()

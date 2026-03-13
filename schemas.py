@@ -21,3 +21,4 @@ class ExtractedClaim(BaseModel):
     affected_tickers: List[str] = []
     themes: List[str] = []
     thesis_link_type: Optional[str] = None  # supports / weakens / context
+    source_excerpt: Optional[str] = None   # raw text span from source document
