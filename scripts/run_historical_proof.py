@@ -1,6 +1,18 @@
 """Historical proof run CLI: backfill, regenerate, evaluate, and report.
 
 Usage:
+    # Default narrow-universe usefulness run (15 names, stub extractor)
+    python scripts/run_historical_proof.py --usefulness-run
+
+    # Usefulness run with real LLM extraction
+    python scripts/run_historical_proof.py --usefulness-run --use-llm
+
+    # Usefulness run with memory ablation
+    python scripts/run_historical_proof.py --usefulness-run --memory-ablation
+
+    # Custom tickers usefulness run
+    python scripts/run_historical_proof.py --usefulness-run --tickers AAPL,MSFT,NVDA
+
     # Full proof run (backfill + regenerate + evaluate + report)
     python scripts/run_historical_proof.py --start 2024-06-01 --end 2025-01-01
 
@@ -47,13 +59,15 @@ def main():
     parser.add_argument("--cadence", type=int, default=7, help="Review cadence in days")
     parser.add_argument("--initial-cash", type=float, default=1_000_000, help="Initial portfolio cash")
     parser.add_argument("--tickers", type=str, default=None, help="Comma-separated ticker list")
-    parser.add_argument("--run-id", type=str, default="historical_proof", help="Run identifier")
+    parser.add_argument("--run-id", type=str, default=None, help="Run identifier (auto-generated if omitted)")
     parser.add_argument("--output-dir", type=str, default="historical_proof_runs", help="Output directory")
     parser.add_argument("--benchmark", type=str, default="SPY", help="Benchmark ticker")
     parser.add_argument("--strict", action="store_true", help="Use strict replay mode")
     parser.add_argument("--use-llm", action="store_true", help="Use LLM for claim extraction")
 
     # Mode flags
+    parser.add_argument("--usefulness-run", action="store_true",
+                        help="Bounded real usefulness test (narrow proof universe, full diagnostics)")
     parser.add_argument("--backfill-only", action="store_true", help="Only run backfill (no regeneration)")
     parser.add_argument("--evaluate-only", action="store_true", help="Evaluate existing regeneration DB")
     parser.add_argument("--memory-ablation", action="store_true", help="Run memory ON vs OFF comparison")
@@ -73,7 +87,12 @@ def main():
 
     tickers = args.tickers.split(",") if args.tickers else []
 
-    if args.memory_ablation:
+    if args.usefulness_run:
+        if args.memory_ablation:
+            _run_usefulness_ablation(args, tickers, backfill_start, backfill_end, eval_start)
+        else:
+            _run_usefulness(args, tickers, backfill_start, backfill_end, eval_start)
+    elif args.memory_ablation:
         _run_memory_ablation(args, tickers, backfill_start, backfill_end, eval_start)
     elif args.backfill_only:
         _run_backfill_only(args, tickers, backfill_start, backfill_end)
@@ -84,8 +103,9 @@ def main():
 
 
 def _build_config(args, tickers, backfill_start, backfill_end, eval_start, mode=None) -> HistoricalEvalConfig:
+    run_id = args.run_id or ("usefulness_run" if mode == HistoricalRunMode.USEFULNESS_RUN else "historical_proof")
     return HistoricalEvalConfig(
-        run_id=args.run_id,
+        run_id=run_id,
         run_label=f"Historical proof: {backfill_start} to {backfill_end}",
         mode=mode or HistoricalRunMode.REGENERATE,
         tickers=tickers,
@@ -104,6 +124,121 @@ def _build_config(args, tickers, backfill_start, backfill_end, eval_start, mode=
         benchmark_ticker=args.benchmark,
         output_dir=args.output_dir,
     )
+
+
+def _run_usefulness(args, tickers, backfill_start, backfill_end, eval_start):
+    """Run bounded real usefulness test with full diagnostics."""
+    config = _build_config(args, tickers, backfill_start, backfill_end, eval_start,
+                           mode=HistoricalRunMode.USEFULNESS_RUN)
+
+    # Validate and print warnings prominently
+    validation_warnings = config.validate_for_usefulness_run()
+    if validation_warnings:
+        print("\n" + "!" * 60)
+        print("USEFULNESS RUN WARNINGS:")
+        for w in validation_warnings:
+            print(f"  {w}")
+        print("!" * 60 + "\n")
+
+    from proof_universe import get_proof_universe_rationale
+    print(f"Universe: {len(config.effective_tickers())} tickers")
+    print(f"Rationale: {get_proof_universe_rationale()}")
+    print(f"Extractor: {config.extractor_mode_label()}")
+    print()
+
+    from historical_backfill import run_backfill
+    from historical_regeneration import run_regeneration, open_regeneration_db, close_regeneration_db
+    from historical_evaluation import run_historical_evaluation
+    from historical_report import generate_proof_pack
+
+    # Step 1: Backfill
+    print("Step 1/4: Backfilling historical data...")
+    with get_session() as session:
+        backfill_result = run_backfill(session, config)
+
+    print(f"  Backfill: {backfill_result.total_errors} errors, {backfill_result.total_warnings} warnings")
+
+    # Step 2: Regenerate
+    print("Step 2/4: Regenerating thesis state chronologically...")
+    with get_session() as source_session:
+        regen_result = run_regeneration(source_session, config)
+
+    print(f"  Regeneration: {regen_result.total_documents} docs, "
+          f"{regen_result.total_thesis_updates} thesis updates, "
+          f"{regen_result.total_state_changes} state changes")
+
+    # Step 3: Evaluate
+    print("Step 3/4: Running historical evaluation with usefulness diagnostics...")
+    regen_session = open_regeneration_db(regen_result.db_path)
+    try:
+        eval_result = run_historical_evaluation(regen_session, config)
+    finally:
+        close_regeneration_db(regen_session)
+
+    # Step 4: Report
+    print("Step 4/4: Generating proof pack with usefulness tables...")
+    output_dir = generate_proof_pack(config, regen_result, eval_result)
+
+    _print_usefulness_summary(config, regen_result, eval_result, output_dir)
+
+
+def _run_usefulness_ablation(args, tickers, backfill_start, backfill_end, eval_start):
+    """Run usefulness test with memory ablation."""
+    from historical_eval_config import HistoricalEvalConfig
+    from historical_backfill import run_backfill
+    from historical_evaluation import run_historical_memory_ablation
+    from historical_report import generate_proof_pack
+
+    config_on, config_off = HistoricalEvalConfig.memory_ablation_pair(
+        tickers=tickers or None,
+        backfill_start=backfill_start,
+        backfill_end=backfill_end,
+        eval_start=eval_start,
+        eval_end=backfill_end,
+        cadence_days=args.cadence,
+    )
+    config_on.output_dir = args.output_dir
+    config_off.output_dir = args.output_dir
+    config_on.use_llm = args.use_llm
+    config_off.use_llm = args.use_llm
+    # Override mode to usefulness run
+    config_on.mode = HistoricalRunMode.USEFULNESS_RUN
+    config_off.mode = HistoricalRunMode.USEFULNESS_RUN
+
+    # Validate
+    validation_warnings = config_on.validate_for_usefulness_run()
+    if validation_warnings:
+        print("\n" + "!" * 60)
+        print("USEFULNESS RUN WARNINGS:")
+        for w in validation_warnings:
+            print(f"  {w}")
+        print("!" * 60 + "\n")
+
+    # Backfill once
+    print("Step 1/3: Backfilling historical data...")
+    with get_session() as session:
+        run_backfill(session, config_on)
+
+    # Run ablation
+    print("Step 2/3: Running memory ON vs OFF regeneration + evaluation...")
+    with get_session() as source_session:
+        comparison = run_historical_memory_ablation(source_session, config_on, config_off)
+
+    # Report
+    print("Step 3/3: Generating proof pack...")
+    ablation_config = HistoricalEvalConfig(
+        run_id="usefulness_ablation",
+        output_dir=args.output_dir,
+        mode=HistoricalRunMode.USEFULNESS_RUN,
+        use_llm=args.use_llm,
+    )
+    output_dir = generate_proof_pack(
+        ablation_config, None,
+        comparison.eval_on,
+        memory_comparison=comparison,
+    )
+
+    _print_ablation_summary(comparison, output_dir)
 
 
 def _run_backfill_only(args, tickers, backfill_start, backfill_end):
@@ -130,7 +265,7 @@ def _run_full_proof(args, tickers, backfill_start, backfill_end, eval_start):
     config = _build_config(args, tickers, backfill_start, backfill_end, eval_start)
 
     from historical_backfill import run_backfill
-    from historical_regeneration import run_regeneration, open_regeneration_db
+    from historical_regeneration import run_regeneration, open_regeneration_db, close_regeneration_db
     from historical_evaluation import run_historical_evaluation
     from historical_report import generate_proof_pack
 
@@ -156,7 +291,7 @@ def _run_full_proof(args, tickers, backfill_start, backfill_end, eval_start):
     try:
         eval_result = run_historical_evaluation(regen_session, config)
     finally:
-        regen_session.close()
+        close_regeneration_db(regen_session)
 
     # Step 4: Report
     print("Step 4/4: Generating proof pack...")
@@ -173,7 +308,7 @@ def _run_evaluate_only(args, tickers, backfill_start, backfill_end, eval_start):
         print("Error: --evaluate-only requires --regen-db path")
         sys.exit(1)
 
-    from historical_regeneration import open_regeneration_db
+    from historical_regeneration import open_regeneration_db, close_regeneration_db
     from historical_evaluation import run_historical_evaluation
     from historical_report import generate_proof_pack
 
@@ -181,7 +316,7 @@ def _run_evaluate_only(args, tickers, backfill_start, backfill_end, eval_start):
     try:
         eval_result = run_historical_evaluation(regen_session, config)
     finally:
-        regen_session.close()
+        close_regeneration_db(regen_session)
 
     output_dir = generate_proof_pack(config, None, eval_result)
     _print_eval_summary(eval_result, output_dir)
@@ -259,6 +394,32 @@ def _print_summary(config, regen_result, eval_result, output_dir):
 
     print(f"\n  Output: {output_dir}")
     print("=" * 60)
+
+
+def _print_usefulness_summary(config, regen_result, eval_result, output_dir):
+    """Print usefulness-specific summary with degraded flags and failure highlights."""
+    _print_summary(config, regen_result, eval_result, output_dir)
+
+    # Additional usefulness-specific info
+    if eval_result:
+        if eval_result.best_decisions:
+            print("\n  Best decision:")
+            bd = eval_result.best_decisions[0]
+            f20 = f"{bd['forward_20d_pct']:+.2f}%" if bd.get('forward_20d_pct') is not None else "N/A"
+            print(f"    {bd['review_date']} {bd['ticker']} {bd['action']} → 20D: {f20}")
+
+        if eval_result.worst_decisions:
+            print("  Worst decision:")
+            wd = eval_result.worst_decisions[0]
+            f20 = f"{wd['forward_20d_pct']:+.2f}%" if wd.get('forward_20d_pct') is not None else "N/A"
+            print(f"    {wd['review_date']} {wd['ticker']} {wd['action']} → 20D: {f20}")
+
+        if eval_result.failure_analysis and eval_result.failure_analysis.degraded_flags:
+            print("\n  Degraded flags:")
+            for flag in eval_result.failure_analysis.degraded_flags:
+                print(f"    - {flag}")
+
+    print()
 
 
 def _print_eval_summary(eval_result, output_dir):

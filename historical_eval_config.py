@@ -23,6 +23,7 @@ class HistoricalRunMode:
     REGENERATE = "regenerate"                 # backfill + thesis regeneration + evaluation
     EVALUATE_ONLY = "evaluate_only"           # evaluate on existing regenerated state
     MEMORY_ABLATION = "memory_ablation"       # run regeneration twice: memory ON vs OFF
+    USEFULNESS_RUN = "usefulness_run"         # bounded real usefulness test with diagnostics
 
 
 @dataclass
@@ -92,11 +93,45 @@ class HistoricalEvalConfig:
     seed: int = 42
 
     def effective_tickers(self) -> list[str]:
-        """Return the ticker list to use, falling back to full universe."""
+        """Return the ticker list to use.
+
+        Falls back to proof universe for usefulness runs, full universe otherwise.
+        """
         if self.tickers:
             return list(self.tickers)
+        if self.mode == HistoricalRunMode.USEFULNESS_RUN:
+            from proof_universe import PROOF_UNIVERSE_TICKERS
+            return list(PROOF_UNIVERSE_TICKERS)
         from source_registry import UNIVERSE_TICKERS
         return list(UNIVERSE_TICKERS)
+
+    def is_usefulness_run(self) -> bool:
+        """Whether this is a real usefulness testing run."""
+        return self.mode == HistoricalRunMode.USEFULNESS_RUN
+
+    def extractor_mode_label(self) -> str:
+        """Human-readable label for the extraction mode."""
+        return "real_llm" if self.use_llm else "stub_heuristic"
+
+    def validate_for_usefulness_run(self) -> list[str]:
+        """Check config for usefulness run readiness. Returns list of warnings."""
+        warnings = []
+        if not self.use_llm:
+            warnings.append(
+                "DEGRADED: Running usefulness test with stub extractor. "
+                "Results reflect heuristic claim extraction, not real LLM analysis. "
+                "Pass --use-llm for real extraction."
+            )
+        if not self.backfill_sec_filings:
+            warnings.append("SEC filings disabled — primary evidence source missing")
+        if not self.backfill_prices:
+            warnings.append("Price backfill disabled — forward returns will be unavailable")
+        tickers = self.effective_tickers()
+        if len(tickers) > 25:
+            warnings.append(
+                f"Universe has {len(tickers)} tickers — consider narrowing for inspectable results"
+            )
+        return warnings
 
     def conviction_bucket_for(self, score: float) -> str:
         """Return the bucket label for a conviction score."""
@@ -122,6 +157,7 @@ class HistoricalEvalConfig:
             "backfill_pr_rss": self.backfill_pr_rss,
             "rebuild_from_scratch": self.rebuild_from_scratch,
             "use_llm": self.use_llm,
+            "extractor_mode": self.extractor_mode_label(),
             "initial_cash": self.initial_cash,
             "transaction_cost_bps": self.transaction_cost_bps,
             "strict_replay": self.strict_replay,
@@ -165,3 +201,37 @@ class HistoricalEvalConfig:
             **base,
         )
         return config_on, config_off
+
+    @staticmethod
+    def usefulness_run_config(
+        *,
+        tickers: list[str] | None = None,
+        backfill_start: date = date(2024, 6, 1),
+        backfill_end: date = date(2025, 1, 1),
+        eval_start: date | None = None,
+        cadence_days: int = 7,
+        use_llm: bool = False,
+        output_dir: str = "historical_proof_runs",
+        run_id: str = "usefulness_run",
+    ) -> HistoricalEvalConfig:
+        """Create config for a bounded real usefulness test.
+
+        Uses the narrow proof universe by default (15 names).
+        """
+        import datetime as dt
+        if eval_start is None:
+            eval_start = backfill_start + dt.timedelta(days=60)
+
+        return HistoricalEvalConfig(
+            run_id=run_id,
+            run_label=f"Usefulness run: {backfill_start} to {backfill_end}",
+            mode=HistoricalRunMode.USEFULNESS_RUN,
+            tickers=tickers or [],
+            backfill_start=backfill_start,
+            backfill_end=backfill_end,
+            eval_start=eval_start,
+            eval_end=backfill_end,
+            cadence_days=cadence_days,
+            use_llm=use_llm,
+            output_dir=output_dir,
+        )

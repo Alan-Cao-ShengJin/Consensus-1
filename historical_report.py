@@ -1,10 +1,16 @@
 """Historical proof-pack report generation.
 
 Produces a structured artifact pack from a historical evaluation run:
+- manifest.json: Run manifest with metadata and degraded flags
 - summary.json: Machine-readable full report
 - report.md: Human-readable markdown report
 - decisions.csv: Per-review-date decisions
 - action_outcomes.csv: Per-action forward returns
+- best_decisions.csv: Top N decisions by forward return
+- worst_decisions.csv: Bottom N decisions by forward return
+- per_name_summary.csv: Per-ticker usefulness summary
+- coverage_diagnostics.csv: Source coverage by ticker
+- coverage_by_month.csv: Source coverage by month
 - benchmark.csv: Benchmark comparison
 - conviction_buckets.csv: Conviction bucket summary
 - memory_comparison.csv: Memory ON vs OFF (if ablation run)
@@ -12,9 +18,11 @@ Produces a structured artifact pack from a historical evaluation run:
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import logging
 import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -42,26 +50,122 @@ def generate_proof_pack(
     output_dir = os.path.join(config.output_dir, config.run_id)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    # 1. JSON summary
+    # 1. Run manifest
+    _write_manifest(output_dir, config, regen_result, eval_result)
+
+    # 2. JSON summary
     _write_json_summary(output_dir, config, regen_result, eval_result, memory_comparison)
 
-    # 2. Markdown report
+    # 3. Markdown report
     _write_markdown_report(output_dir, config, regen_result, eval_result, memory_comparison)
 
-    # 3. CSV tables
+    # 4. CSV tables
     if eval_result:
         _write_decisions_csv(output_dir, eval_result)
         _write_action_outcomes_csv(output_dir, eval_result)
         _write_benchmark_csv(output_dir, eval_result)
         _write_conviction_buckets_csv(output_dir, eval_result)
+        _write_best_worst_csv(output_dir, eval_result)
+        _write_per_name_csv(output_dir, eval_result)
+        _write_coverage_diagnostics_csv(output_dir, eval_result)
+        _write_coverage_by_month_csv(output_dir, eval_result)
 
-    # 4. Memory comparison CSV
+    # 5. Memory comparison CSV
     if memory_comparison:
         _write_memory_comparison_csv(output_dir, memory_comparison)
 
     logger.info("Proof pack written to %s", output_dir)
     return output_dir
 
+
+# ---------------------------------------------------------------------------
+# Manifest
+# ---------------------------------------------------------------------------
+
+def _write_manifest(
+    output_dir: str,
+    config: HistoricalEvalConfig,
+    regen_result: Optional[RegenerationResult],
+    eval_result: Optional[HistoricalEvalResult],
+) -> None:
+    """Write run manifest with metadata for empirical trust."""
+    # Try to get git hash
+    code_hash = _get_git_hash()
+
+    # Collect degraded flags
+    degraded_flags = []
+    if not config.use_llm:
+        degraded_flags.append("stub_extractor")
+    if not config.backfill_sec_filings:
+        degraded_flags.append("no_sec_filings")
+    if not config.backfill_news_rss:
+        degraded_flags.append("no_news_rss")
+    if not config.backfill_pr_rss:
+        degraded_flags.append("no_pr_rss")
+    if not config.backfill_prices:
+        degraded_flags.append("no_price_data")
+
+    warnings = []
+    if regen_result and regen_result.warnings:
+        warnings.extend(regen_result.warnings)
+    if eval_result and eval_result.warnings:
+        warnings.extend(eval_result.warnings)
+
+    manifest = {
+        "manifest_version": "1.0",
+        "run_id": config.run_id,
+        "generated_at": datetime.utcnow().isoformat(),
+        "code_hash": code_hash,
+        "mode": config.mode,
+        "universe": config.effective_tickers(),
+        "universe_size": len(config.effective_tickers()),
+        "date_range": {
+            "backfill_start": config.backfill_start.isoformat(),
+            "backfill_end": config.backfill_end.isoformat(),
+            "eval_start": config.eval_start.isoformat(),
+            "eval_end": config.eval_end.isoformat(),
+        },
+        "extractor_mode": config.extractor_mode_label(),
+        "source_toggles": {
+            "prices": config.backfill_prices,
+            "sec_filings": config.backfill_sec_filings,
+            "news_rss": config.backfill_news_rss,
+            "pr_rss": config.backfill_pr_rss,
+        },
+        "benchmark_ticker": config.benchmark_ticker,
+        "forward_return_days": config.forward_return_days,
+        "cadence_days": config.cadence_days,
+        "memory_enabled": config.memory_enabled,
+        "strict_replay": config.strict_replay,
+        "seed": config.seed,
+        "degraded_flags": degraded_flags,
+        "warnings_count": len(warnings),
+        "warnings": warnings[:20],  # cap at 20
+    }
+
+    path = os.path.join(output_dir, "manifest.json")
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=2, default=str)
+    logger.info("Manifest: %s", path)
+
+
+def _get_git_hash() -> str:
+    """Try to get current git commit hash."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# JSON summary
+# ---------------------------------------------------------------------------
 
 def _write_json_summary(
     output_dir: str,
@@ -87,6 +191,10 @@ def _write_json_summary(
     logger.info("JSON summary: %s", path)
 
 
+# ---------------------------------------------------------------------------
+# Markdown report
+# ---------------------------------------------------------------------------
+
 def _write_markdown_report(
     output_dir: str,
     config: HistoricalEvalConfig,
@@ -109,9 +217,19 @@ def _write_markdown_report(
     lines.append(f"- **Cadence**: {config.cadence_days} days")
     lines.append(f"- **Initial cash**: ${config.initial_cash:,.0f}")
     lines.append(f"- **Universe**: {len(config.effective_tickers())} tickers")
-    lines.append(f"- **LLM mode**: {'real' if config.use_llm else 'stub'}")
+    lines.append(f"- **Extractor**: {config.extractor_mode_label()}")
     lines.append(f"- **Memory**: {'enabled' if config.memory_enabled else 'disabled'}")
+    lines.append(f"- **Benchmark**: {config.benchmark_ticker}")
     lines.append("")
+
+    # Degraded warnings (prominent at top)
+    if config.is_usefulness_run():
+        validation_warnings = config.validate_for_usefulness_run()
+        if validation_warnings:
+            lines.append("## Degraded Run Warnings")
+            for w in validation_warnings:
+                lines.append(f"- **{w}**")
+            lines.append("")
 
     # Regeneration summary
     if regen_result:
@@ -191,6 +309,67 @@ def _write_markdown_report(
                 lines.append(f"| {b.bucket} | {b.action_count} | {conv} | {f5} | {f20} | {f60} |")
             lines.append("")
 
+        # Best decisions
+        if eval_result.best_decisions:
+            lines.append("## Best Decisions (by 20D forward return)")
+            lines.append("| Date | Ticker | Action | Conviction | 5D | 20D | 60D |")
+            lines.append("|------|--------|--------|------------|-----|------|------|")
+            for d in eval_result.best_decisions[:10]:
+                f5 = f"{d['forward_5d_pct']:+.2f}%" if d.get('forward_5d_pct') is not None else "—"
+                f20 = f"{d['forward_20d_pct']:+.2f}%" if d.get('forward_20d_pct') is not None else "—"
+                f60 = f"{d['forward_60d_pct']:+.2f}%" if d.get('forward_60d_pct') is not None else "—"
+                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {d['conviction']} | {f5} | {f20} | {f60} |")
+            lines.append("")
+
+        # Worst decisions
+        if eval_result.worst_decisions:
+            lines.append("## Worst Decisions (by 20D forward return)")
+            lines.append("| Date | Ticker | Action | Conviction | 5D | 20D | 60D |")
+            lines.append("|------|--------|--------|------------|-----|------|------|")
+            for d in eval_result.worst_decisions[:10]:
+                f5 = f"{d['forward_5d_pct']:+.2f}%" if d.get('forward_5d_pct') is not None else "—"
+                f20 = f"{d['forward_20d_pct']:+.2f}%" if d.get('forward_20d_pct') is not None else "—"
+                f60 = f"{d['forward_60d_pct']:+.2f}%" if d.get('forward_60d_pct') is not None else "—"
+                lines.append(f"| {d['review_date']} | {d['ticker']} | {d['action']} | {d['conviction']} | {f5} | {f20} | {f60} |")
+            lines.append("")
+
+        # Per-name summary
+        if eval_result.per_name_summary:
+            lines.append("## Per-Name Usefulness Summary")
+            lines.append("| Ticker | Actions | Docs | Claims | Avg 5D | Avg 20D | Avg 60D | Price Cov |")
+            lines.append("|--------|---------|------|--------|--------|---------|---------|-----------|")
+            for p in eval_result.per_name_summary:
+                f5 = f"{p.avg_forward_5d:+.2f}%" if p.avg_forward_5d is not None else "—"
+                f20 = f"{p.avg_forward_20d:+.2f}%" if p.avg_forward_20d is not None else "—"
+                f60 = f"{p.avg_forward_60d:+.2f}%" if p.avg_forward_60d is not None else "—"
+                lines.append(f"| {p.ticker} | {p.action_count} | {p.doc_count} | {p.claim_count} | {f5} | {f20} | {f60} | {p.price_coverage_pct:.0f}% |")
+            lines.append("")
+
+        # Coverage diagnostics summary
+        if eval_result.coverage_diagnostics:
+            cd = eval_result.coverage_diagnostics
+            lines.append("## Source Coverage Diagnostics")
+            lines.append(f"- **Extractor mode**: {cd.extractor_mode}")
+            lines.append(f"- **Benchmark available**: {'yes' if cd.benchmark_available else 'no'}")
+            lines.append(f"- **Tickers with prices**: {cd.tickers_with_prices}")
+            lines.append(f"- **Tickers without prices**: {cd.tickers_without_prices}")
+            lines.append(f"- **Total price rows**: {cd.total_price_rows}")
+            lines.append("")
+
+            if cd.docs_by_source_type:
+                lines.append("### Documents by Source Type")
+                lines.append("| Source Type | Count |")
+                lines.append("|------------|-------|")
+                for st, count in sorted(cd.docs_by_source_type.items()):
+                    lines.append(f"| {st} | {count} |")
+                lines.append("")
+
+            if cd.source_gaps:
+                lines.append("### Source Gaps")
+                for gap in cd.source_gaps[:20]:
+                    lines.append(f"- **{gap['ticker']}**: {gap['detail']}")
+                lines.append("")
+
         # Diagnostics
         if eval_result.diagnostics:
             d = eval_result.diagnostics
@@ -208,6 +387,57 @@ def _write_markdown_report(
                 for action, count in sorted(d.action_counts.items(), key=lambda x: -x[1]):
                     pct = d.action_pcts.get(action, 0)
                     lines.append(f"| {action} | {count} | {pct:.1f}% |")
+                lines.append("")
+
+    # Failure analysis
+    if eval_result and eval_result.failure_analysis:
+        fa = eval_result.failure_analysis
+        has_failures = (
+            fa.degraded_flags or fa.sparse_coverage_tickers or
+            fa.negative_return_actions or fa.non_differentiating_buckets or
+            fa.repeated_bad_recommendations or fa.low_evidence_periods
+        )
+        if has_failures:
+            lines.append("## Failure Analysis")
+            lines.append("")
+
+            if fa.degraded_flags:
+                lines.append("### Degraded Run Flags")
+                for flag in fa.degraded_flags:
+                    lines.append(f"- {flag}")
+                lines.append("")
+
+            if fa.sparse_coverage_tickers:
+                lines.append("### Sparse Coverage Tickers")
+                lines.append("| Ticker | Issues | Docs | Claims | Price Cov |")
+                lines.append("|--------|--------|------|--------|-----------|")
+                for sc in fa.sparse_coverage_tickers:
+                    issues = "; ".join(sc["issues"])
+                    lines.append(f"| {sc['ticker']} | {issues} | {sc['doc_count']} | {sc['claim_count']} | {sc['price_coverage_pct']}% |")
+                lines.append("")
+
+            if fa.negative_return_actions:
+                lines.append("### Action Types with Negative Forward Returns")
+                for nra in fa.negative_return_actions:
+                    lines.append(f"- {nra['concern']}")
+                lines.append("")
+
+            if fa.non_differentiating_buckets:
+                lines.append("### Non-Differentiating Conviction Buckets")
+                for ndb in fa.non_differentiating_buckets:
+                    lines.append(f"- {ndb['concern']} (spread: {ndb['spread_pct']}%)")
+                lines.append("")
+
+            if fa.repeated_bad_recommendations:
+                lines.append("### Repeated Bad Recommendations")
+                for rbr in fa.repeated_bad_recommendations:
+                    lines.append(f"- {rbr['concern']}")
+                lines.append("")
+
+            if fa.low_evidence_periods:
+                lines.append("### Low Evidence Periods")
+                for lep in fa.low_evidence_periods:
+                    lines.append(f"- {lep['concern']}")
                 lines.append("")
 
     # Memory comparison
@@ -253,7 +483,8 @@ def _write_markdown_report(
 
     # Limitations
     lines.append("## Limitations")
-    lines.append("- Stub LLM mode: claim extraction uses deterministic stub, not real LLM")
+    if not config.use_llm:
+        lines.append("- **Stub LLM mode**: claim extraction uses deterministic stub, not real LLM")
     lines.append("- Returns are not statistically significant over short replay windows")
     lines.append("- No earnings transcript backfill (manual source only)")
     lines.append("- News coverage degrades rapidly for periods >90 days ago")
@@ -262,11 +493,35 @@ def _write_markdown_report(
     lines.append("- No sector-level attribution (sector data not versioned historically)")
     lines.append("")
 
+    # Artifact index
+    lines.append("## Artifact Index")
+    lines.append("| File | Description |")
+    lines.append("|------|-------------|")
+    lines.append("| manifest.json | Run manifest with metadata and degraded flags |")
+    lines.append("| summary.json | Machine-readable full report |")
+    lines.append("| report.md | This report |")
+    lines.append("| decisions.csv | Per-review-date decisions |")
+    lines.append("| action_outcomes.csv | Per-action forward returns |")
+    lines.append("| best_decisions.csv | Top decisions by forward return |")
+    lines.append("| worst_decisions.csv | Bottom decisions by forward return |")
+    lines.append("| per_name_summary.csv | Per-ticker usefulness summary |")
+    lines.append("| coverage_diagnostics.csv | Source coverage by ticker |")
+    lines.append("| coverage_by_month.csv | Source coverage by month |")
+    lines.append("| benchmark.csv | Benchmark comparison |")
+    lines.append("| conviction_buckets.csv | Conviction bucket summary |")
+    if memory_comparison:
+        lines.append("| memory_comparison.csv | Memory ON vs OFF comparison |")
+    lines.append("")
+
     path = os.path.join(output_dir, "report.md")
     with open(path, "w") as f:
         f.write("\n".join(lines))
     logger.info("Markdown report: %s", path)
 
+
+# ---------------------------------------------------------------------------
+# CSV writers
+# ---------------------------------------------------------------------------
 
 def _write_decisions_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
     """Write per-review-date decisions CSV."""
@@ -295,7 +550,6 @@ def _write_action_outcomes_csv(output_dir: str, eval_result: HistoricalEvalResul
         writer.writeheader()
         for outcome in eval_result.action_outcomes:
             d = outcome.to_dict()
-            # Remove rationale from this CSV (it's in decisions.csv)
             row = {k: d.get(k) for k in fieldnames}
             writer.writerow(row)
 
@@ -351,6 +605,91 @@ def _write_conviction_buckets_csv(output_dir: str, eval_result: HistoricalEvalRe
     logger.info("Conviction buckets CSV: %s", path)
 
 
+def _write_best_worst_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write best and worst decisions CSVs."""
+    fieldnames = [
+        "review_date", "ticker", "action", "conviction", "conviction_bucket",
+        "price_at_decision", "forward_5d_pct", "forward_20d_pct", "forward_60d_pct",
+        "rationale",
+    ]
+
+    for label, decisions in [("best", eval_result.best_decisions), ("worst", eval_result.worst_decisions)]:
+        path = os.path.join(output_dir, f"{label}_decisions.csv")
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for d in decisions:
+                writer.writerow({k: d.get(k) for k in fieldnames})
+        logger.info("%s decisions CSV: %s (%d rows)", label.title(), path, len(decisions))
+
+
+def _write_per_name_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write per-ticker usefulness summary CSV."""
+    path = os.path.join(output_dir, "per_name_summary.csv")
+    fieldnames = [
+        "ticker", "action_count", "initiate_count", "exit_count", "hold_count",
+        "avg_forward_5d_pct", "avg_forward_20d_pct", "avg_forward_60d_pct",
+        "doc_count", "claim_count", "price_coverage_pct",
+    ]
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for p in eval_result.per_name_summary:
+            writer.writerow(p.to_dict())
+
+    logger.info("Per-name summary CSV: %s (%d rows)", path, len(eval_result.per_name_summary))
+
+
+def _write_coverage_diagnostics_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write source coverage diagnostics CSV (per ticker)."""
+    path = os.path.join(output_dir, "coverage_diagnostics.csv")
+    fieldnames = ["ticker", "doc_count", "claim_count", "has_prices"]
+
+    cd = eval_result.coverage_diagnostics
+    if not cd:
+        return
+
+    tickers = sorted(set(list(cd.docs_by_ticker.keys()) + list(cd.claims_by_ticker.keys())))
+    if not tickers:
+        tickers = sorted(eval_result.config.effective_tickers())
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for t in tickers:
+            writer.writerow({
+                "ticker": t,
+                "doc_count": cd.docs_by_ticker.get(t, 0),
+                "claim_count": cd.claims_by_ticker.get(t, 0),
+                "has_prices": t in cd.docs_by_ticker or cd.tickers_with_prices > 0,
+            })
+
+    logger.info("Coverage diagnostics CSV: %s", path)
+
+
+def _write_coverage_by_month_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write source coverage by month CSV."""
+    path = os.path.join(output_dir, "coverage_by_month.csv")
+    fieldnames = ["month", "doc_count"]
+
+    cd = eval_result.coverage_diagnostics
+    if not cd or not cd.docs_by_month:
+        # Write empty file with headers
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+        return
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for month, count in sorted(cd.docs_by_month.items()):
+            writer.writerow({"month": month, "doc_count": count})
+
+    logger.info("Coverage by month CSV: %s", path)
+
+
 def _write_memory_comparison_csv(
     output_dir: str,
     comparison: HistoricalMemoryComparisonResult,
@@ -377,8 +716,6 @@ def _write_memory_comparison_csv(
     if "portfolio" in mc:
         p = mc["portfolio"]
         for key in ["return", "drawdown", "initiations", "exits"]:
-            on_key = f"{key}_on" if key != "return" else "return_on_pct"
-            off_key = f"{key}_off" if key != "return" else "return_off_pct"
             if key == "return":
                 on_key = "return_on_pct"
                 off_key = "return_off_pct"

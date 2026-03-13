@@ -107,6 +107,87 @@ class ConvictionBucketSummary:
 
 
 @dataclass
+class PerNameSummary:
+    """Per-ticker usefulness summary."""
+    ticker: str
+    action_count: int = 0
+    initiate_count: int = 0
+    exit_count: int = 0
+    hold_count: int = 0
+    avg_forward_5d: Optional[float] = None
+    avg_forward_20d: Optional[float] = None
+    avg_forward_60d: Optional[float] = None
+    doc_count: int = 0
+    claim_count: int = 0
+    price_coverage_pct: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "ticker": self.ticker,
+            "action_count": self.action_count,
+            "initiate_count": self.initiate_count,
+            "exit_count": self.exit_count,
+            "hold_count": self.hold_count,
+            "avg_forward_5d_pct": round(self.avg_forward_5d, 2) if self.avg_forward_5d is not None else None,
+            "avg_forward_20d_pct": round(self.avg_forward_20d, 2) if self.avg_forward_20d is not None else None,
+            "avg_forward_60d_pct": round(self.avg_forward_60d, 2) if self.avg_forward_60d is not None else None,
+            "doc_count": self.doc_count,
+            "claim_count": self.claim_count,
+            "price_coverage_pct": round(self.price_coverage_pct, 1),
+        }
+
+
+@dataclass
+class CoverageDiagnostics:
+    """Source coverage diagnostics for a usefulness run."""
+    docs_by_ticker: dict[str, int] = field(default_factory=dict)
+    docs_by_source_type: dict[str, int] = field(default_factory=dict)
+    docs_by_month: dict[str, int] = field(default_factory=dict)
+    claims_by_ticker: dict[str, int] = field(default_factory=dict)
+    source_gaps: list[dict] = field(default_factory=list)
+    extractor_mode: str = "stub_heuristic"
+    benchmark_available: bool = False
+    tickers_with_prices: int = 0
+    tickers_without_prices: int = 0
+    total_price_rows: int = 0
+
+    def to_dict(self) -> dict:
+        return {
+            "docs_by_ticker": self.docs_by_ticker,
+            "docs_by_source_type": self.docs_by_source_type,
+            "docs_by_month": self.docs_by_month,
+            "claims_by_ticker": self.claims_by_ticker,
+            "source_gaps": self.source_gaps,
+            "extractor_mode": self.extractor_mode,
+            "benchmark_available": self.benchmark_available,
+            "tickers_with_prices": self.tickers_with_prices,
+            "tickers_without_prices": self.tickers_without_prices,
+            "total_price_rows": self.total_price_rows,
+        }
+
+
+@dataclass
+class FailureAnalysis:
+    """Structured failure analysis from a usefulness run."""
+    sparse_coverage_tickers: list[dict] = field(default_factory=list)
+    negative_return_actions: list[dict] = field(default_factory=list)
+    non_differentiating_buckets: list[dict] = field(default_factory=list)
+    repeated_bad_recommendations: list[dict] = field(default_factory=list)
+    low_evidence_periods: list[dict] = field(default_factory=list)
+    degraded_flags: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "sparse_coverage_tickers": self.sparse_coverage_tickers,
+            "negative_return_actions": self.negative_return_actions,
+            "non_differentiating_buckets": self.non_differentiating_buckets,
+            "repeated_bad_recommendations": self.repeated_bad_recommendations,
+            "low_evidence_periods": self.low_evidence_periods,
+            "degraded_flags": self.degraded_flags,
+        }
+
+
+@dataclass
 class HistoricalEvalResult:
     """Full result of a historical evaluation."""
     config: HistoricalEvalConfig
@@ -120,6 +201,12 @@ class HistoricalEvalResult:
     conviction_buckets: list[ConvictionBucketSummary] = field(default_factory=list)
     decision_rows: list[dict] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    # New usefulness-run fields
+    best_decisions: list[dict] = field(default_factory=list)
+    worst_decisions: list[dict] = field(default_factory=list)
+    per_name_summary: list[PerNameSummary] = field(default_factory=list)
+    coverage_diagnostics: Optional[CoverageDiagnostics] = None
+    failure_analysis: Optional[FailureAnalysis] = None
 
     def to_dict(self) -> dict:
         return {
@@ -130,6 +217,11 @@ class HistoricalEvalResult:
             "forward_return_summary": [s.to_dict() for s in self.forward_return_summary],
             "conviction_buckets": [b.to_dict() for b in self.conviction_buckets],
             "action_outcomes_count": len(self.action_outcomes),
+            "best_decisions": self.best_decisions,
+            "worst_decisions": self.worst_decisions,
+            "per_name_summary": [p.to_dict() for p in self.per_name_summary],
+            "coverage_diagnostics": self.coverage_diagnostics.to_dict() if self.coverage_diagnostics else None,
+            "failure_analysis": self.failure_analysis.to_dict() if self.failure_analysis else None,
             "warnings": self.warnings,
         }
 
@@ -243,6 +335,25 @@ def run_historical_evaluation(
                 f"{actions_missing_price}/{len(result.action_outcomes)} actions "
                 f"missing decision-date price"
             )
+
+    # 7. Best/worst decisions
+    result.best_decisions = _compute_best_worst(result.action_outcomes, best=True)
+    result.worst_decisions = _compute_best_worst(result.action_outcomes, best=False)
+
+    # 8. Per-name summary
+    result.per_name_summary = _compute_per_name_summary(
+        result.action_outcomes, session, config,
+    )
+
+    # 9. Coverage diagnostics
+    result.coverage_diagnostics = _compute_coverage_diagnostics(
+        session, config,
+    )
+
+    # 10. Failure analysis
+    result.failure_analysis = _compute_failure_analysis(
+        result, config,
+    )
 
     return result
 
@@ -375,6 +486,321 @@ def _aggregate_by_conviction(
         summaries.append(s)
 
     return summaries
+
+
+def _compute_best_worst(
+    outcomes: list[ActionOutcome],
+    best: bool = True,
+    n: int = 10,
+) -> list[dict]:
+    """Return top N best or worst decisions by 20D forward return."""
+    scored = [
+        o for o in outcomes
+        if o.forward_20d is not None and o.action not in ("no_action", "hold")
+    ]
+    if not scored:
+        # Fall back to 5D if 20D is sparse
+        scored = [o for o in outcomes if o.forward_5d is not None and o.action not in ("no_action", "hold")]
+        sort_key = lambda o: o.forward_5d if o.forward_5d is not None else 0.0
+    else:
+        sort_key = lambda o: o.forward_20d if o.forward_20d is not None else 0.0
+
+    scored.sort(key=sort_key, reverse=best)
+    top = scored[:n]
+
+    return [
+        {
+            "review_date": o.review_date.isoformat(),
+            "ticker": o.ticker,
+            "action": o.action,
+            "conviction": round(o.conviction, 1),
+            "conviction_bucket": o.conviction_bucket,
+            "price_at_decision": round(o.price_at_decision, 2) if o.price_at_decision else None,
+            "forward_5d_pct": round(o.forward_5d, 2) if o.forward_5d is not None else None,
+            "forward_20d_pct": round(o.forward_20d, 2) if o.forward_20d is not None else None,
+            "forward_60d_pct": round(o.forward_60d, 2) if o.forward_60d is not None else None,
+            "rationale": o.rationale[:200] if o.rationale else "",
+        }
+        for o in top
+    ]
+
+
+def _compute_per_name_summary(
+    outcomes: list[ActionOutcome],
+    session: Session,
+    config: HistoricalEvalConfig,
+) -> list[PerNameSummary]:
+    """Compute per-ticker usefulness summary."""
+    from sqlalchemy import func
+
+    by_ticker: dict[str, list[ActionOutcome]] = defaultdict(list)
+    for o in outcomes:
+        by_ticker[o.ticker].append(o)
+
+    tickers = config.effective_tickers()
+    summaries = []
+
+    for ticker in sorted(tickers):
+        items = by_ticker.get(ticker, [])
+        s = PerNameSummary(ticker=ticker, action_count=len(items))
+
+        s.initiate_count = sum(1 for o in items if o.action == "initiate")
+        s.exit_count = sum(1 for o in items if o.action == "exit")
+        s.hold_count = sum(1 for o in items if o.action == "hold")
+
+        fwd_5 = [o.forward_5d for o in items if o.forward_5d is not None]
+        fwd_20 = [o.forward_20d for o in items if o.forward_20d is not None]
+        fwd_60 = [o.forward_60d for o in items if o.forward_60d is not None]
+
+        if fwd_5:
+            s.avg_forward_5d = sum(fwd_5) / len(fwd_5)
+        if fwd_20:
+            s.avg_forward_20d = sum(fwd_20) / len(fwd_20)
+        if fwd_60:
+            s.avg_forward_60d = sum(fwd_60) / len(fwd_60)
+
+        # Document and claim counts from DB
+        try:
+            from models import Document, Claim
+            doc_count = session.query(func.count(Document.id)).filter(
+                Document.primary_company_ticker == ticker
+            ).scalar() or 0
+            s.doc_count = doc_count
+
+            claim_count = session.query(func.count(Claim.id)).join(
+                Document, Claim.document_id == Document.id
+            ).filter(
+                Document.primary_company_ticker == ticker
+            ).scalar() or 0
+            s.claim_count = claim_count
+        except Exception:
+            pass
+
+        # Price coverage
+        try:
+            total_days = (config.eval_end - config.eval_start).days
+            if total_days > 0:
+                price_count = session.query(func.count(Price.id)).filter(
+                    Price.ticker == ticker,
+                    Price.date >= config.eval_start,
+                    Price.date <= config.eval_end,
+                ).scalar() or 0
+                trading_days = total_days * 5 / 7  # approximate
+                s.price_coverage_pct = min(100.0, (price_count / max(1, trading_days)) * 100)
+        except Exception:
+            pass
+
+        summaries.append(s)
+
+    return summaries
+
+
+def _compute_coverage_diagnostics(
+    session: Session,
+    config: HistoricalEvalConfig,
+) -> CoverageDiagnostics:
+    """Compute source coverage diagnostics."""
+    from sqlalchemy import func
+    from models import Document, Claim
+
+    diag = CoverageDiagnostics()
+    diag.extractor_mode = config.extractor_mode_label()
+
+    tickers = config.effective_tickers()
+
+    # Documents by ticker
+    try:
+        rows = session.query(
+            Document.primary_company_ticker, func.count(Document.id)
+        ).filter(
+            Document.primary_company_ticker.in_(tickers)
+        ).group_by(Document.primary_company_ticker).all()
+        diag.docs_by_ticker = {r[0]: r[1] for r in rows}
+    except Exception:
+        pass
+
+    # Documents by source type
+    try:
+        rows = session.query(
+            Document.source_type, func.count(Document.id)
+        ).group_by(Document.source_type).all()
+        diag.docs_by_source_type = {str(r[0].value if hasattr(r[0], 'value') else r[0]): r[1] for r in rows}
+    except Exception:
+        pass
+
+    # Documents by month
+    try:
+        all_docs = session.query(Document.published_at).filter(
+            Document.primary_company_ticker.in_(tickers)
+        ).all()
+        by_month: dict[str, int] = defaultdict(int)
+        for (pub_at,) in all_docs:
+            if pub_at:
+                key = pub_at.strftime("%Y-%m")
+                by_month[key] += 1
+        diag.docs_by_month = dict(sorted(by_month.items()))
+    except Exception:
+        pass
+
+    # Claims by ticker
+    try:
+        rows = session.query(
+            Document.primary_company_ticker, func.count(Claim.id)
+        ).join(Document, Claim.document_id == Document.id).filter(
+            Document.primary_company_ticker.in_(tickers)
+        ).group_by(Document.primary_company_ticker).all()
+        diag.claims_by_ticker = {r[0]: r[1] for r in rows}
+    except Exception:
+        pass
+
+    # Source gaps: tickers with zero documents
+    tickers_with_docs = set(diag.docs_by_ticker.keys())
+    for t in tickers:
+        if t not in tickers_with_docs:
+            diag.source_gaps.append({
+                "ticker": t,
+                "issue": "no_documents",
+                "detail": f"No documents found for {t} in evaluation window",
+            })
+
+    # Months with zero documents
+    if diag.docs_by_month:
+        start_month = config.backfill_start.strftime("%Y-%m")
+        end_month = config.backfill_end.strftime("%Y-%m")
+        current = config.backfill_start
+        while current <= config.backfill_end:
+            month_key = current.strftime("%Y-%m")
+            if month_key not in diag.docs_by_month:
+                diag.source_gaps.append({
+                    "ticker": "ALL",
+                    "issue": "empty_month",
+                    "detail": f"No documents ingested in {month_key}",
+                })
+            current = (current.replace(day=1) + timedelta(days=32)).replace(day=1)
+
+    # Price coverage
+    try:
+        price_rows = session.query(
+            Price.ticker, func.count(Price.id)
+        ).filter(Price.ticker.in_(tickers)).group_by(Price.ticker).all()
+        tickers_with_p = {r[0] for r in price_rows}
+        diag.tickers_with_prices = len(tickers_with_p)
+        diag.tickers_without_prices = len(set(tickers) - tickers_with_p)
+        diag.total_price_rows = sum(r[1] for r in price_rows)
+    except Exception:
+        pass
+
+    # Benchmark availability
+    try:
+        bench_count = session.query(func.count(Price.id)).filter(
+            Price.ticker == config.benchmark_ticker
+        ).scalar() or 0
+        diag.benchmark_available = bench_count > 0
+    except Exception:
+        pass
+
+    return diag
+
+
+def _compute_failure_analysis(
+    result: HistoricalEvalResult,
+    config: HistoricalEvalConfig,
+) -> FailureAnalysis:
+    """Compute structured failure analysis from evaluation results."""
+    fa = FailureAnalysis()
+
+    # 1. Degraded flags
+    if not config.use_llm:
+        fa.degraded_flags.append(
+            "Stub extraction: claims are heuristic, not LLM-generated"
+        )
+    if not config.backfill_sec_filings:
+        fa.degraded_flags.append("SEC filings disabled")
+    if not config.backfill_news_rss:
+        fa.degraded_flags.append("News RSS disabled")
+    if not config.backfill_pr_rss:
+        fa.degraded_flags.append("PR RSS disabled")
+
+    # 2. Sparse coverage tickers
+    for pns in result.per_name_summary:
+        issues = []
+        if pns.doc_count == 0:
+            issues.append("no documents")
+        elif pns.doc_count < 3:
+            issues.append(f"only {pns.doc_count} documents")
+        if pns.claim_count == 0:
+            issues.append("no claims extracted")
+        if pns.price_coverage_pct < 50:
+            issues.append(f"price coverage {pns.price_coverage_pct:.0f}%")
+        if issues:
+            fa.sparse_coverage_tickers.append({
+                "ticker": pns.ticker,
+                "issues": issues,
+                "doc_count": pns.doc_count,
+                "claim_count": pns.claim_count,
+                "price_coverage_pct": round(pns.price_coverage_pct, 1),
+            })
+
+    # 3. Negative return actions
+    for frs in result.forward_return_summary:
+        neg = {}
+        if frs.avg_20d is not None and frs.avg_20d < 0 and frs.count >= 2:
+            neg = {
+                "action": frs.action,
+                "count": frs.count,
+                "avg_20d_pct": round(frs.avg_20d, 2),
+                "concern": f"{frs.action} actions have negative avg 20D return ({frs.avg_20d:+.2f}%)",
+            }
+        elif frs.avg_5d is not None and frs.avg_5d < 0 and frs.count >= 2:
+            neg = {
+                "action": frs.action,
+                "count": frs.count,
+                "avg_5d_pct": round(frs.avg_5d, 2),
+                "concern": f"{frs.action} actions have negative avg 5D return ({frs.avg_5d:+.2f}%)",
+            }
+        if neg:
+            fa.negative_return_actions.append(neg)
+
+    # 4. Non-differentiating conviction buckets
+    bucket_returns = {}
+    for cb in result.conviction_buckets:
+        if cb.avg_forward_20d is not None and cb.action_count >= 2:
+            bucket_returns[cb.bucket] = cb.avg_forward_20d
+
+    if len(bucket_returns) >= 2:
+        vals = list(bucket_returns.values())
+        spread = max(vals) - min(vals)
+        if spread < 1.0:  # less than 1% spread
+            fa.non_differentiating_buckets.append({
+                "buckets": bucket_returns,
+                "spread_pct": round(spread, 2),
+                "concern": "Conviction buckets do not meaningfully differentiate outcomes",
+            })
+
+    # 5. Repeated bad recommendations
+    by_ticker_neg: dict[str, int] = defaultdict(int)
+    for o in result.action_outcomes:
+        if o.forward_20d is not None and o.forward_20d < -5.0 and o.action in ("initiate", "add"):
+            by_ticker_neg[o.ticker] += 1
+    for ticker, count in by_ticker_neg.items():
+        if count >= 2:
+            fa.repeated_bad_recommendations.append({
+                "ticker": ticker,
+                "bad_initiate_add_count": count,
+                "concern": f"{ticker} had {count} initiate/add actions followed by >5% loss at 20D",
+            })
+
+    # 6. Low evidence periods
+    if result.coverage_diagnostics and result.coverage_diagnostics.docs_by_month:
+        for month, count in result.coverage_diagnostics.docs_by_month.items():
+            if count < 3:
+                fa.low_evidence_periods.append({
+                    "period": month,
+                    "doc_count": count,
+                    "concern": f"Only {count} document(s) in {month}",
+                })
+
+    return fa
 
 
 @dataclass

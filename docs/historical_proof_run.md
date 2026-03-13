@@ -156,3 +156,108 @@ A valid proof-run report pack must contain:
 - `summary.json`: Machine-readable full report
 - `report.md`: Human-readable markdown report
 - CSV tables as listed above
+
+### 10. Best/Worst Decision Analysis
+- Top 10 best decisions by 20D forward return
+- Top 10 worst decisions by 20D forward return
+- Per-decision: date, ticker, action, conviction, forward returns, rationale
+- CSV exports: `best_decisions.csv`, `worst_decisions.csv`
+
+### 11. Per-Name Usefulness Summary
+- Per-ticker action counts, document counts, claim counts
+- Per-ticker average forward returns
+- Price coverage percentage
+- CSV export: `per_name_summary.csv`
+
+### 12. Coverage Diagnostics
+- Documents by ticker, source type, and month
+- Claims by ticker
+- Source gaps and empty periods
+- Extractor mode (real vs stub)
+- CSV exports: `coverage_diagnostics.csv`, `coverage_by_month.csv`
+
+### 13. Failure Analysis
+- Sparse coverage tickers
+- Action types with negative average forward returns
+- Non-differentiating conviction buckets
+- Repeated bad recommendations
+- Low evidence periods
+- Degraded/stub run flags
+
+### 14. Run Manifest
+- `manifest.json`: run_id, code_hash, universe, date range, extractor mode,
+  source toggles, degraded flags, warnings
+
+## Usefulness Run Mode
+
+The `--usefulness-run` flag enables a bounded real usefulness testing mode
+designed for inspectable results on a narrow universe.
+
+### Default Proof Universe
+
+The default usefulness-run universe is 15 liquid US large-cap tech names
+(defined in `proof_universe.py`):
+
+**Semiconductors (5)**: NVDA, AMD, AVGO, QCOM, INTC
+**Hyperscalers (4)**: MSFT, GOOGL, AMZN, META
+**Enterprise SW (4)**: CRM, PLTR, NOW, CRWD
+**Adjacent tech (2)**: AAPL, TSLA
+
+Rationale: dense public information flow, interpretable decision counts,
+reliable price data and SEC filing coverage.
+
+Override with `--tickers` for custom universe.
+
+### Commands
+
+```bash
+# Default narrow-universe usefulness run (stub extractor)
+python scripts/run_historical_proof.py --usefulness-run
+
+# With real LLM extraction (requires OPENAI_API_KEY)
+python scripts/run_historical_proof.py --usefulness-run --use-llm
+
+# Memory ablation usefulness run
+python scripts/run_historical_proof.py --usefulness-run --memory-ablation
+
+# Custom tickers
+python scripts/run_historical_proof.py --usefulness-run --tickers AAPL,MSFT,NVDA
+
+# Custom date range
+python scripts/run_historical_proof.py --usefulness-run --start 2024-03-01 --end 2024-12-01
+
+# Full options
+python scripts/run_historical_proof.py --usefulness-run --use-llm --start 2024-06-01 --end 2025-01-01 --cadence 7 --run-id my_usefulness_test
+```
+
+### Expected Output
+
+```
+historical_proof_runs/usefulness_run/
+├── manifest.json              # Run manifest with metadata + degraded flags
+├── summary.json               # Machine-readable full report
+├── report.md                  # Human-readable markdown report
+├── decisions.csv              # Per-review-date decisions
+├── action_outcomes.csv        # Per-action forward returns
+├── best_decisions.csv         # Top 10 best decisions by forward return
+├── worst_decisions.csv        # Top 10 worst decisions by forward return
+├── per_name_summary.csv       # Per-ticker usefulness summary
+├── coverage_diagnostics.csv   # Source coverage by ticker
+├── coverage_by_month.csv      # Source coverage by month
+├── benchmark.csv              # Benchmark comparison
+├── conviction_buckets.csv     # Conviction bucket summary
+└── memory_comparison.csv      # (only with --memory-ablation)
+```
+
+### Degraded Run Warnings
+
+When running with stub extraction, the CLI and report prominently warn:
+- `DEGRADED: Running usefulness test with stub extractor`
+- Source toggles that are disabled
+- Universe size warnings if too large
+
+These warnings appear in:
+- CLI stdout at run start
+- `manifest.json` degraded_flags
+- `report.md` Degraded Run Warnings section
+- Failure Analysis section
