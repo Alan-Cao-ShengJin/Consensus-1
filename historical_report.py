@@ -70,6 +70,8 @@ def generate_proof_pack(
         _write_coverage_diagnostics_csv(output_dir, eval_result)
         _write_coverage_by_month_csv(output_dir, eval_result)
         _write_empirical_diagnostics_csv(output_dir, eval_result)
+        _write_portfolio_timeline_csv(output_dir, eval_result)
+        _write_portfolio_trades_csv(output_dir, eval_result)
 
     # 5. Memory comparison CSV
     if memory_comparison:
@@ -725,6 +727,59 @@ def _write_empirical_diagnostics_csv(output_dir: str, eval_result: HistoricalEva
             write_exit_events_csv(output_dir, diag.exit_events)
     except Exception as e:
         logger.warning("Failed to write empirical diagnostics CSVs: %s", e)
+
+
+def _write_portfolio_timeline_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write portfolio value at each review date."""
+    rr = eval_result.run_result
+    if not rr or not rr.review_records:
+        return
+
+    path = os.path.join(output_dir, "portfolio_timeline.csv")
+    fieldnames = ["review_date", "total_value", "cash", "invested", "num_positions"]
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for rec in rr.review_records:
+            snap = rec.snapshot
+            if not snap:
+                continue
+            writer.writerow({
+                "review_date": snap.date.isoformat() if snap.date else rec.review_date.isoformat(),
+                "total_value": round(snap.total_value, 2),
+                "cash": round(snap.cash, 2),
+                "invested": round(snap.invested, 2),
+                "num_positions": snap.num_positions,
+            })
+
+    logger.info("Portfolio timeline CSV: %s", path)
+
+
+def _write_portfolio_trades_csv(output_dir: str, eval_result: HistoricalEvalResult) -> None:
+    """Write all portfolio trades."""
+    portfolio = eval_result.portfolio
+    if not portfolio or not portfolio.trades:
+        return
+
+    path = os.path.join(output_dir, "portfolio_trades.csv")
+    fieldnames = ["trade_date", "ticker", "action", "shares", "price", "notional", "reason"]
+
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for t in portfolio.trades:
+            writer.writerow({
+                "trade_date": t.trade_date.isoformat() if t.trade_date else "",
+                "ticker": t.ticker,
+                "action": t.action,
+                "shares": round(t.shares, 4) if t.shares else 0,
+                "price": round(t.price, 2) if t.price else 0,
+                "notional": round(t.notional, 2) if t.notional else 0,
+                "reason": (t.reason or "")[:200],
+            })
+
+    logger.info("Portfolio trades CSV: %s (%d trades)", path, len(portfolio.trades))
 
 
 def _write_memory_comparison_csv(

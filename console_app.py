@@ -93,12 +93,26 @@ def create_console_app(
             logger.warning(warning)
 
     # -----------------------------------------------------------------------
+    # Replay UI blueprint
+    # -----------------------------------------------------------------------
+    try:
+        from replay_api import replay_bp, set_base_dir
+        set_base_dir(os.environ.get("PROOF_RUNS_DIR", "historical_proof_runs"))
+        app.register_blueprint(replay_bp)
+    except ImportError:
+        logger.warning("replay_api not available — replay UI disabled")
+
+    # -----------------------------------------------------------------------
     # Static / SPA
     # -----------------------------------------------------------------------
 
     @app.route("/")
     def index():
         return send_from_directory(static_dir, "console.html")
+
+    @app.route("/replay")
+    def replay_ui():
+        return send_from_directory(static_dir, "replay.html")
 
     @app.route("/static/<path:path>")
     def static_files(path):
