@@ -361,6 +361,7 @@ def run_replay_review(
     apply_trades: bool = True,
     *,
     strict_replay: bool = False,
+    relaxed_gates: bool = False,
 ) -> ReplayReviewRecord:
     """Run a single replay review at the given date.
 
@@ -459,6 +460,7 @@ def run_replay_review(
         review_date=review_date,
         holdings=holdings,
         candidates=candidates,
+        relaxed_gates=relaxed_gates,
     )
     result = run_decision_engine(engine_input)
     result.review_type = "replay"

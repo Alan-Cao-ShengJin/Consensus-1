@@ -351,6 +351,7 @@ def update_thesis_from_claims(
     thesis_id: int,
     claim_ids: list[int],
     use_llm: bool = True,
+    reference_time: Optional[datetime] = None,
 ) -> dict:
     """Update a thesis based on newly ingested claims.
 
@@ -450,6 +451,7 @@ def update_thesis_from_claims(
             source_tier=claim.document.source_tier if claim.document else SourceTier.TIER_2,
             novelty_type=claim.novelty_type,
             published_at=claim.published_at,
+            reference_time=reference_time,
             cluster_position=cluster_positions.get(claim.id, 1),
             is_contradicted=claim.is_contradicted,
             contradiction_claim_ids=(

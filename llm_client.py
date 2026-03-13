@@ -60,7 +60,12 @@ def call_openai_json(
             return _parse_json_array(raw_text)
         except json.JSONDecodeError as e:
             logger.error("LLM returned unparseable JSON (attempt %d): %s", attempt, e)
-            raise  # no point retrying a parse error on the same response
+            last_error = e
+            if attempt < MAX_RETRIES:
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+            raise  # exhausted retries
         except Exception as e:
             last_error = e
             logger.warning(
@@ -135,6 +140,14 @@ def _parse_json_array(raw: str) -> list[dict[str, Any]]:
         for key in ("claims", "results", "data", "extracted_claims"):
             if key in data and isinstance(data[key], list):
                 return data[key]
+        # Empty dict — treat as no claims
+        if not data:
+            logger.info("LLM returned empty object, treating as no claims")
+            return []
+        # Single claim object — wrap in a list if it looks like a claim
+        if "claim_text_normalized" in data or "claim_type" in data:
+            logger.info("LLM returned single claim object, wrapping in list")
+            return [data]
         raise json.JSONDecodeError(
             f"JSON object has no recognizable array key. Keys: {list(data.keys())}",
             raw,

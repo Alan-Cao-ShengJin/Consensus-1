@@ -141,6 +141,7 @@ class DecisionInput:
     max_position_weight: float = 10.0         # max single position weight %
     min_initiation_weight: float = 2.0        # minimum starting weight %
     zone_thresholds: ZoneThresholds = field(default_factory=lambda: DEFAULT_THRESHOLDS)
+    relaxed_gates: bool = False               # relax entry gates for historical usefulness runs
 
 
 # ---------------------------------------------------------------------------
@@ -524,6 +525,8 @@ def evaluate_holding(holding: HoldingSnapshot, review_date: date) -> TickerDecis
 def _check_entry_gates(
     candidate: CandidateSnapshot,
     review_date: date,
+    *,
+    relaxed: bool = False,
 ) -> tuple[bool, list[ReasonCode], list[str]]:
     """Check all four entry gates for candidate initiation.
 
@@ -533,12 +536,20 @@ def _check_entry_gates(
     3. Valuation asymmetry is attractive
     4. Visible checkpoint ahead
 
+    When relaxed=True (historical usefulness runs), gates 3 and 4 are
+    treated as advisory (logged but non-blocking) and the conviction
+    floor is lowered to the ADD threshold. This allows the decision
+    engine to produce actions for usefulness evaluation even when
+    valuation data and checkpoints are unavailable in historical mode.
+
     Returns:
         (all_pass, reason_codes, blocking_conditions)
     """
     reasons: list[ReasonCode] = []
     blockers: list[str] = []
     all_pass = True
+
+    conviction_floor = ADD_CONVICTION_FLOOR if relaxed else INITIATION_CONVICTION_FLOOR
 
     # Gate 1: Thesis exists and is not broken/forming-without-conviction
     if candidate.thesis_id is None or candidate.thesis_state is None:
@@ -549,20 +560,22 @@ def _check_entry_gates(
         all_pass = False
         reasons.append(ReasonCode.THESIS_BROKEN)
         blockers.append("Thesis is broken")
-    elif candidate.conviction_score is None or candidate.conviction_score < INITIATION_CONVICTION_FLOOR:
+    elif candidate.conviction_score is None or candidate.conviction_score < conviction_floor:
         all_pass = False
         reasons.append(ReasonCode.CONVICTION_LOW)
-        blockers.append(f"Conviction {candidate.conviction_score or 0:.0f} below initiation floor {INITIATION_CONVICTION_FLOOR:.0f}")
+        blockers.append(f"Conviction {candidate.conviction_score or 0:.0f} below initiation floor {conviction_floor:.0f}")
 
     # Gate 2: Credible evidence
     if candidate.novel_claim_count_7d == 0 and candidate.confirming_claim_count_7d == 0:
-        all_pass = False
+        if not relaxed:
+            all_pass = False
         reasons.append(ReasonCode.INSUFFICIENT_NOVEL_EVIDENCE)
-        blockers.append("No novel or confirming evidence in last 7 days")
+        if not relaxed:
+            blockers.append("No novel or confirming evidence in last 7 days")
     else:
         reasons.append(ReasonCode.SUFFICIENT_NOVEL_EVIDENCE)
 
-    # Gate 3: Valuation
+    # Gate 3: Valuation (advisory in relaxed mode)
     zone = candidate.zone_state
     if zone is None:
         zone = zone_from_thesis_and_price(
@@ -572,14 +585,20 @@ def _check_entry_gates(
         )
     if zone == ZoneState.BUY:
         reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
+    elif relaxed:
+        # In relaxed mode, valuation gate is non-blocking (advisory only)
+        reasons.append(ReasonCode.VALUATION_NEUTRAL)
     else:
         all_pass = False
         reasons.append(ReasonCode.VALUATION_NEUTRAL if zone == ZoneState.HOLD else ReasonCode.VALUATION_STRETCHED)
         blockers.append(f"Valuation zone is {zone.value}, not buy")
 
-    # Gate 4: Checkpoint ahead
+    # Gate 4: Checkpoint ahead (advisory in relaxed mode)
     if candidate.has_checkpoint_ahead:
         reasons.append(ReasonCode.CHECKPOINT_AHEAD)
+    elif relaxed:
+        reasons.append(ReasonCode.NO_CHECKPOINT_AHEAD)
+        # Non-blocking in relaxed mode
     else:
         all_pass = False
         reasons.append(ReasonCode.NO_CHECKPOINT_AHEAD)
@@ -592,10 +611,13 @@ def evaluate_candidate(
     candidate: CandidateSnapshot,
     weakest_holding: Optional[HoldingSnapshot],
     review_date: date,
+    *,
+    relaxed_gates: bool = False,
 ) -> TickerDecision:
     """Evaluate a candidate for initiation.
 
     Must pass all entry gates AND beat the weakest current holding.
+    When relaxed_gates=True, valuation/checkpoint gates are non-blocking.
     """
     decision = TickerDecision(ticker=candidate.ticker, action=ActionType.NO_ACTION)
     decision.recommendation_priority = PRIORITY_NEUTRAL
@@ -612,7 +634,9 @@ def evaluate_candidate(
             return decision
 
     # Check entry gates
-    gates_pass, gate_reasons, gate_blockers = _check_entry_gates(candidate, review_date)
+    gates_pass, gate_reasons, gate_blockers = _check_entry_gates(
+        candidate, review_date, relaxed=relaxed_gates,
+    )
 
     if not gates_pass:
         decision.reason_codes = gate_reasons
@@ -622,8 +646,9 @@ def evaluate_candidate(
         return decision
 
     # Relative hurdle: candidate must beat weakest holding
+    # In relaxed mode (usefulness runs), skip the hurdle to maximize scorable actions
     candidate_score = candidate.conviction_score or 0.0
-    if weakest_holding is not None:
+    if weakest_holding is not None and not relaxed_gates:
         if candidate_score < weakest_holding.conviction_score + RELATIVE_HURDLE_MARGIN:
             decision.reason_codes = gate_reasons + [ReasonCode.FAILED_RELATIVE_HURDLE]
             decision.blocking_conditions.append(
@@ -698,7 +723,10 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     # Step 3: Evaluate candidates
     candidate_decisions: list[TickerDecision] = []
     for c in inputs.candidates:
-        d = evaluate_candidate(c, weakest_holding, inputs.review_date)
+        d = evaluate_candidate(
+            c, weakest_holding, inputs.review_date,
+            relaxed_gates=inputs.relaxed_gates,
+        )
         candidate_decisions.append(d)
 
     # Step 4: Combine and rank by priority tier, then score within tier

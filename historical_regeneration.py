@@ -279,9 +279,19 @@ def run_regeneration(
             # Extract claims (this also runs novelty classification against
             # only claims that exist in regen DB so far — which is exactly
             # the as-of-date set)
-            claim_ids = _extract_claims_for_doc(
-                regen_session, regen_doc, ticker, config.use_llm,
-            )
+            try:
+                claim_ids = _extract_claims_for_doc(
+                    regen_session, regen_doc, ticker, config.use_llm,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Claim extraction failed for doc %s (%s): %s — skipping",
+                    regen_doc.id, ticker, e,
+                )
+                result.warnings.append(
+                    f"Claim extraction failed for {ticker} doc {regen_doc.id}: {e}"
+                )
+                claim_ids = []
 
             current_step.documents_processed += 1
             current_step.claims_created += len(claim_ids)
@@ -293,8 +303,17 @@ def run_regeneration(
                 thesis_result = _update_thesis_incrementally(
                     regen_session, ticker, claim_ids,
                     config.use_llm, config.memory_enabled,
+                    doc_published_at=doc.published_at,
                 )
                 if thesis_result:
+                    # Back-date thesis state history to document's published_at
+                    # so replay as-of-date queries work correctly
+                    doc_timestamp = doc.published_at or doc.ingested_at
+                    if doc_timestamp:
+                        _backdate_latest_thesis_history(
+                            regen_session, ticker, doc_timestamp,
+                        )
+
                     current_step.theses_updated += 1
                     current_step.thesis_changes.append(thesis_result)
                     result.total_thesis_updates += 1
@@ -428,6 +447,7 @@ def _update_thesis_incrementally(
     claim_ids: list[int],
     use_llm: bool,
     memory_enabled: bool,
+    doc_published_at: Optional[datetime] = None,
 ) -> Optional[dict]:
     """Update or create thesis for a ticker based on new claims.
 
@@ -452,7 +472,7 @@ def _update_thesis_incrementally(
         session.add(thesis)
         session.flush()
 
-        # Record initial state
+        # Record initial state (created_at will be back-dated by caller)
         session.add(ThesisStateHistory(
             thesis_id=thesis.id,
             state=thesis.state,
@@ -468,6 +488,7 @@ def _update_thesis_incrementally(
         from thesis_update_service import update_thesis_from_claims
         result = update_thesis_from_claims(
             session, thesis.id, claim_ids, use_llm=use_llm,
+            reference_time=doc_published_at,
         )
 
         after_state = ThesisState(result["after_state"])
@@ -498,8 +519,56 @@ def _update_thesis_incrementally(
         return None
 
 
+def _backdate_latest_thesis_history(
+    session: Session,
+    ticker: str,
+    doc_timestamp: datetime,
+) -> None:
+    """Back-date ThesisStateHistory entries for a ticker to a document timestamp.
+
+    During regeneration, ThesisStateHistory entries get created with utcnow()
+    timestamps. For historical replay to work correctly with as-of-date
+    queries, we need to set created_at to the source document's published_at.
+
+    Back-dates ALL entries that still have future (wall-clock) timestamps,
+    including the initial FORMING entry created when the thesis was first
+    instantiated. Also back-dates the Thesis.created_at itself so the
+    fallback path in _get_thesis_state_as_of works correctly.
+    """
+    thesis = session.scalars(
+        select(Thesis).where(
+            Thesis.company_ticker == ticker,
+            Thesis.status_active == True,
+        ).limit(1)
+    ).first()
+    if not thesis:
+        return
+
+    # Back-date all entries that have timestamps after doc_timestamp
+    # (i.e., wall-clock timestamps from utcnow() during regeneration)
+    entries = session.scalars(
+        select(ThesisStateHistory).where(
+            ThesisStateHistory.thesis_id == thesis.id,
+            ThesisStateHistory.created_at > doc_timestamp,
+        )
+    ).all()
+    for entry in entries:
+        entry.created_at = doc_timestamp
+
+    # Also back-date the Thesis.created_at for the fallback path
+    if thesis.created_at and thesis.created_at > doc_timestamp:
+        thesis.created_at = doc_timestamp
+
+    session.flush()
+
+
 def _create_candidates(session: Session, tickers: list[str]) -> None:
-    """Create candidate entries for tickers that have active theses."""
+    """Create candidate entries for tickers that have active theses.
+
+    Uses the earliest document published_at for each ticker as created_at
+    so that replay temporal filtering includes candidates at the correct
+    historical dates (not wall-clock time).
+    """
     for ticker in tickers:
         thesis = session.scalars(
             select(Thesis).where(
@@ -513,12 +582,23 @@ def _create_candidates(session: Session, tickers: list[str]) -> None:
                 select(Candidate).where(Candidate.ticker == ticker)
             ).first()
             if not existing:
+                # Use earliest document date for this ticker as created_at
+                earliest_doc = session.scalars(
+                    select(Document).where(
+                        Document.primary_company_ticker == ticker,
+                    ).order_by(Document.published_at.asc()).limit(1)
+                ).first()
+                cand_created_at = (
+                    earliest_doc.published_at
+                    if earliest_doc and earliest_doc.published_at
+                    else datetime.utcnow()
+                )
                 session.add(Candidate(
                     ticker=ticker,
                     primary_thesis_id=thesis.id,
                     conviction_score=thesis.conviction_score,
                     buyable_flag=True,
-                    created_at=datetime.utcnow(),
+                    created_at=cand_created_at,
                 ))
     session.flush()
 

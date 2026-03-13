@@ -406,13 +406,13 @@ def _print_usefulness_summary(config, regen_result, eval_result, output_dir):
             print("\n  Best decision:")
             bd = eval_result.best_decisions[0]
             f20 = f"{bd['forward_20d_pct']:+.2f}%" if bd.get('forward_20d_pct') is not None else "N/A"
-            print(f"    {bd['review_date']} {bd['ticker']} {bd['action']} → 20D: {f20}")
+            print(f"    {bd['review_date']} {bd['ticker']} {bd['action']} -> 20D: {f20}")
 
         if eval_result.worst_decisions:
             print("  Worst decision:")
             wd = eval_result.worst_decisions[0]
             f20 = f"{wd['forward_20d_pct']:+.2f}%" if wd.get('forward_20d_pct') is not None else "N/A"
-            print(f"    {wd['review_date']} {wd['ticker']} {wd['action']} → 20D: {f20}")
+            print(f"    {wd['review_date']} {wd['ticker']} {wd['action']} -> 20D: {f20}")
 
         if eval_result.failure_analysis and eval_result.failure_analysis.degraded_flags:
             print("\n  Degraded flags:")

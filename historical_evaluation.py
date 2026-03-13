@@ -256,6 +256,7 @@ def run_historical_evaluation(
             apply_trades=config.apply_trades,
             transaction_cost_bps=config.transaction_cost_bps,
             strict_replay=config.strict_replay,
+            relaxed_gates=config.is_usefulness_run(),
         )
     except Exception as e:
         result.warnings.append(f"Replay failed: {e}")
