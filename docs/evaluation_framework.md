@@ -123,6 +123,55 @@ Reports are saved as JSON for machine consumption and as markdown for human revi
 
 ---
 
+## Layer E: Historical Proof Runs
+
+Historical proof runs go beyond replay evaluation by reconstructing thesis state from scratch using historical data, then measuring decision quality against actual forward returns.
+
+See [docs/historical_proof_run.md](historical_proof_run.md) for the full contract.
+
+### What a historical proof run adds over replay evaluation
+
+| Capability | Replay evaluation | Historical proof run |
+|-----------|-------------------|---------------------|
+| Thesis state source | Pre-existing DB state | Rebuilt from scratch chronologically |
+| Forward returns | Not measured | 5D / 20D / 60D per decision |
+| Conviction bucket analysis | Not available | Low / medium / high |
+| Data coverage reporting | Basic purity flags | Full source coverage stats |
+| Memory ablation level | Same thesis state, different decision behavior | Different thesis evolution paths |
+| Output format | JSON + markdown | Full proof pack (JSON + markdown + CSV tables) |
+
+### Running a historical proof run
+
+```bash
+# Full proof run
+python scripts/run_historical_proof.py --start 2024-06-01 --end 2025-01-01
+
+# Backfill only
+python scripts/run_historical_proof.py --start 2024-06-01 --end 2025-01-01 --backfill-only
+
+# Evaluate on existing regeneration DB
+python scripts/run_historical_proof.py --evaluate-only --regen-db path/to/regen.db
+
+# Memory ablation
+python scripts/run_historical_proof.py --start 2024-06-01 --end 2025-01-01 --memory-ablation
+
+# Subset of tickers
+python scripts/run_historical_proof.py --start 2024-06-01 --end 2025-01-01 --tickers AAPL,MSFT,NVDA
+```
+
+### Proof pack output
+
+A valid proof run produces an output directory containing:
+- `summary.json` — machine-readable full report
+- `report.md` — human-readable markdown report
+- `decisions.csv` — per-review-date decisions
+- `action_outcomes.csv` — per-action forward returns
+- `benchmark.csv` — benchmark comparison
+- `conviction_buckets.csv` — conviction bucket summary
+- `memory_comparison.csv` — memory ON vs OFF (if ablation run)
+
+---
+
 ## Limitations (v1)
 
 1. **No ground truth labels**: We cannot score thesis predictions against actual outcomes without forward price data and defined success criteria. Decision quality metrics are behavioral, not accuracy-based.
