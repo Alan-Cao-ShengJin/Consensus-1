@@ -30,6 +30,7 @@ from connectors.pr_rss import PRRSSConnector
 from connectors.newsapi_connector import NewsAPIConnector
 from connectors.finnhub_connector import FinnhubNewsConnector
 from connectors.fmp_connector import FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector, FMPNewsConnector
+from connectors.alphavantage_connector import AlphaVantageEarningsConnector
 from connectors.yfinance_prices import YFinancePriceUpdater
 from connectors.yfinance_calendar import YFinanceCalendarUpdater
 from connectors.yfinance_ticker_info import YFinanceTickerInfoUpdater
@@ -117,6 +118,8 @@ def _all_connector_patches(
         patch.object(FMPFinancialsConnector, 'fetch', return_value=fmp_financials_return or []),
         patch.object(FMPEstimatesConnector, 'fetch', return_value=fmp_estimates_return or []),
         patch.object(FMPNewsConnector, 'fetch', return_value=fmp_news_return or []),
+        patch.object(AlphaVantageEarningsConnector, 'fetch', return_value=[]),
+        patch.object(NewsAPIConnector, 'fetch', return_value=[]),
     ] + _nondoc_patches()
 
 

@@ -139,6 +139,12 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
         if conn.available:
             all_connectors.append(conn)
 
+    # Alpha Vantage connector (earnings surprises)
+    from connectors.alphavantage_connector import AlphaVantageEarningsConnector
+    av = AlphaVantageEarningsConnector()
+    if av.available:
+        all_connectors.append(av)
+
     if source_filter:
         return [c for c in all_connectors if c.source_key in source_filter]
     return all_connectors

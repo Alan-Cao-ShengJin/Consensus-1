@@ -130,6 +130,11 @@ def run_backfill(session: Session, config: HistoricalEvalConfig) -> BackfillResu
         fmp_result = _backfill_fmp(session, tickers, backfill_days, config)
         result.source_results.append(fmp_result)
 
+    # 7. Alpha Vantage (earnings surprises)
+    if getattr(config, 'backfill_alphavantage', True):
+        av_result = _backfill_alphavantage(session, tickers, backfill_days, config)
+        result.source_results.append(av_result)
+
     # Aggregate totals
     for sr in result.source_results:
         result.total_errors += len(sr.errors)
@@ -450,6 +455,56 @@ def _backfill_fmp(
 
     logger.info(
         "FMP backfill: %d tickers, %d docs fetched, %d inserted",
+        result.tickers_attempted, result.docs_fetched, result.docs_inserted,
+    )
+    return result
+
+
+def _backfill_alphavantage(
+    session: Session,
+    tickers: list[str],
+    days: int,
+    config: HistoricalEvalConfig,
+) -> BackfillSourceResult:
+    """Backfill Alpha Vantage earnings surprise data."""
+    result = BackfillSourceResult(source="alphavantage")
+
+    try:
+        from connectors.alphavantage_connector import AlphaVantageEarningsConnector
+        from document_ingestion_service import ingest_document_payload
+        from dedupe import is_duplicate_document
+
+        connector = AlphaVantageEarningsConnector()
+        if not connector.available:
+            result.warnings.append("Alpha Vantage: ALPHAVANTAGE_API_KEY not set, skipping")
+            return result
+    except ImportError as e:
+        result.errors.append(f"Alpha Vantage connector not available: {e}")
+        return result
+
+    for ticker in tickers:
+        result.tickers_attempted += 1
+        try:
+            payloads = connector.fetch(ticker, days=min(days, 365))
+            result.docs_fetched += len(payloads)
+
+            for payload in payloads:
+                if is_duplicate_document(session, payload):
+                    result.docs_skipped_duplicate += 1
+                    continue
+                try:
+                    ingest_document_payload(session, payload, ticker, use_llm=config.use_llm)
+                    result.docs_inserted += 1
+                except Exception as e:
+                    result.errors.append(f"{ticker} alphavantage ingest: {e}")
+
+            result.tickers_succeeded += 1
+        except Exception as e:
+            result.tickers_failed += 1
+            result.errors.append(f"{ticker}: {e}")
+
+    logger.info(
+        "Alpha Vantage backfill: %d tickers, %d docs fetched, %d inserted",
         result.tickers_attempted, result.docs_fetched, result.docs_inserted,
     )
     return result

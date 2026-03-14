@@ -195,6 +195,24 @@ _register(SourceConfig(
     notes="FMP stock news feed. May return general feed on starter plan.",
 ))
 
+# --- Alpha Vantage ---
+
+_register(SourceConfig(
+    key="earnings_alphavantage",
+    source_type=SourceType.EARNINGS_TRANSCRIPT,
+    source_tier=SourceTier.TIER_1,
+    provider="alphavantage",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="external_id",
+    api_key_env_var="ALPHAVANTAGE_API_KEY",
+    rate_limit_per_second=0.2,  # 25 requests/day free tier
+    notes="Alpha Vantage quarterly earnings with beat/miss surprise data. Tier 1.",
+))
+
 # --- Press Releases ---
 
 _register(SourceConfig(
