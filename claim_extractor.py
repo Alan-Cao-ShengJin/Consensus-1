@@ -288,10 +288,27 @@ _VALID_CLAIM_TYPES = {ct.value for ct in ClaimType}
 _VALID_ECONOMIC_CHANNELS = {ec.value for ec in EconomicChannel}
 
 
+_EC_ALIASES = {
+    "cash_flow": "liquidity",
+    "free_cash_flow": "liquidity",
+    "operating_margin": "gross_margin",
+    "net_income": "earnings",
+    "eps": "earnings",
+    "ebitda": "earnings",
+    "market_cap": "multiple",
+    "valuation": "multiple",
+}
+
+
 def _normalize_enums(raw: dict) -> dict:
     """Fix common LLM enum swaps between claim_type and economic_channel."""
     ct = raw.get("claim_type", "")
     ec = raw.get("economic_channel", "")
+
+    # Fix common aliases first
+    if ec in _EC_ALIASES:
+        raw["economic_channel"] = _EC_ALIASES[ec]
+        ec = raw["economic_channel"]
 
     if ct not in _VALID_CLAIM_TYPES and ct in _VALID_ECONOMIC_CHANNELS:
         mapped = _ECONOMIC_CHANNEL_TO_CLAIM_TYPE.get(ct, "demand")

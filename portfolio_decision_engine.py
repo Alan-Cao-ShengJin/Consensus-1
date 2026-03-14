@@ -330,6 +330,7 @@ def evaluate_holding(
     holding: HoldingSnapshot,
     review_date: date,
     exit_policy: ExitPolicyConfig = BASELINE_POLICY,
+    relaxed_gates: bool = False,
 ) -> TickerDecision:
     """Evaluate a current holding and produce a decision.
 
@@ -366,6 +367,10 @@ def evaluate_holding(
         holding.base_case_rerating,
         holding.current_price,
     )
+    # In relaxed mode (usefulness runs), treat missing valuation data as BUY
+    # so that add-to-winner/loser logic can fire
+    if relaxed_gates and zone == ZoneState.HOLD and holding.valuation_gap_pct is None:
+        zone = ZoneState.BUY
 
     # ---------------------------------------------------------------
     # Priority 1 — FORCED EXIT: thesis broken (strongest rule)
@@ -785,7 +790,8 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     # Step 1: Evaluate holdings
     holding_decisions: list[TickerDecision] = []
     for h in inputs.holdings:
-        d = evaluate_holding(h, inputs.review_date, exit_policy=inputs.exit_policy)
+        d = evaluate_holding(h, inputs.review_date, exit_policy=inputs.exit_policy,
+                             relaxed_gates=inputs.relaxed_gates)
         holding_decisions.append(d)
 
     # Step 2: Find weakest holding (lowest conviction among active, non-probation)

@@ -1,11 +1,12 @@
 """Financial Modeling Prep (FMP) connectors.
 
-Three connectors:
-  1. FMPTranscriptConnector  — earnings call transcripts (Tier 1)
-  2. FMPFinancialsConnector  — income statement / balance sheet / cash flow (Tier 1)
-  3. FMPEstimatesConnector   — analyst consensus estimates with beat/miss (Tier 2)
+Two connectors (stable API):
+  1. FMPFinancialsConnector  — income statement / balance sheet / cash flow (Tier 1)
+  2. FMPEstimatesConnector   — analyst consensus estimates with beat/miss (Tier 2)
 
-All require FMP_API_KEY env var.  Free tier: 250 requests/day.
+FMPTranscriptConnector is kept but requires a higher-tier FMP plan.
+
+All require FMP_API_KEY env var.  Uses the /stable/ API base.
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from connectors.base import DocumentConnector, DocumentPayload
 
 logger = logging.getLogger(__name__)
 
-FMP_BASE = "https://financialmodelingprep.com/api/v3"
+FMP_BASE = "https://financialmodelingprep.com/stable"
 
 
 def _fmp_api_key() -> str:
@@ -40,6 +41,9 @@ def _fmp_get(path: str, params: dict | None = None, timeout: int = 30) -> list |
 
     try:
         resp = requests.get(f"{FMP_BASE}{path}", params=params, timeout=timeout)
+        if resp.status_code == 402:
+            logger.info("FMP endpoint %s requires higher plan tier, skipping", path)
+            return None
         resp.raise_for_status()
         return resp.json()
     except Exception as e:
@@ -54,8 +58,8 @@ def _fmp_get(path: str, params: dict | None = None, timeout: int = 30) -> list |
 class FMPTranscriptConnector(DocumentConnector):
     """Fetches earnings call transcripts from FMP.
 
-    Endpoint: /earning_call_transcript/{symbol}?quarter={Q}&year={Y}
-    Also uses /earning_call_transcript to list available transcripts.
+    Requires a higher-tier FMP plan (Professional or above).
+    Uses stable API: /earning-call-transcript?symbol={symbol}
     """
 
     def __init__(self):
@@ -74,7 +78,7 @@ class FMPTranscriptConnector(DocumentConnector):
             return []
 
         # Get list of available transcripts
-        data = _fmp_get(f"/earning_call_transcript/{ticker}")
+        data = _fmp_get("/earning-call-transcript", {"symbol": ticker})
         if not data or not isinstance(data, list):
             logger.info("FMP transcripts: no data for %s", ticker)
             return []
@@ -146,7 +150,7 @@ def _format_financial_summary(
     gp = income.get("grossProfit")
     oi = income.get("operatingIncome")
     ni = income.get("netIncome")
-    eps = income.get("eps") or income.get("epsdiluted")
+    eps = income.get("epsDiluted") or income.get("epsdiluted") or income.get("eps")
     ebitda = income.get("ebitda")
 
     if rev is not None:
@@ -230,9 +234,9 @@ class FMPFinancialsConnector(DocumentConnector):
 
         limit = max(4, days // 90)  # ~1 quarter per 90 days
 
-        income_data = _fmp_get(f"/income-statement/{ticker}", {"period": "quarter", "limit": limit})
-        balance_data = _fmp_get(f"/balance-sheet-statement/{ticker}", {"period": "quarter", "limit": limit})
-        cashflow_data = _fmp_get(f"/cash-flow-statement/{ticker}", {"period": "quarter", "limit": limit})
+        income_data = _fmp_get("/income-statement", {"symbol": ticker, "period": "quarter", "limit": limit})
+        balance_data = _fmp_get("/balance-sheet-statement", {"symbol": ticker, "period": "quarter", "limit": limit})
+        cashflow_data = _fmp_get("/cash-flow-statement", {"symbol": ticker, "period": "quarter", "limit": limit})
 
         if not income_data or not isinstance(income_data, list):
             logger.info("FMP financials: no income data for %s", ticker)
@@ -255,10 +259,10 @@ class FMPFinancialsConnector(DocumentConnector):
         for inc in income_data:
             date_str = inc.get("date", "")
             period_label = inc.get("period", "")  # "Q1", "Q2", etc.
-            cal_year = inc.get("calendarYear", "")
+            cal_year = inc.get("calendarYear") or inc.get("fiscalYear", "")
 
             try:
-                filing_date_str = inc.get("fillingDate") or inc.get("acceptedDate") or date_str
+                filing_date_str = inc.get("filingDate") or inc.get("fillingDate") or inc.get("acceptedDate") or date_str
                 published = datetime.strptime(filing_date_str[:10], "%Y-%m-%d")
             except (ValueError, AttributeError):
                 try:
@@ -292,7 +296,7 @@ class FMPFinancialsConnector(DocumentConnector):
                     "year": cal_year,
                     "revenue": inc.get("revenue"),
                     "net_income": inc.get("netIncome"),
-                    "eps": inc.get("epsdiluted") or inc.get("eps"),
+                    "eps": inc.get("epsDiluted") or inc.get("epsdiluted") or inc.get("eps"),
                     "gross_margin": (inc["grossProfit"] / inc["revenue"] * 100)
                         if inc.get("grossProfit") and inc.get("revenue") else None,
                     "operating_margin": (inc["operatingIncome"] / inc["revenue"] * 100)
@@ -300,7 +304,7 @@ class FMPFinancialsConnector(DocumentConnector):
                 },
             ))
 
-        logger.info("FMP financials: fetched %d quarters for %s", len(payloads), ticker, days)
+        logger.info("FMP financials: fetched %d quarters for %s (days=%d)", len(payloads), ticker, days)
         return payloads
 
 
@@ -407,13 +411,13 @@ class FMPEstimatesConnector(DocumentConnector):
 
         limit = max(4, days // 90)
 
-        estimates = _fmp_get(f"/analyst-estimates/{ticker}", {"period": "quarter", "limit": limit})
+        estimates = _fmp_get("/analyst-estimates", {"symbol": ticker, "period": "quarter", "limit": limit})
         if not estimates or not isinstance(estimates, list):
             logger.info("FMP estimates: no data for %s", ticker)
             return []
 
         # Get actuals from income statement for beat/miss comparison
-        income_data = _fmp_get(f"/income-statement/{ticker}", {"period": "quarter", "limit": limit})
+        income_data = _fmp_get("/income-statement", {"symbol": ticker, "period": "quarter", "limit": limit})
         actuals_by_date: dict[str, dict] = {}
         if income_data and isinstance(income_data, list):
             for inc in income_data:
@@ -441,5 +445,5 @@ class FMPEstimatesConnector(DocumentConnector):
                 metadata=metadata,
             ))
 
-        logger.info("FMP estimates: fetched %d periods for %s", len(payloads), ticker, days)
+        logger.info("FMP estimates: fetched %d periods for %s (days=%d)", len(payloads), ticker, days)
         return payloads

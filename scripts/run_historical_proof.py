@@ -35,11 +35,15 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from datetime import date
 
 # Add project root to path
 sys.path.insert(0, ".")
+
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 from db import get_session
 from historical_eval_config import HistoricalEvalConfig, HistoricalRunMode
