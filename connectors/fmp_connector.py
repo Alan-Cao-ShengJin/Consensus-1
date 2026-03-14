@@ -447,3 +447,86 @@ class FMPEstimatesConnector(DocumentConnector):
 
         logger.info("FMP estimates: fetched %d periods for %s (days=%d)", len(payloads), ticker, days)
         return payloads
+
+
+# ---------------------------------------------------------------------------
+# 4. Stock News
+# ---------------------------------------------------------------------------
+
+class FMPNewsConnector(DocumentConnector):
+    """Fetches stock news from FMP.
+
+    Uses /news/stock endpoint. The starter plan returns a general feed
+    (filtering by ticker may not work), so we filter client-side.
+    """
+
+    def __init__(self):
+        self._api_key = _fmp_api_key()
+
+    @property
+    def source_key(self) -> str:
+        return "news_fmp"
+
+    @property
+    def available(self) -> bool:
+        return bool(self._api_key)
+
+    def fetch(self, ticker: str, days: int = 7) -> list[DocumentPayload]:
+        if not self._api_key:
+            return []
+
+        # Fetch with ticker filter — FMP may or may not respect it
+        data = _fmp_get("/news/stock", {"tickers": ticker, "limit": 100})
+        if not data or not isinstance(data, list):
+            logger.info("FMP news: no data for %s", ticker)
+            return []
+
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        payloads = []
+
+        for item in data:
+            # Client-side ticker filter (FMP may return mixed symbols)
+            item_symbol = item.get("symbol", "")
+            if item_symbol and item_symbol.upper() != ticker.upper():
+                continue
+
+            date_str = item.get("publishedDate", "")
+            try:
+                published = datetime.strptime(date_str[:19], "%Y-%m-%d %H:%M:%S")
+            except (ValueError, AttributeError):
+                try:
+                    published = datetime.strptime(date_str[:10], "%Y-%m-%d")
+                except (ValueError, AttributeError):
+                    published = None
+
+            if published and published < cutoff:
+                continue
+
+            title = item.get("title", "")
+            text = item.get("text", "")
+            url = item.get("url", "")
+
+            if not title:
+                continue
+
+            raw_text = f"{title}\n\n{text}" if text else title
+
+            payloads.append(DocumentPayload(
+                source_key=self.source_key,
+                source_type=SourceType.NEWS,
+                source_tier=SourceTier.TIER_2,
+                ticker=ticker,
+                title=title,
+                url=url or None,
+                published_at=published,
+                author=item.get("site", "") or item.get("publisher", ""),
+                external_id=None,  # dedupe on content hash
+                raw_text=raw_text,
+                metadata={
+                    "source_site": item.get("site", ""),
+                    "publisher": item.get("publisher", ""),
+                },
+            ))
+
+        logger.info("FMP news: fetched %d articles for %s (days=%d)", len(payloads), ticker, days)
+        return payloads

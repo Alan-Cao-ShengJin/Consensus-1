@@ -179,6 +179,22 @@ _register(SourceConfig(
     notes="FMP analyst consensus estimates. Beat/miss comparison drives conviction.",
 ))
 
+_register(SourceConfig(
+    key="news_fmp",
+    source_type=SourceType.NEWS,
+    source_tier=SourceTier.TIER_2,
+    provider="fmp",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=30,
+    dedupe_key="content_hash",
+    api_key_env_var="FMP_API_KEY",
+    rate_limit_per_second=5.0,
+    notes="FMP stock news feed. May return general feed on starter plan.",
+))
+
 # --- Press Releases ---
 
 _register(SourceConfig(

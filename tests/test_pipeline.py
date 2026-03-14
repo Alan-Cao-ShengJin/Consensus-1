@@ -29,7 +29,7 @@ from connectors.google_rss import GoogleRSSConnector
 from connectors.pr_rss import PRRSSConnector
 from connectors.newsapi_connector import NewsAPIConnector
 from connectors.finnhub_connector import FinnhubNewsConnector
-from connectors.fmp_connector import FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector
+from connectors.fmp_connector import FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector, FMPNewsConnector
 from connectors.yfinance_prices import YFinancePriceUpdater
 from connectors.yfinance_calendar import YFinanceCalendarUpdater
 from connectors.yfinance_ticker_info import YFinanceTickerInfoUpdater
@@ -105,6 +105,7 @@ def _all_connector_patches(
     sec_return=None, google_return=None, pr_return=None,
     finnhub_return=None, fmp_transcript_return=None,
     fmp_financials_return=None, fmp_estimates_return=None,
+    fmp_news_return=None,
 ):
     """Return context managers mocking all document connectors + non-doc updaters."""
     return [
@@ -115,6 +116,7 @@ def _all_connector_patches(
         patch.object(FMPTranscriptConnector, 'fetch', return_value=fmp_transcript_return or []),
         patch.object(FMPFinancialsConnector, 'fetch', return_value=fmp_financials_return or []),
         patch.object(FMPEstimatesConnector, 'fetch', return_value=fmp_estimates_return or []),
+        patch.object(FMPNewsConnector, 'fetch', return_value=fmp_news_return or []),
     ] + _nondoc_patches()
 
 

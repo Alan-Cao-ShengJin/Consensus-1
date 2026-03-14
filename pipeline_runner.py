@@ -128,11 +128,13 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
     if finnhub.available:
         all_connectors.append(finnhub)
 
-    # FMP connectors (transcripts, financials, estimates)
+    # FMP connectors (transcripts, financials, estimates, news)
     from connectors.fmp_connector import (
         FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector,
+        FMPNewsConnector,
     )
-    for ConnCls in (FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector):
+    for ConnCls in (FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector,
+                    FMPNewsConnector):
         conn = ConnCls()
         if conn.available:
             all_connectors.append(conn)
