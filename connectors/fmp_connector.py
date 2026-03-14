@@ -333,23 +333,26 @@ def _format_estimates_summary(
         lines = [f"{ticker} Analyst Consensus Estimates — {date_str}"]
         lines.append("=" * 50)
 
-        est_rev = est.get("estimatedRevenueAvg")
-        est_eps = est.get("estimatedEpsAvg")
-        est_ebitda = est.get("estimatedEbitdaAvg")
-        est_ni = est.get("estimatedNetIncomeAvg")
+        # Stable API uses revenueAvg/epsAvg; legacy used estimatedRevenueAvg
+        est_rev = est.get("revenueAvg") or est.get("estimatedRevenueAvg")
+        est_eps = est.get("epsAvg") or est.get("estimatedEpsAvg")
+        est_ebitda = est.get("ebitdaAvg") or est.get("estimatedEbitdaAvg")
+        est_ni = est.get("netIncomeAvg") or est.get("estimatedNetIncomeAvg")
 
-        num_analysts = est.get("numberAnalystEstimatedRevenue") or est.get("numberAnalystsEstimatedRevenue")
+        num_analysts = (est.get("numAnalystsRevenue")
+                        or est.get("numberAnalystEstimatedRevenue")
+                        or est.get("numberAnalystsEstimatedRevenue"))
 
         if est_rev:
             lines.append(f"Revenue Estimate (consensus): ${est_rev / 1e9:.2f}B")
-            rev_low = est.get("estimatedRevenueLow")
-            rev_high = est.get("estimatedRevenueHigh")
+            rev_low = est.get("revenueLow") or est.get("estimatedRevenueLow")
+            rev_high = est.get("revenueHigh") or est.get("estimatedRevenueHigh")
             if rev_low and rev_high:
                 lines.append(f"  Range: ${rev_low / 1e9:.2f}B — ${rev_high / 1e9:.2f}B")
         if est_eps:
             lines.append(f"EPS Estimate (consensus): ${est_eps:.2f}")
-            eps_low = est.get("estimatedEpsLow")
-            eps_high = est.get("estimatedEpsHigh")
+            eps_low = est.get("epsLow") or est.get("estimatedEpsLow")
+            eps_high = est.get("epsHigh") or est.get("estimatedEpsHigh")
             if eps_low and eps_high:
                 lines.append(f"  Range: ${eps_low:.2f} — ${eps_high:.2f}")
         if est_ebitda:
@@ -409,15 +412,20 @@ class FMPEstimatesConnector(DocumentConnector):
         if not self._api_key:
             return []
 
-        limit = max(4, days // 90)
+        limit = max(3, days // 365 + 1)
 
-        estimates = _fmp_get("/analyst-estimates", {"symbol": ticker, "period": "quarter", "limit": limit})
+        # Use annual period (quarterly requires higher FMP plan)
+        estimates = _fmp_get("/analyst-estimates", {
+            "symbol": ticker, "period": "annual", "page": 0, "limit": limit,
+        })
         if not estimates or not isinstance(estimates, list):
             logger.info("FMP estimates: no data for %s", ticker)
             return []
 
-        # Get actuals from income statement for beat/miss comparison
-        income_data = _fmp_get("/income-statement", {"symbol": ticker, "period": "quarter", "limit": limit})
+        # Get actuals from annual income statement for beat/miss comparison
+        income_data = _fmp_get("/income-statement", {
+            "symbol": ticker, "period": "annual", "limit": limit,
+        })
         actuals_by_date: dict[str, dict] = {}
         if income_data and isinstance(income_data, list):
             for inc in income_data:
