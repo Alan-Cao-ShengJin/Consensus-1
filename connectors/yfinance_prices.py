@@ -16,7 +16,8 @@ class YFinancePriceUpdater(NonDocumentUpdater):
     def source_key(self) -> str:
         return "price_daily"
 
-    def update(self, session, ticker: str, days: int = 30, dry_run: bool = False) -> NonDocumentResult:
+    def update(self, session, ticker: str, days: int = 30, dry_run: bool = False,
+               start_date=None, end_date=None) -> NonDocumentResult:
         result = NonDocumentResult(source_key=self.source_key, ticker=ticker)
 
         try:
@@ -26,10 +27,16 @@ class YFinancePriceUpdater(NonDocumentUpdater):
             return result
 
         try:
-            end = datetime.utcnow()
-            start = end - timedelta(days=days)
+            if start_date and end_date:
+                start_str = start_date.strftime("%Y-%m-%d") if hasattr(start_date, 'strftime') else str(start_date)
+                end_str = end_date.strftime("%Y-%m-%d") if hasattr(end_date, 'strftime') else str(end_date)
+            else:
+                end = datetime.utcnow()
+                start = end - timedelta(days=days)
+                start_str = start.strftime("%Y-%m-%d")
+                end_str = end.strftime("%Y-%m-%d")
             tk = yf.Ticker(ticker)
-            hist = tk.history(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
+            hist = tk.history(start=start_str, end=end_str)
         except Exception as e:
             result.errors.append(f"yfinance fetch failed: {e}")
             return result

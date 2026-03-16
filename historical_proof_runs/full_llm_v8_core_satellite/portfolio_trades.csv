@@ -1,0 +1,44 @@
+trade_date,ticker,action,shares,price,notional,reason
+2025-07-31,SPY,initiate,1511.5948,628.48,950000.0,Core position: 95% allocation to SPY
+2025-08-22,SPY,trim,-12.6402,641.63,8110.33,Sell core to fund satellite position
+2025-08-22,AMD,initiate,340.1307,167.76,57060.33,"All entry gates passed — conviction 82, thesis strengthening"
+2025-08-22,SPY,trim,-84.2623,641.63,54065.24,Sell core to fund satellite position
+2025-08-22,META,initiate,71.6391,753.67,53992.01,"All entry gates passed — conviction 80, thesis strengthening"
+2025-08-22,SPY,trim,-71.6055,641.63,45944.25,Sell core to fund satellite position
+2025-08-22,MSFT,initiate,90.7574,505.13,45844.25,"All entry gates passed — conviction 72, thesis strengthening"
+2025-10-03,SPY,trim,-39.4713,667.24,26336.74,Sell core to fund satellite position
+2025-10-03,AMD,add,159.379,164.67,26244.95,Winner with strong conviction and attractive valuation — add
+2025-11-14,SPY,trim,-22.7691,669.95,15254.17,Sell core to fund satellite position
+2025-11-14,AMD,add,-61.5923,246.81,15201.59,Winner with strong conviction and attractive valuation — add
+2025-11-21,META,trim,-34.2298,593.77,20324.51,Stop-loss TRIM: position -21.9% below cost basis (threshold -20%)
+2025-11-28,SPY,trim,-52.4745,681.38,35754.91,Sell core to fund satellite position
+2025-11-28,NVDA,initiate,316.5807,176.98,56028.64,"All entry gates passed — conviction 79, thesis strengthening"
+2025-12-19,SPY,trim,-19.5193,680.59,13284.66,Sell core to fund satellite position
+2025-12-19,META,add,20.0265,658.77,13192.87,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-26,SPY,trim,-31.076,690.31,21452.05,Sell core to fund satellite position
+2025-12-26,NVDA,add,112.4585,190.52,21425.57,Winner with strong conviction and attractive valuation — add
+2026-01-02,SPY,trim,-109.0575,683.17,74504.8,Sell core to fund satellite position
+2026-01-02,AAPL,initiate,274.8333,270.76,74412.96,"All entry gates passed — conviction 95, thesis strengthening"
+2026-01-02,SPY,trim,-31.2833,683.17,21371.81,Sell core to fund satellite position
+2026-01-02,NVDA,add,112.645,188.84,21271.86,Winner with strong conviction and attractive valuation — add
+2026-01-09,SPY,trim,-7.946,694.07,5515.08,Sell core to fund satellite position
+2026-01-09,NVDA,add,29.6047,184.85,5472.43,Winner with strong conviction and attractive valuation — add
+2026-01-16,SPY,trim,-0.1931,691.66,133.59,Sell core to fund satellite position
+2026-01-16,NVDA,add,-0.6584,186.22,122.6,Winner with strong conviction and attractive valuation — add
+2026-01-16,SPY,trim,-10.0061,691.66,6920.85,Sell core to fund satellite position
+2026-01-16,AMD,add,29.852,231.83,6920.59,Winner with strong conviction and attractive valuation — add
+2026-01-30,SPY,trim,-1.5305,691.97,1059.03,Sell core to fund satellite position
+2026-01-30,NVDA,add,-5.4688,191.12,1045.19,Winner with strong conviction and attractive valuation — add
+2026-01-30,SPY,trim,-19.4126,691.97,13432.97,Sell core to fund satellite position
+2026-01-30,AAPL,add,51.8091,259.24,13430.86,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-06,AMD,exit,-467.7695,208.44,97501.88,Trailing stop EXIT: -25.9% from 90-day peak (threshold -25%)
+2026-02-06,MSFT,trim,-52.8108,400.23,21136.26,Stop-loss TRIM: position -22.2% below cost basis (threshold -20%)
+2026-02-06,META,add,19.9708,661.46,13209.9,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-06,SPY,add,80.1737,690.62,55369.53,Reinvest proceeds to core
+2026-02-13,MSFT,trim,-11.9358,400.41,4779.17,Stop-loss TRIM: position -20.6% below cost basis (threshold -20%)
+2026-02-13,SPY,add,6.9219,681.75,4719.02,Reinvest proceeds to core
+2026-02-20,MSFT,trim,-0.2058,397.23,81.75,Stop-loss TRIM: position -21.1% below cost basis (threshold -20%)
+2026-02-20,SPY,add,0.1116,689.43,76.95,Reinvest proceeds to core
+2026-02-27,MSFT,trim,-0.4154,392.74,163.15,Stop-loss TRIM: position -20.5% below cost basis (threshold -20%)
+2026-02-27,SPY,trim,-33.2894,685.99,22836.17,Sell core to fund satellite position
+2026-02-27,AMD,initiate,364.1131,200.21,72899.08,"All entry gates passed — conviction 98, thesis strengthening"

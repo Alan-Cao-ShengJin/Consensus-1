@@ -1,0 +1,56 @@
+trade_date,ticker,action,shares,price,notional,reason
+2024-07-31,SPY,initiate,1756.2298,540.93,950000.0,Core position: 95% allocation to SPY
+2024-08-01,AVGO,initiate,251.779,144.84,36467.09,"All entry gates passed — conviction 72, thesis strengthening"
+2024-08-01,SPY,trim,-13.623,533.27,7264.77,Sell core to fund satellite position
+2024-08-01,AMD,initiate,148.719,132.54,19711.21,"All entry gates passed — conviction 58, thesis strengthening (claim impact: +1.5%)"
+2024-08-01,SPY,trim,-37.0124,533.27,19737.65,Sell core to fund satellite position
+2024-08-01,NVDA,initiate,180.5711,109.16,19710.67,"All entry gates passed — conviction 50, thesis forming"
+2024-08-08,NVDA,exit,-180.5711,104.92,18945.41,Trailing stop EXIT: -27.0% from 90-day peak (threshold -25%)
+2024-08-08,AMD,exit,-148.719,136.32,20273.37,Trailing stop EXIT: -30.1% from 90-day peak (threshold -25%)
+2024-08-08,AVGO,exit,-251.779,143.58,36149.6,Trailing stop EXIT: -25.3% from 90-day peak (threshold -25%)
+2024-08-08,GOOGL,initiate,161.8117,160.89,26033.27,"All entry gates passed — conviction 65, thesis weakening (claim impact: +33.4%)"
+2024-08-08,QCOM,initiate,121.5428,158.66,19283.38,"All entry gates passed — conviction 50, thesis forming (claim impact: +3.1%)"
+2024-08-08,MSFT,initiate,48.5329,397.32,19282.99,"All entry gates passed — conviction 50, thesis forming"
+2024-08-15,QCOM,exit,-121.5428,166.72,20264.21,Trailing stop EXIT: -26.4% from 90-day peak (threshold -25%)
+2024-08-15,SPY,trim,-4.1983,543.15,2280.32,Sell core to fund satellite position
+2024-08-15,CRWD,initiate,127.1204,260.49,33113.59,"All entry gates passed — conviction 69, thesis strengthening"
+2024-08-15,SPY,trim,-37.0128,543.15,20103.53,Sell core to fund satellite position
+2024-08-15,AAPL,initiate,89.8895,223.25,20068.13,"All entry gates passed — conviction 56, thesis strengthening"
+2024-08-15,SPY,trim,-37.0201,543.15,20107.5,Sell core to fund satellite position
+2024-08-15,AMZN,initiate,112.9981,177.59,20067.33,"All entry gates passed — conviction 50, thesis forming"
+2024-08-22,CRWD,exit,-127.1204,267.64,34022.5,Trailing stop EXIT: -30.3% from 90-day peak (threshold -25%)
+2024-08-22,TSLA,initiate,95.8124,210.66,20183.84,"All entry gates passed — conviction 52, thesis strengthening"
+2024-08-29,SPY,trim,-43.2031,548.34,23689.81,Sell core to fund satellite position
+2024-08-29,AVGO,initiate,242.1341,154.6,37434.08,"All entry gates passed — conviction 72, thesis strengthening"
+2024-08-29,SPY,trim,-53.616,548.34,29399.58,Sell core to fund satellite position
+2024-08-29,NVDA,initiate,249.6182,117.53,29338.45,"All entry gates passed — conviction 66, thesis strengthening (claim impact: +1.1%)"
+2024-08-29,SPY,trim,-49.9188,548.34,27372.26,Sell core to fund satellite position
+2024-08-29,AMD,initiate,187.7347,145.49,27313.53,"All entry gates passed — conviction 65, thesis strengthening"
+2024-09-05,SPY,trim,-51.7417,539.75,27927.72,Sell core to fund satellite position
+2024-09-05,META,initiate,54.193,514.33,27873.04,"All entry gates passed — conviction 66, thesis strengthening"
+2024-09-05,SPY,trim,-36.9873,539.75,19964.0,Sell core to fund satellite position
+2024-09-05,QCOM,initiate,125.7891,158.27,19908.2,"All entry gates passed — conviction 57, thesis strengthening"
+2024-09-12,QCOM,exit,-125.7891,159.5,20063.86,Trailing stop EXIT: -26.3% from 90-day peak (threshold -25%)
+2024-09-12,AMD,add,101.3187,150.77,15275.82,Winner with strong conviction and attractive valuation — add
+2024-09-19,SPY,trim,-58.5353,560.74,32823.05,Sell core to fund satellite position
+2024-09-19,CRWD,initiate,135.323,277.38,37535.88,"All entry gates passed — conviction 71, thesis strengthening"
+2024-09-19,SPY,trim,-28.0152,560.74,15709.25,Sell core to fund satellite position
+2024-09-19,AMD,add,99.776,156.74,15638.9,Winner with strong conviction and attractive valuation — add
+2024-09-26,CRWD,exit,-135.323,281.48,38090.71,Trailing stop EXIT: -26.9% from 90-day peak (threshold -25%)
+2024-09-26,NVDA,add,127.8142,123.99,15847.78,Winner with strong conviction and attractive valuation — add
+2024-09-26,AMD,add,94.6178,167.49,15847.54,Winner with strong conviction and attractive valuation — add
+2024-10-03,SPY,trim,-26.0995,559.35,14598.69,Sell core to fund satellite position
+2024-10-03,QCOM,initiate,127.9318,163.31,20892.94,"All entry gates passed — conviction 57, thesis strengthening"
+2024-10-03,SPY,trim,-28.0768,559.35,15704.67,Sell core to fund satellite position
+2024-10-03,AMD,add,96.2185,162.85,15669.18,Winner with strong conviction and attractive valuation — add
+2024-10-10,SPY,trim,-13.6003,567.53,7718.63,Sell core to fund satellite position
+2024-10-10,AMD,add,46.8221,164.18,7687.26,Winner with strong conviction and attractive valuation — add
+2024-11-21,SPY,trim,-27.6343,584.81,16160.83,Sell core to fund satellite position
+2024-11-21,AMZN,add,81.3863,198.38,16145.42,Winner with strong conviction and attractive valuation — add
+2024-12-19,AMD,trim,-182.4413,118.88,21688.62,Stop-loss TRIM: position -21.9% below cost basis (threshold -20%)
+2024-12-19,QCOM,trim,-55.6946,146.17,8140.8,Thesis weakening with conviction 38 — trim
+2024-12-19,AMZN,add,72.8471,223.29,16266.02,Winner with strong conviction and attractive valuation — add
+2024-12-26,AMD,exit,-444.0466,125.06,55532.46,Trailing stop EXIT: -26.9% from 90-day peak (threshold -25%)
+2024-12-26,QCOM,trim,-0.3696,154.07,56.95,Thesis weakening with conviction 38 — trim
+2024-12-26,NVDA,add,120.4752,139.88,16852.57,Winner with strong conviction and attractive valuation — add
+2024-12-26,SPY,add,3.7846,594.36,2249.4,Reinvest proceeds to core

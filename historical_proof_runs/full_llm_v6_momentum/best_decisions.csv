@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2026-01-08,AMD,exit,95.1,86.0,high,204.68,7.96,23.48,,Trailing stop EXIT: -22.6% from 90-day peak (threshold -20%)
+2025-10-09,AMD,add,88.5,55.0,high,232.89,-6.35,13.5,-5.06,Winner with strong conviction and attractive valuation — add
+2026-01-22,AAPL,exit,95.3,88.0,high,248.12,3.99,11.04,,Stop-loss EXIT: position -25.3% below cost basis (threshold -25%)
+2025-11-20,META,trim,92.6,75.0,high,588.67,7.99,10.35,5.36,Stop-loss TRIM: position -22.6% below cost basis (threshold -15%)
+2025-10-23,AMD,add,88.5,55.0,high,234.99,9.8,10.17,-8.53,Winner with strong conviction and attractive valuation — add
+2026-02-05,AMD,trim,97.4,75.0,high,192.5,10.95,9.54,,Stop-loss TRIM: position -19.2% below cost basis (threshold -15%)
+2025-10-16,AMD,add,88.5,55.0,high,234.56,1.48,9.28,-11.5,Winner with strong conviction and attractive valuation — add
+2025-07-31,AAPL,initiate,57.9,57.9,medium,206.94,-2.24,9.01,22.71,"All entry gates passed — conviction 58, thesis strengthening"
+2025-11-20,AMD,exit,95.2,86.0,high,206.02,0.05,7.48,12.53,Trailing stop EXIT: -22.1% from 90-day peak (threshold -20%)
+2025-09-18,NVDA,trim,37.2,55.0,low,176.22,1.24,7.3,5.88,Thesis weakening with conviction 37 — trim

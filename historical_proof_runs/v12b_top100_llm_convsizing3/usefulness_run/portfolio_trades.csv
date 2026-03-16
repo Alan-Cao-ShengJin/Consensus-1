@@ -1,0 +1,51 @@
+trade_date,ticker,action,shares,price,notional,reason
+2024-07-31,SPY,initiate,1756.2301,540.93,950000.0,Core position: 95% allocation to SPY
+2024-08-01,SPY,trim,-28.8296,533.27,15373.98,Sell core to fund satellite position
+2024-08-01,AVGO,initiate,442.3146,144.84,64063.82,"All entry gates passed — conviction 77, thesis strengthening"
+2024-08-01,SPY,trim,-92.4827,533.27,49318.36,Sell core to fund satellite position
+2024-08-01,NVDA,initiate,451.4205,109.16,49275.89,"All entry gates passed — conviction 67, thesis strengthening"
+2024-08-01,SPY,trim,-46.2663,533.27,24672.47,Sell core to fund satellite position
+2024-08-01,MSFT,initiate,59.8609,411.55,24635.48,"All entry gates passed — conviction 50, thesis forming (claim impact: +2.8%)"
+2024-08-08,SPY,trim,-77.763,521.13,40524.89,Sell core to fund satellite position
+2024-08-08,MU,initiate,441.697,91.55,40436.08,"All entry gates passed — conviction 61, thesis strengthening (claim impact: +2.7%)"
+2024-08-08,SPY,trim,-88.8529,521.13,46304.17,Sell core to fund satellite position
+2024-08-08,ORCL,initiate,363.6551,127.07,46208.78,"All entry gates passed — conviction 66, thesis strengthening"
+2024-08-08,SPY,trim,-46.2491,521.13,24101.91,Sell core to fund satellite position
+2024-08-08,AAPL,initiate,113.6884,211.67,24064.76,"All entry gates passed — conviction 50, thesis forming (claim impact: +4.2%)"
+2024-08-15,MU,exit,-441.697,106.34,46971.21,Trailing stop EXIT: -34.5% from 90-day peak (threshold -30%)
+2024-08-15,AMD,initiate,284.2342,147.36,41884.76,"All entry gates passed — conviction 61, thesis strengthening"
+2024-08-15,SPY,trim,-43.5698,543.15,23664.97,Sell core to fund satellite position
+2024-08-15,CSCO,initiate,612.468,46.7,28603.05,"All entry gates passed — conviction 52, thesis weakening (claim impact: +3.5%)"
+2024-08-15,SPY,trim,-28.2451,543.15,15341.35,Sell core to fund satellite position
+2024-08-15,ORCL,add,113.5652,134.92,15322.28,Winner with strong conviction and attractive valuation — add
+2024-08-15,SPY,trim,-37.6921,543.15,20472.52,Sell core to fund satellite position
+2024-08-15,AVGO,add,124.8234,163.66,20429.09,Winner with strong conviction and attractive valuation — add
+2024-08-15,SPY,trim,-28.2598,543.15,15349.34,Sell core to fund satellite position
+2024-08-15,NVDA,add,124.7647,122.8,15321.21,Winner with strong conviction and attractive valuation — add
+2024-08-15,SPY,trim,-47.1154,543.15,25590.78,Sell core to fund satellite position
+2024-08-15,AMAT,initiate,122.4221,208.58,25534.58,"All entry gates passed — conviction 50, thesis forming"
+2024-08-22,SPY,trim,-129.7088,546.24,70852.74,Sell core to fund satellite position
+2024-08-22,LRCX,initiate,859.8431,82.21,70688.73,"All entry gates passed — conviction 79, thesis forming"
+2024-08-22,SPY,trim,-28.1343,546.24,15368.22,Sell core to fund satellite position
+2024-08-22,AMD,add,101.2854,151.7,15364.99,Winner with strong conviction and attractive valuation — add
+2024-08-22,SPY,trim,-69.5407,546.24,37986.25,Sell core to fund satellite position
+2024-08-22,INTC,initiate,1885.5313,20.1,37899.18,"All entry gates passed — conviction 58, thesis weakening"
+2024-08-22,SPY,trim,-28.1613,546.24,15382.94,Sell core to fund satellite position
+2024-08-22,MSFT,add,37.4037,410.75,15363.39,Winner with strong conviction and attractive valuation — add
+2024-08-22,SPY,trim,-20.3686,546.24,11126.26,Sell core to fund satellite position
+2024-08-22,AVGO,add,69.4438,159.93,11106.15,Winner with strong conviction and attractive valuation — add
+2024-08-22,SPY,trim,-28.1842,546.24,15395.47,Sell core to fund satellite position
+2024-08-22,NVDA,add,124.2121,123.68,15362.6,Winner with strong conviction and attractive valuation — add
+2024-08-29,INTC,exit,-1885.5313,20.13,37955.74,Trailing stop EXIT: -43.4% from 90-day peak (threshold -30%)
+2024-09-05,LRCX,exit,-859.8431,74.36,63938.96,Trailing stop EXIT: -32.2% from 90-day peak (threshold -30%)
+2024-09-05,PLTR,initiate,1898.9761,30.16,57273.12,"All entry gates passed — conviction 72, thesis strengthening"
+2024-09-12,MSFT,add,36.8219,422.06,15541.15,Winner with strong conviction and attractive valuation — add
+2024-09-12,AMD,add,103.077,150.77,15540.92,Winner with strong conviction and attractive valuation — add
+2024-09-12,SPY,trim,-9.723,549.06,5338.54,Sell core to fund satellite position
+2024-09-12,TXN,initiate,99.5386,187.35,18648.83,"All entry gates passed — conviction 45, thesis weakening"
+2024-11-21,SPY,trim,-5.9106,584.81,3456.56,Sell core to fund satellite position
+2024-11-21,PLTR,add,-56.5599,61.36,3470.52,Winner with strong conviction and attractive valuation — add
+2024-12-12,SPY,trim,-26.6298,595.31,15853.04,Sell core to fund satellite position
+2024-12-12,PLTR,add,-216.0554,73.2,15815.25,Winner with strong conviction and attractive valuation — add
+2024-12-19,AMAT,trim,-54.7503,159.64,8740.39,Stop-loss TRIM: position -21.6% below cost basis (threshold -20%)
+2024-12-26,AMAT,trim,-3.7988,165.68,629.4,Stop-loss TRIM: position -20.2% below cost basis (threshold -20%)

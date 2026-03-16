@@ -1,0 +1,32 @@
+review_date,ticker,event_type,prior_weight,new_weight,delta_weight,conviction_before,conviction_after,rationale_summary,forward_5d_pct,forward_20d_pct,forward_60d_pct
+2024-07-31,AVGO,initiate,0.0,6.95,6.95,0.0,77.0,"All entry gates passed — conviction 77, thesis strengthening",-11.58,3.28,7.83
+2024-07-31,NVDA,initiate,0.0,5.24,5.24,0.0,66.6,"All entry gates passed — conviction 67, thesis strengthening",-14.16,8.74,3.75
+2024-07-31,MSFT,initiate,0.0,2.45,2.45,0.0,50.0,"All entry gates passed — conviction 50, thesis forming (claim impact: +2.8%)",-5.55,1.72,2.5
+2024-08-07,MU,initiate,0.0,4.08,4.08,48.8,61.2,"All entry gates passed — conviction 61, thesis strengthening (claim impact: +2.7%)",9.03,12.74,17.8
+2024-08-07,ORCL,initiate,0.0,4.82,4.82,65.7,65.7,"All entry gates passed — conviction 66, thesis strengthening",5.31,9.99,35.71
+2024-08-07,AAPL,initiate,0.0,2.53,2.53,0.0,50.0,"All entry gates passed — conviction 50, thesis forming (claim impact: +4.2%)",3.79,8.8,8.22
+2024-08-14,MU,exit,4.08,0.0,-4.08,61.2,58.8,Trailing stop EXIT: -34.5% from 90-day peak (threshold -30%),8.19,-11.78,6.6
+2024-08-14,AMD,initiate,0.0,4.01,4.01,60.9,60.9,"All entry gates passed — conviction 61, thesis strengthening",10.32,-2.71,19.28
+2024-08-14,CSCO,initiate,0.0,2.69,2.69,65.7,52.3,"All entry gates passed — conviction 52, thesis weakening (claim impact: +3.5%)",9.99,10.17,20.3
+2024-08-14,ORCL,add,4.82,6.4,1.57,65.7,65.7,Winner with strong conviction and attractive valuation — add,1.71,2.88,29.92
+2024-08-14,AVGO,add,6.35,8.84,2.49,77.0,77.0,Winner with strong conviction and attractive valuation — add,6.35,-3.11,15.47
+2024-08-14,NVDA,add,4.77,6.82,2.05,66.6,66.6,Winner with strong conviction and attractive valuation — add,10.09,-8.54,14.17
+2024-08-14,AMAT,initiate,0.0,2.44,2.44,50.0,50.0,"All entry gates passed — conviction 50, thesis forming",4.62,-8.88,1.9
+2024-08-21,LRCX,initiate,0.0,7.07,7.07,79.5,79.5,"All entry gates passed — conviction 79, thesis forming",-6.23,-16.23,-16.34
+2024-08-21,AMD,add,4.01,5.82,1.81,60.9,62.5,Winner with strong conviction and attractive valuation — add,-4.96,-9.49,-1.17
+2024-08-21,INTC,initiate,0.0,3.86,3.86,58.0,58.0,"All entry gates passed — conviction 58, thesis weakening",-5.98,-11.35,6.35
+2024-08-21,MSFT,add,2.47,3.9,1.43,50.0,61.5,Winner with strong conviction and attractive valuation — add,-2.51,-2.34,-1.41
+2024-08-21,AVGO,add,8.84,9.95,1.11,77.0,77.0,Winner with strong conviction and attractive valuation — add,-3.72,-10.6,8.87
+2024-08-21,NVDA,add,6.82,8.61,1.79,66.6,66.6,Winner with strong conviction and attractive valuation — add,-1.59,-15.88,7.4
+2024-08-28,INTC,exit,3.86,0.0,-3.86,58.0,51.1,Trailing stop EXIT: -43.4% from 90-day peak (threshold -30%),12.39,9.48,15.66
+2024-09-04,LRCX,exit,6.69,0.0,-6.69,50.0,70.4,Trailing stop EXIT: -32.2% from 90-day peak (threshold -30%),-3.94,3.8,-1.85
+2024-09-04,PLTR,initiate,0.0,5.87,5.87,71.8,71.8,"All entry gates passed — conviction 72, thesis strengthening",13.11,20.63,37.04
+2024-09-11,MSFT,add,3.97,5.48,1.5,64.1,64.1,Winner with strong conviction and attractive valuation — add,1.96,-0.56,-0.12
+2024-09-11,AMD,add,5.49,7.15,1.66,65.1,65.1,Winner with strong conviction and attractive valuation — add,1.48,6.6,-1.27
+2024-09-11,TXN,initiate,0.0,1.88,1.88,45.2,45.2,"All entry gates passed — conviction 45, thesis weakening",-1.95,-0.4,9.55
+2024-11-20,PLTR,add,9.94,10.06,0.11,73.8,70.8,Winner with strong conviction and attractive valuation — add,4.07,14.12,
+2024-12-11,PLTR,add,10.91,10.3,-0.61,73.8,73.8,Winner with strong conviction and attractive valuation — add,4.47,4.3,
+2024-12-18,AMAT,trim,1.81,0.98,-0.83,56.5,60.4,Stop-loss TRIM: position -21.6% below cost basis (threshold -20%),1.21,,
+2024-12-25,AMAT,trim,0.98,0.89,-0.09,60.4,62.9,Stop-loss TRIM: position -20.2% below cost basis (threshold -20%),-2.81,,
+2025-01-01,AMD,exit,5.19,5.14,-0.04,66.1,66.1,Trailing stop EXIT: -30.1% from 90-day peak (threshold -30%),,,
+2025-01-01,AMAT,trim,0.89,0.9,0.0,62.9,62.9,Stop-loss TRIM: position -22.9% below cost basis (threshold -20%),,,

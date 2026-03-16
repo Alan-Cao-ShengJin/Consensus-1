@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-08-21,CRWD,exit,69.4,86.0,high,273.21,-2.69,-9.32,13.52,Trailing stop EXIT: -30.3% from 90-day peak (threshold -25%)
+2024-08-28,NVDA,initiate,66.2,68.5,high,125.55,-4.97,-7.97,12.69,"All entry gates passed — conviction 66, thesis strengthening (claim impact: +1.1%)"
+2024-10-02,AMD,add,64.7,55.0,medium,159.78,7.0,-3.56,-14.14,Winner with strong conviction and attractive valuation — add
+2024-09-25,AMD,add,64.7,55.0,medium,162.02,1.27,-3.32,-14.61,Winner with strong conviction and attractive valuation — add
+2024-10-09,AMD,add,64.7,55.0,medium,171.02,-3.36,-2.79,-18.96,Winner with strong conviction and attractive valuation — add
+2024-08-14,QCOM,exit,54.6,86.0,medium,160.77,4.25,-2.34,2.22,Trailing stop EXIT: -26.4% from 90-day peak (threshold -25%)
+2024-09-11,QCOM,exit,56.9,86.0,medium,161.03,0.03,-0.47,2.61,Trailing stop EXIT: -26.3% from 90-day peak (threshold -25%)
+2024-08-14,AAPL,initiate,56.0,56.0,medium,220.27,1.88,0.47,2.63,"All entry gates passed — conviction 56, thesis strengthening"
+2024-08-21,TSLA,initiate,51.5,51.5,medium,223.27,-4.51,1.3,-1.15,"All entry gates passed — conviction 52, thesis strengthening"
+2024-09-04,QCOM,initiate,56.9,56.9,medium,159.02,-2.26,1.5,0.48,"All entry gates passed — conviction 57, thesis strengthening"

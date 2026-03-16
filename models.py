@@ -469,6 +469,31 @@ class EvidenceAssessment(Base):
     assessed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# ---------- Step 8.2: Claim Impact Profiling ----------
+
+class ClaimOutcome(Base):
+    """Realized market impact of a claim: forward returns after publication.
+
+    Built from (claim, ticker, price_data) to measure what actually happened
+    after a claim hit the market. Used to learn which claim types are predictive.
+    """
+    __tablename__ = "claim_outcomes"
+    __table_args__ = (
+        UniqueConstraint("claim_id", "ticker", name="uq_claim_outcome"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), nullable=False, index=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    published_date: Mapped[date] = mapped_column(Date, nullable=False)
+    price_at_claim: Mapped[float] = mapped_column(Float, nullable=False)
+    forward_5d_pct: Mapped[Optional[float]] = mapped_column(Float)
+    forward_20d_pct: Mapped[Optional[float]] = mapped_column(Float)
+    claim_type: Mapped[Optional[str]] = mapped_column(String(50))
+    direction: Mapped[Optional[str]] = mapped_column(String(20))
+    computed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+
 # ---------- Step 9: Execution Artifacts ----------
 
 class ExecutionIntentRecord(Base):

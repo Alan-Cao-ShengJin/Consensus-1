@@ -13,6 +13,13 @@ Rules:
 - Do NOT summarize the document as a whole.
 - Every claim must conform exactly to the JSON schema provided.
 - Output ONLY a JSON array of claim objects. No prose, no markdown, no explanation.
+
+CRITICAL TEMPORAL CONSTRAINT:
+- You MUST treat the document's publication date as "today" for the purpose of extraction.
+- Extract claims ONLY based on information contained in the document itself.
+- Do NOT incorporate, reference, or be influenced by knowledge of events that occurred AFTER the document's publication date.
+- Do NOT adjust claim strength, direction, or confidence based on what you know happened after publication.
+- If the document discusses forward-looking expectations, extract them as stated — do NOT evaluate them against actual outcomes.
 """
 
 USER_PROMPT_TEMPLATE = """\
@@ -22,6 +29,9 @@ Extract atomic investable claims from the document below.
 - Source type: {source_type}
 - Primary company ticker: {primary_company_ticker}
 - Title: {title}
+- Publication date: {document_date}
+
+IMPORTANT: This document was published on {document_date}. Extract claims as they would have been understood on that date only.
 
 ## Extraction schema
 Each claim must be a JSON object with these fields:
@@ -61,6 +71,7 @@ def build_extraction_messages(
         source_type=metadata.get("source_type", "unknown"),
         primary_company_ticker=metadata.get("primary_company_ticker", "N/A"),
         title=metadata.get("title", "Untitled"),
+        document_date=metadata.get("document_date", "unknown"),
         document_text=clean_text,
     )
     return [

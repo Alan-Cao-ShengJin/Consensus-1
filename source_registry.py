@@ -198,6 +198,20 @@ _register(SourceConfig(
 # --- Alpha Vantage ---
 
 _register(SourceConfig(
+    key="earnings_transcript_defeatbeta",
+    source_type=SourceType.EARNINGS_TRANSCRIPT,
+    source_tier=SourceTier.TIER_1,
+    provider="defeatbeta",
+    pull_frequency=PullFrequency.WEEKLY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=730,  # 2 years
+    dedupe_key="external_id",
+    notes="Free earnings call transcripts from HuggingFace parquet. No API key needed.",
+))
+
+_register(SourceConfig(
     key="earnings_alphavantage",
     source_type=SourceType.EARNINGS_TRANSCRIPT,
     source_tier=SourceTier.TIER_1,
@@ -336,6 +350,65 @@ _register(SourceConfig(
     backfill_depth_days=0,
     dedupe_key="ticker_checkpoint_type_date",
     notes="Creates checkpoint rows for upcoming earnings dates.",
+))
+
+# --- Macro Data Sources ---
+
+_register(SourceConfig(
+    key="news_macro_rss",
+    source_type=SourceType.NEWS,
+    source_tier=SourceTier.TIER_2,
+    provider="macro_rss",
+    pull_frequency=PullFrequency.EVERY_6H,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=7,
+    dedupe_key="url",
+    notes="Macro news headlines from Google News RSS (Fed, inflation, GDP, trade wars). MACRO pseudo-ticker.",
+))
+
+_register(SourceConfig(
+    key="macro_fred",
+    source_type=SourceType.NEWS,       # placeholder — stored as prices, not documents
+    source_tier=SourceTier.TIER_1,
+    provider="fred",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=False,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="ticker_date",
+    api_key_env_var="FRED_API_KEY",
+    notes="FRED economic indicators: Fed funds rate, yield curve, CPI, unemployment, VIX, DXY, consumer sentiment.",
+))
+
+_register(SourceConfig(
+    key="vix_daily",
+    source_type=SourceType.NEWS,       # placeholder — stored as prices
+    source_tier=SourceTier.TIER_1,
+    provider="yfinance",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=False,
+    creates_checkpoints=False,
+    backfill_depth_days=730,
+    dedupe_key="ticker_date",
+    notes="CBOE VIX via yfinance. Market fear gauge for sentiment scoring.",
+))
+
+_register(SourceConfig(
+    key="dxy_daily",
+    source_type=SourceType.NEWS,       # placeholder — stored as prices
+    source_tier=SourceTier.TIER_2,
+    provider="yfinance",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=False,
+    creates_checkpoints=False,
+    backfill_depth_days=730,
+    dedupe_key="ticker_date",
+    notes="Dollar Index (DXY) via yfinance. Strong dollar = headwind for multinationals.",
 ))
 
 _register(SourceConfig(

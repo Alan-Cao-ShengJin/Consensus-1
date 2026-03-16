@@ -21,6 +21,9 @@ from replay_engine import (
 from replay_metrics import compute_metrics, ReplayMetrics
 from shadow_portfolio import ShadowPortfolio
 from models import Candidate
+from price_momentum import MomentumGuardConfig, DISABLED_MOMENTUM_CONFIG
+from market_sentiment import MarketSentimentConfig, DISABLED_SENTIMENT_CONFIG
+from conviction_decay import ConvictionDecayConfig, DISABLED_DECAY_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,12 @@ def run_replay(
     strict_replay: bool = False,
     relaxed_gates: bool = False,
     exit_policy=None,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    benchmark_ticker: str = "SPY",
+    core_satellite: bool = False,
+    core_allocation_pct: float = 95.0,
+    sentiment_config: MarketSentimentConfig = DISABLED_SENTIMENT_CONFIG,
+    decay_config: ConvictionDecayConfig = DISABLED_DECAY_CONFIG,
 ) -> tuple[ReplayRunResult, ShadowPortfolio, ReplayMetrics]:
     """Run a full replay over the given date range.
 
@@ -60,17 +69,29 @@ def run_replay(
         start_date, end_date, cadence_days, initial_cash, apply_trades, strict_replay,
     )
 
+    core_ticker = benchmark_ticker if core_satellite else None
     portfolio = ShadowPortfolio(
         initial_cash=initial_cash,
         transaction_cost_bps=transaction_cost_bps,
+        core_ticker=core_ticker,
+        core_allocation_pct=core_allocation_pct,
     )
 
     review_dates = generate_review_dates(start_date, end_date, cadence_days)
     if not review_dates:
         logger.warning("No review dates generated for range %s to %s", start_date, end_date)
 
-    # Preload prices for all candidate tickers
+    # Preload prices for all candidate tickers (+ benchmark for regime filter / core)
     candidate_tickers = _get_all_tickers(session, ticker_filter)
+    if momentum_config.enabled and benchmark_ticker not in candidate_tickers:
+        candidate_tickers.append(benchmark_ticker)
+    if core_satellite and benchmark_ticker not in candidate_tickers:
+        candidate_tickers.append(benchmark_ticker)
+    # Preload macro tickers for market sentiment (VIX, yield curve, DXY)
+    if sentiment_config.enabled:
+        for macro_ticker in ["^VIX", "MACRO:T10Y2Y", "MACRO:DXY"]:
+            if macro_ticker not in candidate_tickers:
+                candidate_tickers.append(macro_ticker)
     prices_by_ticker = _preload_prices(session, candidate_tickers)
 
     run_result = ReplayRunResult(
@@ -81,6 +102,19 @@ def run_replay(
         apply_trades=apply_trades,
         strict_replay=strict_replay,
     )
+
+    # Core-satellite: initialize core position before first review
+    if core_satellite and review_dates and apply_trades:
+        from shadow_execution_policy import _latest_price_as_of
+        core_price = _latest_price_as_of(prices_by_ticker, benchmark_ticker, review_dates[0])
+        if core_price > 0:
+            core_trade = portfolio.initialize_core(core_price, review_dates[0])
+            if core_trade:
+                logger.info(
+                    "Core-satellite: initialized %s with %.0f%% allocation ($%.0f at $%.2f)",
+                    benchmark_ticker, core_allocation_pct,
+                    core_trade.notional, core_price,
+                )
 
     for review_date in review_dates:
         logger.info("Replay review: %s", review_date.isoformat())
@@ -95,6 +129,10 @@ def run_replay(
             strict_replay=strict_replay,
             relaxed_gates=relaxed_gates,
             exit_policy=exit_policy,
+            momentum_config=momentum_config,
+            benchmark_ticker=benchmark_ticker,
+            sentiment_config=sentiment_config,
+            decay_config=decay_config,
         )
         run_result.review_records.append(record)
 

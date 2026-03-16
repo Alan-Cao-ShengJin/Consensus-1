@@ -29,6 +29,8 @@ class ShadowPosition:
     probation_reviews_count: int = 0
     # Cooldown tracking
     cooldown_until: Optional[date] = None
+    # Add count tracking
+    add_count: int = 0
 
     @property
     def cost_basis(self) -> float:
@@ -98,9 +100,19 @@ class ShadowPortfolio:
 
     Starts from all-cash. Positions are created/modified only through
     explicit apply_trade() calls driven by the execution policy.
+
+    Core-satellite mode: when core_ticker is set, the portfolio starts
+    with most capital in the core (e.g. SPY), and individual picks are
+    funded by selling the core, not from cash.
     """
 
-    def __init__(self, initial_cash: float, transaction_cost_bps: float = 10.0):
+    def __init__(
+        self,
+        initial_cash: float,
+        transaction_cost_bps: float = 10.0,
+        core_ticker: Optional[str] = None,
+        core_allocation_pct: float = 95.0,
+    ):
         self.initial_cash = initial_cash
         self.cash = initial_cash
         self.transaction_cost_bps = transaction_cost_bps
@@ -108,6 +120,90 @@ class ShadowPortfolio:
         self.trades: list[ShadowTrade] = []
         self.snapshots: list[PortfolioSnapshot] = []
         self.realized_pnl: float = 0.0
+        # Core-satellite config
+        self.core_ticker: Optional[str] = core_ticker
+        self.core_allocation_pct = core_allocation_pct
+
+    @property
+    def is_core_satellite(self) -> bool:
+        return self.core_ticker is not None
+
+    def initialize_core(self, price: float, trade_date: date) -> Optional[ShadowTrade]:
+        """Buy the core position (e.g. SPY) at startup.
+
+        Allocates core_allocation_pct of initial cash to the core ticker.
+        """
+        if not self.core_ticker or price <= 0:
+            return None
+        notional = self.initial_cash * (self.core_allocation_pct / 100.0)
+        shares = notional / price
+        return self.apply_trade(
+            trade_date=trade_date,
+            ticker=self.core_ticker,
+            action="initiate",
+            shares=shares,
+            price=price,
+            reason=f"Core position: {self.core_allocation_pct:.0f}% allocation to {self.core_ticker}",
+        )
+
+    def sell_core_to_fund(
+        self, amount: float, price: float, trade_date: date,
+    ) -> Optional[ShadowTrade]:
+        """Sell core position to free cash for a satellite buy.
+
+        Returns the trade, or None if core has insufficient shares.
+        """
+        if not self.core_ticker or self.core_ticker not in self.positions:
+            return None
+        pos = self.positions[self.core_ticker]
+        shares_needed = amount / price
+        shares_to_sell = min(shares_needed, pos.shares)
+        if shares_to_sell <= 0:
+            return None
+        return self.apply_trade(
+            trade_date=trade_date,
+            ticker=self.core_ticker,
+            action="trim",
+            shares=-shares_to_sell,
+            price=price,
+            reason=f"Sell core to fund satellite position",
+        )
+
+    def reinvest_to_core(
+        self, price: float, trade_date: date,
+    ) -> Optional[ShadowTrade]:
+        """Reinvest excess cash back into the core position after a satellite sell.
+
+        Keeps a small cash buffer (100% - core_allocation_pct).
+        """
+        if not self.core_ticker or price <= 0:
+            return None
+        target_cash_pct = 100.0 - self.core_allocation_pct
+        # Use current total value to compute target cash
+        # For simplicity, use a fixed target based on initial cash
+        min_cash = self.initial_cash * (target_cash_pct / 100.0)
+        excess = self.cash - min_cash
+        if excess <= 0:
+            return None
+        shares = excess / price
+        if self.core_ticker in self.positions:
+            return self.apply_trade(
+                trade_date=trade_date,
+                ticker=self.core_ticker,
+                action="add",
+                shares=shares,
+                price=price,
+                reason=f"Reinvest proceeds to core",
+            )
+        else:
+            return self.apply_trade(
+                trade_date=trade_date,
+                ticker=self.core_ticker,
+                action="initiate",
+                shares=shares,
+                price=price,
+                reason=f"Reinvest proceeds to core",
+            )
 
     def total_value(self, prices: dict[str, float]) -> float:
         """Compute total portfolio value at given prices."""
@@ -205,6 +301,8 @@ class ShadowPortfolio:
                 total_shares = pos.shares + shares
                 pos.avg_cost = (pos.cost_basis + notional) / total_shares if total_shares > 0 else 0
                 pos.shares = total_shares
+                if action == "add":
+                    pos.add_count += 1
             else:
                 self.positions[ticker] = ShadowPosition(
                     ticker=ticker,

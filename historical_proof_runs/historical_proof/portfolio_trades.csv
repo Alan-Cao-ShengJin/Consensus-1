@@ -1,0 +1,2 @@
+trade_date,ticker,action,shares,price,notional,reason
+2025-08-11,SPY,initiate,1502.4668,632.29,950000.0,Reinvest proceeds to core

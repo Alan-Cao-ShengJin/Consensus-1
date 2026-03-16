@@ -1,0 +1,4 @@
+bucket,action_count,avg_conviction,avg_forward_5d_pct,avg_forward_20d_pct,avg_forward_60d_pct
+low,8,37.2,0.11,0.92,7.28
+medium,3,52.6,-1.05,0.44,5.49
+high,135,88.1,0.42,0.62,2.25

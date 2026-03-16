@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-08-28,PLTR,initiate,56.9,56.9,medium,30.36,3.69,20.06,47.76,"All entry gates passed — conviction 57, thesis strengthening"
+2024-07-31,LLY,initiate,45.1,45.1,medium,794.56,-3.61,18.28,9.29,"All entry gates passed — conviction 45, thesis weakening"
+2024-08-07,AMD,initiate,61.9,64.5,medium,128.67,6.3,16.97,32.82,"All entry gates passed — conviction 62, thesis strengthening (claim impact: +1.3%)"
+2024-09-04,TSLA,add,64.6,55.0,medium,219.41,-1.43,15.89,13.48,Winner with strong conviction and attractive valuation — add
+2024-09-18,AVGO,add,68.0,48.1,high,159.27,7.32,12.16,2.3,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2024-09-04,META,initiate,63.2,63.2,medium,510.23,-1.55,9.97,10.72,"All entry gates passed — conviction 63, thesis strengthening"
+2024-08-07,HD,initiate,57.2,57.2,medium,328.12,1.0,8.99,19.99,"All entry gates passed — conviction 57, thesis weakening"
+2024-07-31,NVDA,initiate,68.8,68.8,high,116.96,-14.16,8.74,3.75,"All entry gates passed — conviction 69, thesis strengthening"
+2024-08-07,CAT,initiate,58.5,66.2,medium,319.06,3.14,7.77,21.88,"All entry gates passed — conviction 58, thesis strengthening (claim impact: +3.9%)"
+2024-07-31,COST,initiate,58.6,58.6,medium,815.53,-2.45,6.59,7.74,"All entry gates passed — conviction 59, thesis strengthening"

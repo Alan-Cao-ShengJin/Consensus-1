@@ -1,0 +1,797 @@
+{
+  "report_version": "2.0",
+  "report_type": "historical_proof_run",
+  "generated_at": "2026-03-14T18:27:44.326897",
+  "config": {
+    "run_id": "full_llm_v6_momentum",
+    "run_label": "Historical proof: 2025-06-01 to 2026-03-01",
+    "mode": "evaluate_only",
+    "tickers": [
+      "NVDA",
+      "AMD",
+      "MSFT",
+      "AAPL",
+      "META"
+    ],
+    "backfill_start": "2025-06-01",
+    "backfill_end": "2026-03-01",
+    "eval_start": "2025-07-31",
+    "eval_end": "2026-03-01",
+    "cadence_days": 7,
+    "backfill_prices": true,
+    "backfill_sec_filings": true,
+    "backfill_news_rss": true,
+    "backfill_pr_rss": true,
+    "rebuild_from_scratch": true,
+    "use_llm": true,
+    "extractor_mode": "real_llm",
+    "initial_cash": 1000000,
+    "transaction_cost_bps": 10.0,
+    "strict_replay": false,
+    "forward_return_days": [
+      5,
+      20,
+      60
+    ],
+    "memory_enabled": true,
+    "benchmark_ticker": "SPY",
+    "output_dir": "historical_proof_runs",
+    "seed": 42
+  },
+  "regeneration": null,
+  "evaluation": {
+    "config": {
+      "run_id": "full_llm_v6_momentum",
+      "run_label": "Historical proof: 2025-06-01 to 2026-03-01",
+      "mode": "evaluate_only",
+      "tickers": [
+        "NVDA",
+        "AMD",
+        "MSFT",
+        "AAPL",
+        "META"
+      ],
+      "backfill_start": "2025-06-01",
+      "backfill_end": "2026-03-01",
+      "eval_start": "2025-07-31",
+      "eval_end": "2026-03-01",
+      "cadence_days": 7,
+      "backfill_prices": true,
+      "backfill_sec_filings": true,
+      "backfill_news_rss": true,
+      "backfill_pr_rss": true,
+      "rebuild_from_scratch": true,
+      "use_llm": true,
+      "extractor_mode": "real_llm",
+      "initial_cash": 1000000,
+      "transaction_cost_bps": 10.0,
+      "strict_replay": false,
+      "forward_return_days": [
+        5,
+        20,
+        60
+      ],
+      "memory_enabled": true,
+      "benchmark_ticker": "SPY",
+      "output_dir": "historical_proof_runs",
+      "seed": 42
+    },
+    "metrics": {
+      "performance": {
+        "total_return_pct": -9.35,
+        "annualized_return_pct": -15.69,
+        "max_drawdown_pct": 11.33,
+        "max_drawdown_peak_date": "2025-08-14",
+        "max_drawdown_trough_date": "2026-02-05"
+      },
+      "activity": {
+        "initiations": 11,
+        "adds": 36,
+        "trims": 23,
+        "exits": 5,
+        "holds": 71,
+        "no_actions": 9,
+        "probations": 0,
+        "blocked": 0,
+        "hit_rate_pct": null
+      },
+      "turnover": {
+        "total_turnover_pct": 159.91,
+        "avg_per_review_pct": 5.16,
+        "avg_holding_period_days": 70.0
+      },
+      "cash_exposure": {
+        "avg_pct": 68.4,
+        "min_pct": 60.7,
+        "max_pct": 82.9
+      },
+      "discipline": {
+        "probation_to_exit": 0,
+        "funded_pairings": 0,
+        "turnover_cap_blocked": 0,
+        "candidate_beat_weakest": 0
+      },
+      "conviction_at_initiation": {
+        "values": [
+          79.9,
+          72.4,
+          57.9,
+          50.0,
+          50.0,
+          95.2,
+          79.4,
+          95.1,
+          95.1,
+          95.3,
+          98.4
+        ],
+        "average": 79.0
+      },
+      "actions_by_month": {
+        "2025-07": {
+          "initiate": 5
+        },
+        "2025-08": {
+          "trim": 4,
+          "add": 8,
+          "hold": 8
+        },
+        "2025-09": {
+          "trim": 4,
+          "add": 3,
+          "hold": 13
+        },
+        "2025-10": {
+          "add": 9,
+          "hold": 11,
+          "no_action": 5
+        },
+        "2025-11": {
+          "trim": 4,
+          "add": 2,
+          "hold": 8,
+          "no_action": 3,
+          "exit": 1,
+          "initiate": 2
+        },
+        "2025-12": {
+          "hold": 12,
+          "add": 4,
+          "exit": 1,
+          "trim": 2,
+          "initiate": 1
+        },
+        "2026-01": {
+          "trim": 4,
+          "add": 7,
+          "hold": 10,
+          "exit": 2,
+          "initiate": 2
+        },
+        "2026-02": {
+          "trim": 5,
+          "add": 3,
+          "hold": 9,
+          "exit": 1,
+          "no_action": 1,
+          "initiate": 1
+        }
+      },
+      "replay_integrity": {
+        "total_review_dates": 31,
+        "total_recommendations": 155,
+        "total_trades_applied": 75,
+        "total_trades_skipped": 0,
+        "total_fallback_count": 0,
+        "dates_skipped_no_data": 0,
+        "missing_price_events": 0
+      },
+      "purity": {
+        "purity_level": "degraded",
+        "strict_replay": false,
+        "impure_candidate_fallbacks": 0,
+        "impure_valuation_fallbacks": 155,
+        "impure_checkpoint_fallbacks": 0,
+        "skipped_impure_total": 0
+      }
+    },
+    "diagnostics": {
+      "action_counts": {
+        "initiate": 11,
+        "trim": 23,
+        "add": 36,
+        "hold": 71,
+        "no_action": 9,
+        "exit": 5
+      },
+      "action_pcts": {
+        "initiate": 7.1,
+        "trim": 14.8,
+        "add": 23.2,
+        "hold": 45.8,
+        "no_action": 5.8,
+        "exit": 3.2
+      },
+      "actions_by_ticker": {
+        "META": {
+          "initiate": 1,
+          "add": 6,
+          "hold": 20,
+          "trim": 4
+        },
+        "MSFT": {
+          "initiate": 1,
+          "hold": 21,
+          "add": 4,
+          "trim": 5
+        },
+        "AAPL": {
+          "initiate": 2,
+          "add": 11,
+          "hold": 12,
+          "trim": 5,
+          "exit": 1
+        },
+        "NVDA": {
+          "initiate": 2,
+          "trim": 8,
+          "no_action": 8,
+          "hold": 8,
+          "add": 5
+        },
+        "AMD": {
+          "initiate": 5,
+          "add": 10,
+          "hold": 10,
+          "exit": 4,
+          "trim": 1,
+          "no_action": 1
+        }
+      },
+      "recommendation_changes": 56,
+      "recommendation_change_rate": 1.806,
+      "attribution": {
+        "valuation_driven": 36,
+        "evidence_driven": 0,
+        "checkpoint_driven": 0,
+        "deterioration_driven": 8
+      },
+      "candidate_rankings_count": 15,
+      "short_hold_exits": 3
+    },
+    "benchmark": {
+      "portfolio_return_pct": -9.35,
+      "benchmark": {
+        "ticker": "SPY",
+        "return_pct": 9.15,
+        "excess_return_pct": -18.5,
+        "data_available": true
+      },
+      "equal_weight_baseline": {
+        "return_pct": -0.24,
+        "vs_equal_weight_pct": -9.11,
+        "tickers_count": 5,
+        "tickers_with_data": 5
+      }
+    },
+    "forward_return_summary": [
+      {
+        "action": "add",
+        "count": 36,
+        "avg_forward_5d_pct": -1.16,
+        "avg_forward_20d_pct": -2.3,
+        "avg_forward_60d_pct": -0.62,
+        "count_with_5d_data": 36,
+        "count_with_20d_data": 35,
+        "count_with_60d_data": 27
+      },
+      {
+        "action": "exit",
+        "count": 5,
+        "avg_forward_5d_pct": 3.5,
+        "avg_forward_20d_pct": 8.73,
+        "avg_forward_60d_pct": 7.82,
+        "count_with_5d_data": 5,
+        "count_with_20d_data": 5,
+        "count_with_60d_data": 2
+      },
+      {
+        "action": "hold",
+        "count": 71,
+        "avg_forward_5d_pct": 0.99,
+        "avg_forward_20d_pct": 2.01,
+        "avg_forward_60d_pct": 3.63,
+        "count_with_5d_data": 71,
+        "count_with_20d_data": 66,
+        "count_with_60d_data": 55
+      },
+      {
+        "action": "initiate",
+        "count": 11,
+        "avg_forward_5d_pct": 0.01,
+        "avg_forward_20d_pct": -2.56,
+        "avg_forward_60d_pct": 2.68,
+        "count_with_5d_data": 11,
+        "count_with_20d_data": 10,
+        "count_with_60d_data": 8
+      },
+      {
+        "action": "trim",
+        "count": 23,
+        "avg_forward_5d_pct": 0.34,
+        "avg_forward_20d_pct": 0.81,
+        "avg_forward_60d_pct": 4.69,
+        "count_with_5d_data": 23,
+        "count_with_20d_data": 21,
+        "count_with_60d_data": 15
+      }
+    ],
+    "conviction_buckets": [
+      {
+        "bucket": "low",
+        "action_count": 8,
+        "avg_conviction": 37.2,
+        "avg_forward_5d_pct": 0.11,
+        "avg_forward_20d_pct": 0.92,
+        "avg_forward_60d_pct": 7.28
+      },
+      {
+        "bucket": "medium",
+        "action_count": 3,
+        "avg_conviction": 52.6,
+        "avg_forward_5d_pct": -1.05,
+        "avg_forward_20d_pct": 0.44,
+        "avg_forward_60d_pct": 5.49
+      },
+      {
+        "bucket": "high",
+        "action_count": 135,
+        "avg_conviction": 88.1,
+        "avg_forward_5d_pct": 0.42,
+        "avg_forward_20d_pct": 0.62,
+        "avg_forward_60d_pct": 2.25
+      }
+    ],
+    "action_outcomes_count": 146,
+    "best_decisions": [
+      {
+        "review_date": "2026-01-08",
+        "ticker": "AMD",
+        "action": "exit",
+        "thesis_conviction": 95.1,
+        "action_score": 86.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 204.68,
+        "forward_5d_pct": 7.96,
+        "forward_20d_pct": 23.48,
+        "forward_60d_pct": null,
+        "rationale": "Trailing stop EXIT: -22.6% from 90-day peak (threshold -20%)"
+      },
+      {
+        "review_date": "2025-10-09",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 88.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 232.89,
+        "forward_5d_pct": -6.35,
+        "forward_20d_pct": 13.5,
+        "forward_60d_pct": -5.06,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-22",
+        "ticker": "AAPL",
+        "action": "exit",
+        "thesis_conviction": 95.3,
+        "action_score": 88.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 248.12,
+        "forward_5d_pct": 3.99,
+        "forward_20d_pct": 11.04,
+        "forward_60d_pct": null,
+        "rationale": "Stop-loss EXIT: position -25.3% below cost basis (threshold -25%)"
+      },
+      {
+        "review_date": "2025-11-20",
+        "ticker": "META",
+        "action": "trim",
+        "thesis_conviction": 92.6,
+        "action_score": 75.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 588.67,
+        "forward_5d_pct": 7.99,
+        "forward_20d_pct": 10.35,
+        "forward_60d_pct": 5.36,
+        "rationale": "Stop-loss TRIM: position -22.6% below cost basis (threshold -15%)"
+      },
+      {
+        "review_date": "2025-10-23",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 88.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 234.99,
+        "forward_5d_pct": 9.8,
+        "forward_20d_pct": 10.17,
+        "forward_60d_pct": -8.53,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-02-05",
+        "ticker": "AMD",
+        "action": "trim",
+        "thesis_conviction": 97.4,
+        "action_score": 75.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 192.5,
+        "forward_5d_pct": 10.95,
+        "forward_20d_pct": 9.54,
+        "forward_60d_pct": null,
+        "rationale": "Stop-loss TRIM: position -19.2% below cost basis (threshold -15%)"
+      },
+      {
+        "review_date": "2025-10-16",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 88.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 234.56,
+        "forward_5d_pct": 1.48,
+        "forward_20d_pct": 9.28,
+        "forward_60d_pct": -11.5,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2025-07-31",
+        "ticker": "AAPL",
+        "action": "initiate",
+        "thesis_conviction": 57.9,
+        "action_score": 57.9,
+        "conviction_bucket": "medium",
+        "price_at_decision": 206.94,
+        "forward_5d_pct": -2.24,
+        "forward_20d_pct": 9.01,
+        "forward_60d_pct": 22.71,
+        "rationale": "All entry gates passed \u2014 conviction 58, thesis strengthening"
+      },
+      {
+        "review_date": "2025-11-20",
+        "ticker": "AMD",
+        "action": "exit",
+        "thesis_conviction": 95.2,
+        "action_score": 86.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 206.02,
+        "forward_5d_pct": 0.05,
+        "forward_20d_pct": 7.48,
+        "forward_60d_pct": 12.53,
+        "rationale": "Trailing stop EXIT: -22.1% from 90-day peak (threshold -20%)"
+      },
+      {
+        "review_date": "2025-09-18",
+        "ticker": "NVDA",
+        "action": "trim",
+        "thesis_conviction": 37.2,
+        "action_score": 55.0,
+        "conviction_bucket": "low",
+        "price_at_decision": 176.22,
+        "forward_5d_pct": 1.24,
+        "forward_20d_pct": 7.3,
+        "forward_60d_pct": 5.88,
+        "rationale": "Thesis weakening with conviction 37 \u2014 trim"
+      }
+    ],
+    "worst_decisions": [
+      {
+        "review_date": "2026-01-29",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 95.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 252.18,
+        "forward_5d_pct": -3.99,
+        "forward_20d_pct": -20.64,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-22",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 95.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 253.73,
+        "forward_5d_pct": -0.67,
+        "forward_20d_pct": -15.82,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-29",
+        "ticker": "META",
+        "action": "add",
+        "thesis_conviction": 93.5,
+        "action_score": 50.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 738.31,
+        "forward_5d_pct": -6.31,
+        "forward_20d_pct": -12.88,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2025-10-30",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 91.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 254.84,
+        "forward_5d_pct": -1.88,
+        "forward_20d_pct": -12.28,
+        "forward_60d_pct": -15.39,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2025-11-13",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 95.2,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 247.96,
+        "forward_5d_pct": -7.13,
+        "forward_20d_pct": -12.24,
+        "forward_60d_pct": -16.24,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-15",
+        "ticker": "AMD",
+        "action": "initiate",
+        "thesis_conviction": 95.1,
+        "action_score": 95.1,
+        "conviction_bucket": "high",
+        "price_at_decision": 227.92,
+        "forward_5d_pct": 1.76,
+        "forward_20d_pct": -12.17,
+        "forward_60d_pct": null,
+        "rationale": "All entry gates passed \u2014 conviction 95, thesis strengthening"
+      },
+      {
+        "review_date": "2025-08-14",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 82.0,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 180.95,
+        "forward_5d_pct": -7.96,
+        "forward_20d_pct": -10.4,
+        "forward_60d_pct": 19.6,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-01",
+        "ticker": "AAPL",
+        "action": "trim",
+        "thesis_conviction": 94.9,
+        "action_score": 75.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 271.61,
+        "forward_5d_pct": -3.49,
+        "forward_20d_pct": -8.91,
+        "forward_60d_pct": -2.73,
+        "rationale": "Stop-loss TRIM: position -18.2% below cost basis (threshold -15%)"
+      },
+      {
+        "review_date": "2025-09-18",
+        "ticker": "META",
+        "action": "add",
+        "thesis_conviction": 79.9,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 779.09,
+        "forward_5d_pct": -3.12,
+        "forward_20d_pct": -7.94,
+        "forward_60d_pct": -22.79,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2026-01-29",
+        "ticker": "MSFT",
+        "action": "trim",
+        "thesis_conviction": 96.7,
+        "action_score": 75.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 432.51,
+        "forward_5d_pct": -5.14,
+        "forward_20d_pct": -7.82,
+        "forward_60d_pct": null,
+        "rationale": "Stop-loss TRIM: position -17.3% below cost basis (threshold -15%)"
+      }
+    ],
+    "per_name_summary": [
+      {
+        "ticker": "AAPL",
+        "action_count": 31,
+        "initiate_count": 2,
+        "exit_count": 1,
+        "hold_count": 12,
+        "avg_forward_5d_pct": 0.74,
+        "avg_forward_20d_pct": 2.37,
+        "avg_forward_60d_pct": 5.65,
+        "doc_count": 20,
+        "claim_count": 99,
+        "price_coverage_pct": 96.0
+      },
+      {
+        "ticker": "AMD",
+        "action_count": 30,
+        "initiate_count": 5,
+        "exit_count": 4,
+        "hold_count": 10,
+        "avg_forward_5d_pct": 1.0,
+        "avg_forward_20d_pct": 3.83,
+        "avg_forward_60d_pct": 14.27,
+        "doc_count": 23,
+        "claim_count": 120,
+        "price_coverage_pct": 96.0
+      },
+      {
+        "ticker": "META",
+        "action_count": 31,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 20,
+        "avg_forward_5d_pct": -0.26,
+        "avg_forward_20d_pct": -1.81,
+        "avg_forward_60d_pct": -4.67,
+        "doc_count": 19,
+        "claim_count": 109,
+        "price_coverage_pct": 96.0
+      },
+      {
+        "ticker": "MSFT",
+        "action_count": 31,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 21,
+        "avg_forward_5d_pct": 0.05,
+        "avg_forward_20d_pct": -1.96,
+        "avg_forward_60d_pct": -5.75,
+        "doc_count": 18,
+        "claim_count": 99,
+        "price_coverage_pct": 96.0
+      },
+      {
+        "ticker": "NVDA",
+        "action_count": 23,
+        "initiate_count": 2,
+        "exit_count": 0,
+        "hold_count": 8,
+        "avg_forward_5d_pct": 0.34,
+        "avg_forward_20d_pct": 0.78,
+        "avg_forward_60d_pct": 4.78,
+        "doc_count": 18,
+        "claim_count": 95,
+        "price_coverage_pct": 96.0
+      }
+    ],
+    "coverage_diagnostics": {
+      "docs_by_ticker": {
+        "AAPL": 20,
+        "AMD": 23,
+        "META": 19,
+        "MSFT": 18,
+        "NVDA": 18
+      },
+      "docs_by_source_type": {
+        "earnings_transcript": 30,
+        "8K": 38,
+        "10K": 5,
+        "10Q": 25
+      },
+      "docs_by_month": {
+        "2025-07": 18,
+        "2025-08": 14,
+        "2025-09": 1,
+        "2025-10": 17,
+        "2025-11": 11,
+        "2025-12": 5,
+        "2026-01": 19,
+        "2026-02": 13
+      },
+      "claims_by_ticker": {
+        "AAPL": 99,
+        "AMD": 120,
+        "META": 109,
+        "MSFT": 99,
+        "NVDA": 95
+      },
+      "source_gaps": [
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-06"
+        },
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2026-03"
+        }
+      ],
+      "extractor_mode": "real_llm",
+      "benchmark_available": true,
+      "tickers_with_prices": 5,
+      "tickers_without_prices": 0,
+      "total_price_rows": 890
+    },
+    "failure_analysis": {
+      "sparse_coverage_tickers": [],
+      "negative_return_actions": [
+        {
+          "action": "add",
+          "count": 36,
+          "avg_20d_pct": -2.3,
+          "concern": "add actions have negative avg 20D return (-2.30%)"
+        },
+        {
+          "action": "initiate",
+          "count": 11,
+          "avg_20d_pct": -2.56,
+          "concern": "initiate actions have negative avg 20D return (-2.56%)"
+        }
+      ],
+      "non_differentiating_buckets": [
+        {
+          "buckets": {
+            "low": 0.9188157546573574,
+            "medium": 0.4390739858149206,
+            "high": 0.6216566136152573
+          },
+          "spread_pct": 0.48,
+          "concern": "Conviction buckets do not meaningfully differentiate outcomes"
+        }
+      ],
+      "repeated_bad_recommendations": [
+        {
+          "ticker": "MSFT",
+          "bad_initiate_add_count": 2,
+          "concern": "MSFT had 2 initiate/add actions followed by >5% loss at 20D"
+        },
+        {
+          "ticker": "AMD",
+          "bad_initiate_add_count": 8,
+          "concern": "AMD had 8 initiate/add actions followed by >5% loss at 20D"
+        },
+        {
+          "ticker": "META",
+          "bad_initiate_add_count": 3,
+          "concern": "META had 3 initiate/add actions followed by >5% loss at 20D"
+        },
+        {
+          "ticker": "NVDA",
+          "bad_initiate_add_count": 2,
+          "concern": "NVDA had 2 initiate/add actions followed by >5% loss at 20D"
+        }
+      ],
+      "low_evidence_periods": [
+        {
+          "period": "2025-09",
+          "doc_count": 1,
+          "concern": "Only 1 document(s) in 2025-09"
+        }
+      ],
+      "degraded_flags": []
+    },
+    "warnings": []
+  },
+  "memory_comparison": null
+}

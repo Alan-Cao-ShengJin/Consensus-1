@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-08-21,NVDA,add,68.8,55.0,high,128.44,-1.59,-15.88,7.4,Winner with strong conviction and attractive valuation — add
+2024-08-21,AVGO,add,67.0,55.0,high,163.32,-3.72,-10.6,8.87,Winner with strong conviction and attractive valuation — add
+2024-08-21,CRWD,exit,66.7,86.0,high,273.21,-2.69,-9.32,13.52,Trailing stop EXIT: -30.3% from 90-day peak (threshold -30%)
+2024-08-14,NVDA,add,68.8,55.0,high,118.02,10.09,-8.54,14.17,Winner with strong conviction and attractive valuation — add
+2024-08-21,QCOM,add,61.3,55.0,medium,167.57,-2.71,-6.72,-1.39,Winner with strong conviction and attractive valuation — add
+2024-08-14,AVGO,add,67.0,55.0,high,155.35,6.35,-3.11,15.47,Winner with strong conviction and attractive valuation — add
+2024-08-21,MSFT,add,64.5,55.0,medium,419.24,-2.51,-2.34,-1.41,Winner with strong conviction and attractive valuation — add
+2024-08-14,GOOGL,initiate,61.6,61.6,medium,159.24,3.93,-1.88,1.92,"All entry gates passed — conviction 62, thesis weakening"
+2024-08-28,QCOM,add,61.3,55.0,medium,165.29,2.01,-1.33,-0.41,Winner with strong conviction and attractive valuation — add
+2024-09-11,MSFT,add,67.2,55.0,high,418.15,1.96,-0.56,-0.12,Winner with strong conviction and attractive valuation — add

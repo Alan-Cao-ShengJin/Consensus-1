@@ -29,6 +29,14 @@ from models import (
 )
 from exit_policy import ExitPolicyConfig, ExitPolicyMode, BASELINE_POLICY
 from valuation_policy import zone_from_thesis_and_price, ZoneThresholds, DEFAULT_THRESHOLDS
+from price_momentum import (
+    MomentumGuardConfig, MomentumSignals,
+    DISABLED_MOMENTUM_CONFIG,
+)
+from market_sentiment import (
+    MarketSentimentScore, MarketRegime,
+    MarketSentimentConfig, DISABLED_SENTIMENT_CONFIG,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +75,21 @@ class ReasonCode(str, Enum):
     CAPITAL_CHALLENGER = "CAPITAL_CHALLENGER"
     FUNDED_BY_TRIM = "FUNDED_BY_TRIM"
     FUNDED_BY_EXIT = "FUNDED_BY_EXIT"
+    # Momentum guard reason codes
+    MOMENTUM_BELOW_SMA = "MOMENTUM_BELOW_SMA"
+    STOP_LOSS_TRIGGERED = "STOP_LOSS_TRIGGERED"
+    TRAILING_STOP_TRIGGERED = "TRAILING_STOP_TRIGGERED"
+    UNDERWATER_ADD_BLOCKED = "UNDERWATER_ADD_BLOCKED"
+    MARKET_REGIME_BEARISH = "MARKET_REGIME_BEARISH"
+    OVERBOUGHT_ADD_BLOCKED = "OVERBOUGHT_ADD_BLOCKED"
+    OVERBOUGHT_INITIATE_BLOCKED = "OVERBOUGHT_INITIATE_BLOCKED"
+    # Market sentiment reason codes
+    MARKET_SENTIMENT_RISK_OFF = "MARKET_SENTIMENT_RISK_OFF"
+    MARKET_SENTIMENT_EXTREME_FEAR = "MARKET_SENTIMENT_EXTREME_FEAR"
+    # Conviction decay
+    CONVICTION_DECAYED = "CONVICTION_DECAYED"
+    # Priced-in detection
+    PRICED_IN_DAMPENED = "PRICED_IN_DAMPENED"
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +132,9 @@ class HoldingSnapshot:
     confirming_claim_count_7d: int = 0
     price_change_pct_5d: Optional[float] = None   # 5-day price move %
     prior_conviction: Optional[float] = None       # conviction at previous review (for graduated policy)
+    claim_impact_signal: float = 0.0               # weighted expected-impact from recent claims (from profiler)
+    add_count: int = 0                             # number of adds already made to this position
+    momentum: MomentumSignals = field(default_factory=MomentumSignals)
 
 
 @dataclass
@@ -127,9 +153,11 @@ class CandidateSnapshot:
     days_to_checkpoint: Optional[int] = None
     novel_claim_count_7d: int = 0
     confirming_claim_count_7d: int = 0
+    claim_impact_signal: float = 0.0               # weighted expected-impact from recent claims
     cooldown_flag: bool = False
     cooldown_until: Optional[date] = None
     watch_reason: Optional[str] = None
+    momentum: MomentumSignals = field(default_factory=MomentumSignals)
 
 
 @dataclass
@@ -142,9 +170,13 @@ class DecisionInput:
     weekly_turnover_cap_pct: float = 20.0     # max % of portfolio that can change in one week
     max_position_weight: float = 10.0         # max single position weight %
     min_initiation_weight: float = 2.0        # minimum starting weight %
+    max_satellite_positions: int = 10         # max number of non-core positions
+    max_initiations_per_review: int = 3       # pace deployment: max new positions per review cycle
     zone_thresholds: ZoneThresholds = field(default_factory=lambda: DEFAULT_THRESHOLDS)
     relaxed_gates: bool = False               # relax entry gates for historical usefulness runs
     exit_policy: ExitPolicyConfig = field(default_factory=lambda: BASELINE_POLICY)
+    momentum_config: MomentumGuardConfig = field(default_factory=lambda: DISABLED_MOMENTUM_CONFIG)
+    market_sentiment: Optional[MarketSentimentScore] = None  # macro risk-on/risk-off signal
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +293,7 @@ class PortfolioReviewResult:
 # Conviction thresholds (0-100 scale, matching thesis_update_service)
 INITIATION_CONVICTION_FLOOR = 55.0      # absolute minimum for initiation
 RELATIVE_HURDLE_MARGIN = 5.0            # candidate must beat weakest holding by this margin
-ADD_CONVICTION_FLOOR = 50.0             # minimum conviction for adds
+ADD_CONVICTION_FLOOR = 60.0             # minimum conviction for adds (above default 50)
 TRIM_CONVICTION_CEILING = 40.0          # trim if conviction drops below this
 EXIT_CONVICTION_CEILING = 25.0          # force exit below this
 PROBATION_CONVICTION_CEILING = 35.0     # enter probation below this
@@ -271,7 +303,7 @@ PROBATION_MAX_REVIEWS = 2               # forced exit after N weekly reviews wit
 PROBATION_IMPROVEMENT_DELTA = 3.0       # conviction must improve by this much to exit probation
 
 # Cooldown
-COOLDOWN_DAYS = 21                      # re-entry blocked for N days after exit
+COOLDOWN_DAYS = 42                      # re-entry blocked for 6 weeks after exit
 
 # Weight sizing
 DEFAULT_INITIATION_WEIGHT = 3.0         # starting weight for new positions (fallback)
@@ -281,21 +313,26 @@ MAX_POSITION_WEIGHT = 10.0              # hard cap per position
 
 
 def conviction_weighted_initiation_size(conviction: float) -> float:
-    """Scale initiation weight by conviction score.
+    """Scale initiation weight by conviction score (smooth linear curve).
 
-    conviction 50 (floor) -> 2.0%
-    conviction 65         -> ~3.8%
-    conviction 80         -> ~5.5%
-    conviction 95+        -> 7.0%
+    conviction 40 (floor) -> 1.0%   — low conviction, minimal sizing
+    conviction 50         -> 2.5%
+    conviction 60         -> 4.0%
+    conviction 65         -> 4.75%
+    conviction 70         -> 5.5%
+    conviction 75         -> 6.25%
+    conviction 80+        -> 7.0%   — high conviction, max sizing
 
-    Linear interpolation between floor and ceiling.
+    Every point of conviction earns proportional sizing.
     """
-    floor = ADD_CONVICTION_FLOOR  # ~45
-    ceiling = 95.0
-    min_weight = 2.0
-    max_weight = 7.0
-    t = max(0.0, min(1.0, (conviction - floor) / (ceiling - floor)))
-    return round(min_weight + t * (max_weight - min_weight), 1)
+    floor_conv, floor_wt = 40.0, 1.0
+    ceil_conv, ceil_wt = 80.0, 7.0
+    if conviction <= floor_conv:
+        return floor_wt
+    if conviction >= ceil_conv:
+        return ceil_wt
+    t = (conviction - floor_conv) / (ceil_conv - floor_conv)
+    return round(floor_wt + t * (ceil_wt - floor_wt), 1)
 
 
 def conviction_weighted_add_increment(conviction: float, current_weight: float) -> float:
@@ -331,6 +368,7 @@ def evaluate_holding(
     review_date: date,
     exit_policy: ExitPolicyConfig = BASELINE_POLICY,
     relaxed_gates: bool = False,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
 ) -> TickerDecision:
     """Evaluate a current holding and produce a decision.
 
@@ -470,6 +508,59 @@ def evaluate_holding(
         return decision
 
     # ---------------------------------------------------------------
+    # Priority 2.5 — MOMENTUM: stop-loss from cost basis
+    # ---------------------------------------------------------------
+    if momentum_config.enabled and momentum_config.stop_loss_enabled:
+        dd_cost = holding.momentum.drawdown_from_cost_pct
+        if dd_cost is not None:
+            if dd_cost <= momentum_config.stop_loss_exit_pct:
+                decision.action = ActionType.EXIT
+                decision.action_score = 88.0
+                decision.recommendation_priority = PRIORITY_STRONG_EXIT
+                decision.target_weight_change = -holding.current_weight
+                decision.suggested_weight = 0.0
+                reasons.append(ReasonCode.STOP_LOSS_TRIGGERED)
+                decision.rationale = (
+                    f"Stop-loss EXIT: position {dd_cost:.1f}% below cost basis "
+                    f"(threshold {momentum_config.stop_loss_exit_pct:.0f}%)"
+                )
+                decision.reason_codes = reasons
+                return decision
+            elif dd_cost <= momentum_config.stop_loss_trim_pct:
+                decision.action = ActionType.TRIM
+                decision.action_score = 75.0
+                decision.recommendation_priority = PRIORITY_DEFENSIVE
+                trim_amount = min(TRIM_DECREMENT, holding.current_weight - 1.0)
+                decision.target_weight_change = -trim_amount
+                decision.suggested_weight = holding.current_weight - trim_amount
+                reasons.append(ReasonCode.STOP_LOSS_TRIGGERED)
+                decision.rationale = (
+                    f"Stop-loss TRIM: position {dd_cost:.1f}% below cost basis "
+                    f"(threshold {momentum_config.stop_loss_trim_pct:.0f}%)"
+                )
+                decision.reason_codes = reasons
+                return decision
+
+    # ---------------------------------------------------------------
+    # Priority 2.5 — MOMENTUM: trailing stop from peak
+    # ---------------------------------------------------------------
+    if momentum_config.enabled and momentum_config.trailing_stop_enabled:
+        dd_peak = holding.momentum.drawdown_from_peak_pct
+        if dd_peak is not None and dd_peak <= momentum_config.trailing_stop_pct:
+            decision.action = ActionType.EXIT
+            decision.action_score = 86.0
+            decision.recommendation_priority = PRIORITY_STRONG_EXIT
+            decision.target_weight_change = -holding.current_weight
+            decision.suggested_weight = 0.0
+            reasons.append(ReasonCode.TRAILING_STOP_TRIGGERED)
+            decision.rationale = (
+                f"Trailing stop EXIT: {dd_peak:.1f}% from {momentum_config.trailing_stop_lookback}-day peak "
+                f"(threshold {momentum_config.trailing_stop_pct:.0f}%)"
+            )
+            decision.reason_codes = reasons
+            return decision
+
+    # ---------------------------------------------------------------
     # Priority 3 — DEFENSIVE: continue probation (already on probation,
     # not expired — blocks adds, mandates review)
     # ---------------------------------------------------------------
@@ -528,38 +619,112 @@ def evaluate_holding(
     # Priority 4/5 — GROWTH: add evaluation
     # ---------------------------------------------------------------
     if zone == ZoneState.BUY and holding.conviction_score >= ADD_CONVICTION_FLOOR:
+        # --- Momentum guard: SMA check before any ADD ---
+        if momentum_config.enabled and momentum_config.sma_guard_enabled:
+            if holding.momentum.price_above_sma is False:
+                reasons.append(ReasonCode.MOMENTUM_BELOW_SMA)
+                decision.blocking_conditions.append(
+                    f"ADD blocked: price below {momentum_config.sma_period}-day SMA"
+                )
+                # Fall through to HOLD instead of ADD
+                zone = ZoneState.HOLD  # prevent ADD path
+
+        # --- Momentum guard: underwater add blocking ---
+        if momentum_config.enabled and momentum_config.underwater_guard_enabled:
+            dd_cost = holding.momentum.drawdown_from_cost_pct
+            if dd_cost is not None and dd_cost <= momentum_config.underwater_block_pct:
+                reasons.append(ReasonCode.UNDERWATER_ADD_BLOCKED)
+                decision.blocking_conditions.append(
+                    f"ADD blocked: position {dd_cost:.1f}% underwater (threshold {momentum_config.underwater_block_pct:.0f}%)"
+                )
+                zone = ZoneState.HOLD  # prevent ADD path
+
+        # --- Momentum guard: overbought add blocking ---
+        if momentum_config.enabled and momentum_config.overbought_guard_enabled:
+            if holding.momentum.is_overbought is True:
+                dist = holding.momentum.distance_from_high_pct
+                reasons.append(ReasonCode.OVERBOUGHT_ADD_BLOCKED)
+                decision.blocking_conditions.append(
+                    f"ADD blocked: price within {abs(dist or 0):.1f}% of {momentum_config.overbought_lookback}-day high"
+                )
+                zone = ZoneState.HOLD  # prevent ADD path
+
+    if zone == ZoneState.BUY and holding.conviction_score >= ADD_CONVICTION_FLOOR:
+        # Trend filter: block adds when price is below SMA (downtrend)
+        if momentum_config.enabled and holding.momentum.price_above_sma is False:
+            reasons.append(ReasonCode.MOMENTUM_BELOW_SMA)
+            decision.blocking_conditions.append(
+                f"Add blocked: price below {momentum_config.sma_period}-day SMA (downtrend)"
+            )
+            zone = ZoneState.HOLD  # fall through to HOLD
+
+        # Max adds per position: prevent concentration from repeated adds
+        MAX_ADDS_PER_POSITION = 2
+        if holding.add_count >= MAX_ADDS_PER_POSITION:
+            decision.blocking_conditions.append(
+                f"Add blocked: {holding.add_count} adds already (max {MAX_ADDS_PER_POSITION})"
+            )
+            zone = ZoneState.HOLD
+
+        # If trend filter or add cap changed zone to HOLD, skip the add path
+        if zone != ZoneState.BUY:
+            decision.action = ActionType.HOLD
+            decision.rationale = "Hold — add blocked by guard"
+            decision.reason_codes = reasons
+            return decision
+
         is_winner = (
             holding.current_price is not None
             and holding.avg_cost > 0
             and holding.current_price >= holding.avg_cost
         )
 
+        # Compute add size, applying underwater scaling if needed
+        def _scaled_add_size() -> float:
+            base = conviction_weighted_add_increment(holding.conviction_score, holding.current_weight)
+            if momentum_config.enabled and momentum_config.underwater_guard_enabled:
+                dd = holding.momentum.drawdown_from_cost_pct
+                if dd is not None and dd < 0:
+                    return base * momentum_config.underwater_add_scale
+            return base
+
         if is_winner:
             if holding.thesis_state in (ThesisState.STRENGTHENING, ThesisState.STABLE):
-                add_size = conviction_weighted_add_increment(holding.conviction_score, holding.current_weight)
-                decision.action = ActionType.ADD
-                decision.action_score = 50.0
-                decision.recommendation_priority = PRIORITY_GROWTH
-                decision.target_weight_change = add_size
-                decision.suggested_weight = holding.current_weight + add_size
-                reasons.append(ReasonCode.ADD_TO_WINNER)
-                reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
-                if holding.thesis_state == ThesisState.STRENGTHENING:
-                    reasons.append(ReasonCode.THESIS_STRENGTHENING)
-                    decision.action_score = 55.0
-                decision.rationale = "Winner with strong conviction and attractive valuation — add"
-                decision.reason_codes = reasons
-                return decision
+                # Block add if claim impact signal is negative (historically, these claims hurt)
+                if holding.claim_impact_signal < -1.0:
+                    reasons.append(ReasonCode.INSUFFICIENT_NOVEL_EVIDENCE)
+                    decision.blocking_conditions.append(
+                        f"Add blocked: claim impact signal {holding.claim_impact_signal:.1f}% (negative history)"
+                    )
+                else:
+                    add_size = _scaled_add_size()
+                    decision.action = ActionType.ADD
+                    decision.action_score = 50.0
+                    decision.recommendation_priority = PRIORITY_GROWTH
+                    decision.target_weight_change = add_size
+                    decision.suggested_weight = holding.current_weight + add_size
+                    reasons.append(ReasonCode.ADD_TO_WINNER)
+                    reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
+                    if holding.thesis_state == ThesisState.STRENGTHENING:
+                        reasons.append(ReasonCode.THESIS_STRENGTHENING)
+                        decision.action_score = 55.0
+                    # Boost/penalize action score based on claim impact
+                    if holding.claim_impact_signal > 0:
+                        decision.action_score += min(holding.claim_impact_signal * 2, 10.0)
+                    decision.rationale = "Winner with strong conviction and attractive valuation — add"
+                    decision.reason_codes = reasons
+                    return decision
         else:
             has_confirming_evidence = holding.confirming_claim_count_7d > 0 or holding.novel_claim_count_7d > 0
             thesis_intact = holding.thesis_state in (
                 ThesisState.STRENGTHENING, ThesisState.STABLE, ThesisState.FORMING,
             )
 
-            if has_confirming_evidence and thesis_intact:
-                add_size = conviction_weighted_add_increment(holding.conviction_score, holding.current_weight)
+            # Block add-to-loser if claim impact signal is negative
+            if has_confirming_evidence and thesis_intact and holding.claim_impact_signal >= -1.0:
+                add_size = _scaled_add_size()
                 decision.action = ActionType.ADD
-                decision.action_score = 40.0
+                decision.action_score = 40.0 + min(max(holding.claim_impact_signal * 2, 0), 10.0)
                 decision.recommendation_priority = PRIORITY_GROWTH
                 decision.target_weight_change = add_size
                 decision.suggested_weight = holding.current_weight + add_size
@@ -629,7 +794,10 @@ def _check_entry_gates(
     blockers: list[str] = []
     all_pass = True
 
-    conviction_floor = ADD_CONVICTION_FLOOR if relaxed else INITIATION_CONVICTION_FLOOR
+    # In relaxed mode (usefulness runs with stub extractor), use a lower bar
+    # so initiations can fire at the default conviction of 50
+    RELAXED_INITIATION_FLOOR = 45.0
+    conviction_floor = RELAXED_INITIATION_FLOOR if relaxed else INITIATION_CONVICTION_FLOOR
 
     # Gate 1: Thesis exists and is not broken/forming-without-conviction
     if candidate.thesis_id is None or candidate.thesis_state is None:
@@ -693,6 +861,7 @@ def evaluate_candidate(
     review_date: date,
     *,
     relaxed_gates: bool = False,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
 ) -> TickerDecision:
     """Evaluate a candidate for initiation.
 
@@ -712,6 +881,29 @@ def evaluate_candidate(
             )
             decision.decision_stage = "blocked"
             decision.rationale = "Re-entry blocked by cooldown"
+            return decision
+
+    # Momentum guard: market regime filter (block initiations in bearish regime)
+    if momentum_config.enabled and momentum_config.regime_guard_enabled:
+        if candidate.momentum.market_regime_bullish is False:
+            decision.reason_codes = [ReasonCode.MARKET_REGIME_BEARISH]
+            decision.blocking_conditions.append(
+                f"Initiation blocked: benchmark below {momentum_config.regime_sma_period}-day SMA (bearish regime)"
+            )
+            decision.decision_stage = "blocked"
+            decision.rationale = "Market regime bearish — initiation blocked"
+            return decision
+
+    # Momentum guard: overbought filter (block initiations near recent highs)
+    if momentum_config.enabled and momentum_config.overbought_guard_enabled:
+        if candidate.momentum.is_overbought is True:
+            dist = candidate.momentum.distance_from_high_pct
+            decision.reason_codes = [ReasonCode.OVERBOUGHT_INITIATE_BLOCKED]
+            decision.blocking_conditions.append(
+                f"Initiation blocked: price within {abs(dist or 0):.1f}% of {momentum_config.overbought_lookback}-day high"
+            )
+            decision.decision_stage = "blocked"
+            decision.rationale = f"Overbought — price within {abs(dist or 0):.1f}% of {momentum_config.overbought_lookback}-day high"
             return decision
 
     # Check entry gates
@@ -750,10 +942,19 @@ def evaluate_candidate(
     decision.target_weight_change = sized_weight
     decision.suggested_weight = sized_weight
     decision.reason_codes = gate_reasons
+
+    # Modulate by claim impact signal: boost score if historically predictive
+    if candidate.claim_impact_signal > 0:
+        decision.action_score += min(candidate.claim_impact_signal * 2, 10.0)
+    elif candidate.claim_impact_signal < -1.0:
+        decision.action_score -= min(abs(candidate.claim_impact_signal), 10.0)
+
     decision.rationale = (
         f"All entry gates passed — conviction {candidate_score:.0f}, "
         f"thesis {candidate.thesis_state.value if candidate.thesis_state else 'N/A'}"
     )
+    if candidate.claim_impact_signal != 0:
+        decision.rationale += f" (claim impact: {candidate.claim_impact_signal:+.1f}%)"
     if candidate.has_checkpoint_ahead and candidate.days_to_checkpoint:
         decision.required_followup.append(
             f"Checkpoint in {candidate.days_to_checkpoint} days"
@@ -778,6 +979,7 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     1. Evaluate each holding → holding decisions
     2. Find weakest holding for relative hurdle
     3. Evaluate each candidate → candidate decisions
+       (blocked during RISK_OFF/EXTREME_FEAR market sentiment)
     4. Rank by recommendation_priority (tier), then action_score within tier
     5. Enforce weekly turnover cap (higher-priority actions processed first)
     6. If initiation needs capital, create explicit funded pairing
@@ -791,7 +993,8 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     holding_decisions: list[TickerDecision] = []
     for h in inputs.holdings:
         d = evaluate_holding(h, inputs.review_date, exit_policy=inputs.exit_policy,
-                             relaxed_gates=inputs.relaxed_gates)
+                             relaxed_gates=inputs.relaxed_gates,
+                             momentum_config=inputs.momentum_config)
         holding_decisions.append(d)
 
     # Step 2: Find weakest holding (lowest conviction among active, non-probation)
@@ -803,13 +1006,89 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     if active_holdings:
         weakest_holding = min(active_holdings, key=lambda h: h.conviction_score)
 
-    # Step 3: Evaluate candidates
+    # Step 3: Evaluate candidates (with market sentiment gating)
     candidate_decisions: list[TickerDecision] = []
+
+    # Market sentiment: block all initiations during extreme fear
+    sentiment_blocks_initiations = False
+    if inputs.market_sentiment and inputs.market_sentiment.block_initiations:
+        sentiment_blocks_initiations = True
+
+    # Count current non-core satellite positions for cap enforcement
+    current_position_count = len(inputs.holdings)
+    approved_initiations = 0
+
     for c in inputs.candidates:
+        # Position count cap — block new initiations if at max
+        if current_position_count + approved_initiations >= inputs.max_satellite_positions:
+            d = TickerDecision(
+                ticker=c.ticker,
+                action=ActionType.NO_ACTION,
+                thesis_conviction=c.conviction_score or 0.0,
+                recommendation_priority=PRIORITY_NEUTRAL,
+                reason_codes=[ReasonCode.CONVICTION_LOW],
+                decision_stage="blocked",
+                rationale=f"Position cap: {inputs.max_satellite_positions} satellite positions reached",
+                blocking_conditions=[f"Max satellite positions ({inputs.max_satellite_positions}) reached"],
+            )
+            candidate_decisions.append(d)
+            continue
+
+        # Deployment pacing — max N initiations per review cycle
+        if approved_initiations >= inputs.max_initiations_per_review:
+            d = TickerDecision(
+                ticker=c.ticker,
+                action=ActionType.NO_ACTION,
+                thesis_conviction=c.conviction_score or 0.0,
+                recommendation_priority=PRIORITY_NEUTRAL,
+                reason_codes=[ReasonCode.CONVICTION_LOW],
+                decision_stage="blocked",
+                rationale=f"Pacing: max {inputs.max_initiations_per_review} initiations per review reached",
+                blocking_conditions=[f"Max initiations per review ({inputs.max_initiations_per_review}) reached"],
+            )
+            candidate_decisions.append(d)
+            continue
+
+        # Market sentiment pre-filter
+        if sentiment_blocks_initiations:
+            regime = inputs.market_sentiment.regime
+            reason_code = (
+                ReasonCode.MARKET_SENTIMENT_EXTREME_FEAR
+                if regime == MarketRegime.EXTREME_FEAR
+                else ReasonCode.MARKET_SENTIMENT_RISK_OFF
+            )
+            d = TickerDecision(
+                ticker=c.ticker,
+                action=ActionType.NO_ACTION,
+                thesis_conviction=c.conviction_score or 0.0,
+                recommendation_priority=PRIORITY_NEUTRAL,
+                reason_codes=[reason_code],
+                decision_stage="blocked",
+                rationale=f"Initiation blocked: market sentiment {regime.value} — {inputs.market_sentiment.explanation}",
+                blocking_conditions=[f"Market regime: {regime.value}"],
+            )
+            candidate_decisions.append(d)
+            continue
+
         d = evaluate_candidate(
             c, weakest_holding, inputs.review_date,
             relaxed_gates=inputs.relaxed_gates,
+            momentum_config=inputs.momentum_config,
         )
+
+        # Market sentiment: scale down initiation sizing during CAUTIOUS regime
+        if (
+            d.action == ActionType.INITIATE
+            and inputs.market_sentiment
+            and inputs.market_sentiment.sizing_multiplier < 1.0
+        ):
+            if d.target_weight_change is not None:
+                d.target_weight_change *= inputs.market_sentiment.sizing_multiplier
+                d.suggested_weight = d.target_weight_change
+                d.rationale += f" (sized down {inputs.market_sentiment.sizing_multiplier:.0%} — {inputs.market_sentiment.regime.value})"
+
+        if d.action == ActionType.INITIATE:
+            approved_initiations += 1
         candidate_decisions.append(d)
 
     # Step 4: Combine and rank by priority tier, then score within tier

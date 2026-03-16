@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2025-10-02,AMD,add,84.8,55.0,high,169.73,24.62,35.64,29.48,Winner with strong conviction and attractive valuation — add
+2025-11-20,META,trim,92.6,75.0,high,588.67,7.99,10.35,5.36,Stop-loss TRIM: position -21.9% below cost basis (threshold -20%)
+2026-02-05,AMD,exit,97.4,86.0,high,192.5,10.95,9.54,,Trailing stop EXIT: -25.9% from 90-day peak (threshold -25%)
+2026-01-08,NVDA,add,79.4,55.0,high,185.03,0.42,3.5,,Winner with strong conviction and attractive valuation — add
+2026-01-29,AAPL,add,95.3,40.0,high,258.04,4.34,2.45,,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-05,MSFT,trim,96.7,75.0,high,392.77,4.98,1.99,,Stop-loss TRIM: position -22.2% below cost basis (threshold -20%)
+2025-08-21,META,initiate,79.9,79.9,high,738.0,2.03,1.74,-0.87,"All entry gates passed — conviction 80, thesis strengthening"
+2025-08-21,MSFT,initiate,72.4,72.4,high,502.15,-0.44,-0.77,2.49,"All entry gates passed — conviction 72, thesis strengthening"
+2026-01-01,NVDA,add,79.4,55.0,high,186.49,0.4,-1.71,-4.99,Winner with strong conviction and attractive valuation — add
+2026-02-12,MSFT,trim,96.7,75.0,high,400.92,-1.24,-2.04,,Stop-loss TRIM: position -20.6% below cost basis (threshold -20%)

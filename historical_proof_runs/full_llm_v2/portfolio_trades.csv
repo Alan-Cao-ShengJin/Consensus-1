@@ -1,0 +1,2 @@
+trade_date,ticker,action,shares,price,notional,reason
+2025-09-02,NVDA,initiate,199.1197,170.75,34000.0,"All entry gates passed — conviction 63, thesis strengthening"

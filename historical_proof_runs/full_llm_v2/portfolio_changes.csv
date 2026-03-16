@@ -1,0 +1,2 @@
+review_date,ticker,event_type,prior_weight,new_weight,delta_weight,conviction_before,conviction_after,rationale_summary,forward_5d_pct,forward_20d_pct,forward_60d_pct
+2025-09-01,NVDA,initiate,0.0,3.47,3.47,0.0,62.6,"All entry gates passed — conviction 63, thesis strengthening",-4.11,1.44,16.26

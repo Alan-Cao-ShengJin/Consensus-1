@@ -8,3 +8,4 @@ dist/
 build/
 .env
 .claude/
+eval_output*.json

@@ -1,0 +1,6 @@
+ticker,action_count,initiate_count,exit_count,hold_count,avg_forward_5d_pct,avg_forward_20d_pct,avg_forward_60d_pct,doc_count,claim_count,price_coverage_pct
+AAPL,9,1,0,7,0.28,1.58,-2.73,20,99,96.0
+AMD,26,2,1,20,1.5,5.35,14.95,23,120,96.0
+META,28,1,0,24,-0.24,-1.6,-4.45,19,109,96.0
+MSFT,28,1,0,23,0.13,-1.76,-6.45,18,99,96.0
+NVDA,14,1,0,8,0.47,0.87,1.87,18,95,96.0

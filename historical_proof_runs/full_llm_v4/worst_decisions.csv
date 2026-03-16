@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2025-11-03,AMD,add,81.6,55.0,high,259.65,-10.06,-21.52,-13.93,Winner with strong conviction and attractive valuation — add
+2026-01-26,AMD,add,87.2,55.0,high,251.31,-5.8,-17.5,,Winner with strong conviction and attractive valuation — add
+2025-11-03,NVDA,add,66.8,55.0,high,206.86,-9.05,-13.53,-8.71,Winner with strong conviction and attractive valuation — add
+2025-11-10,AMD,add,83.6,55.0,high,243.98,1.16,-10.84,-16.73,Winner with strong conviction and attractive valuation — add
+2025-11-17,AMD,add,83.6,55.0,high,240.52,-15.28,-9.38,-3.61,Winner with strong conviction and attractive valuation — add
+2025-11-03,MSFT,add,85.1,40.0,high,514.89,-3.91,-8.52,-8.36,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-09,AMD,add,90.4,40.0,high,216.0,-4.02,-7.31,,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-05,AAPL,add,85.8,40.0,high,267.01,-2.95,-7.19,,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-03,META,add,81.9,40.0,high,637.19,-2.51,-6.82,2.07,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-02,MSFT,add,90.7,40.0,high,422.41,-5.25,-5.96,,"Loser with intact thesis, confirming evidence, and attractive valuation — add"

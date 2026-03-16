@@ -135,6 +135,15 @@ def run_backfill(session: Session, config: HistoricalEvalConfig) -> BackfillResu
         av_result = _backfill_alphavantage(session, tickers, backfill_days, config)
         result.source_results.append(av_result)
 
+    # 8. DefeatBeta (free earnings transcripts)
+    if getattr(config, 'backfill_defeatbeta', True):
+        db_result = _backfill_defeatbeta(session, tickers, backfill_days, config)
+        result.source_results.append(db_result)
+
+    # 9. Macro data: VIX, DXY (needed for market sentiment)
+    macro_result = _backfill_macro_prices(session, config)
+    result.source_results.append(macro_result)
+
     # Aggregate totals
     for sr in result.source_results:
         result.total_errors += len(sr.errors)
@@ -168,7 +177,8 @@ def _backfill_prices(
     for ticker in tickers:
         result.tickers_attempted += 1
         try:
-            r = updater.update(session, ticker, days=days)
+            r = updater.update(session, ticker, days=days,
+                               start_date=config.backfill_start, end_date=config.backfill_end)
             result.rows_upserted += r.rows_upserted
             if r.errors:
                 result.errors.extend(r.errors)
@@ -185,7 +195,8 @@ def _backfill_prices(
     if config.benchmark_ticker not in tickers:
         try:
             get_or_create_company(session, config.benchmark_ticker)
-            r = updater.update(session, config.benchmark_ticker, days=days)
+            r = updater.update(session, config.benchmark_ticker, days=days,
+                               start_date=config.backfill_start, end_date=config.backfill_end)
             result.rows_upserted += r.rows_upserted
         except Exception as e:
             result.warnings.append(f"Benchmark {config.benchmark_ticker}: {e}")
@@ -215,7 +226,9 @@ def _backfill_sec_filings(
     for ticker in tickers:
         result.tickers_attempted += 1
         try:
-            payloads = connector.fetch(ticker, days=days)
+            payloads = connector.fetch(ticker, days=days,
+                                       start_date=config.backfill_start,
+                                       end_date=config.backfill_end)
             result.docs_fetched += len(payloads)
 
             inserted = 0
@@ -377,7 +390,9 @@ def _backfill_finnhub(
     for ticker in tickers:
         result.tickers_attempted += 1
         try:
-            payloads = connector.fetch(ticker, days=min(days, 365))
+            payloads = connector.fetch(ticker, days=min(days, 365),
+                                       start_date=config.backfill_start,
+                                       end_date=config.backfill_end)
             result.docs_fetched += len(payloads)
 
             for payload in payloads:
@@ -506,5 +521,94 @@ def _backfill_alphavantage(
     logger.info(
         "Alpha Vantage backfill: %d tickers, %d docs fetched, %d inserted",
         result.tickers_attempted, result.docs_fetched, result.docs_inserted,
+    )
+    return result
+
+
+def _backfill_defeatbeta(
+    session: Session,
+    tickers: list[str],
+    days: int,
+    config: HistoricalEvalConfig,
+) -> BackfillSourceResult:
+    """Backfill free earnings transcripts from DefeatBeta/HuggingFace."""
+    result = BackfillSourceResult(source="defeatbeta")
+
+    try:
+        from connectors.defeatbeta_connector import DefeatBetaTranscriptConnector
+        from document_ingestion_service import ingest_document_payload
+        from dedupe import is_duplicate_document
+
+        connector = DefeatBetaTranscriptConnector()
+        if not connector.available:
+            result.warnings.append("DefeatBeta: duckdb not installed, skipping")
+            return result
+    except ImportError as e:
+        result.errors.append(f"DefeatBeta connector not available: {e}")
+        return result
+
+    for ticker in tickers:
+        result.tickers_attempted += 1
+        try:
+            payloads = connector.fetch(ticker, days=days)
+            result.docs_fetched += len(payloads)
+
+            for payload in payloads:
+                if is_duplicate_document(session, payload):
+                    result.docs_skipped_duplicate += 1
+                    continue
+                try:
+                    ingest_document_payload(session, payload, ticker, use_llm=config.use_llm)
+                    result.docs_inserted += 1
+                except Exception as e:
+                    result.errors.append(f"{ticker} defeatbeta ingest: {e}")
+
+            result.tickers_succeeded += 1
+        except Exception as e:
+            result.tickers_failed += 1
+            result.errors.append(f"{ticker}: {e}")
+
+    logger.info(
+        "DefeatBeta backfill: %d tickers, %d docs fetched, %d inserted",
+        result.tickers_attempted, result.docs_fetched, result.docs_inserted,
+    )
+    return result
+
+
+def _backfill_macro_prices(
+    session: Session,
+    config: HistoricalEvalConfig,
+) -> BackfillSourceResult:
+    """Backfill macro indicator prices: VIX and DXY for market sentiment."""
+    result = BackfillSourceResult(source="macro_prices")
+
+    # VIX
+    try:
+        from connectors.vix_connector import VIXUpdater, DXYUpdater
+
+        vix = VIXUpdater()
+        vix_result = vix.update(
+            session, start_date=config.backfill_start,
+            end_date=config.backfill_end,
+        )
+        result.rows_upserted += vix_result.rows_upserted
+        result.errors.extend(vix_result.errors)
+
+        dxy = DXYUpdater()
+        dxy_result = dxy.update(
+            session, start_date=config.backfill_start,
+            end_date=config.backfill_end,
+        )
+        result.rows_upserted += dxy_result.rows_upserted
+        result.errors.extend(dxy_result.errors)
+
+        result.tickers_succeeded = 2
+        result.tickers_attempted = 2
+    except Exception as e:
+        result.errors.append(f"Macro price backfill failed: {e}")
+
+    logger.info(
+        "Macro price backfill: VIX+DXY, %d rows upserted",
+        result.rows_upserted,
     )
     return result

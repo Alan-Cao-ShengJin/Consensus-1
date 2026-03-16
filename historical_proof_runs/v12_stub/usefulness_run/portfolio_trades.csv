@@ -1,0 +1,27 @@
+trade_date,ticker,action,shares,price,notional,reason
+2024-07-31,SPY,initiate,1756.2301,540.93,950000.0,Core position: 95% allocation to SPY
+2024-08-01,AMD,initiate,148.7245,132.54,19711.95,"All entry gates passed — conviction 50, thesis stable (claim impact: +6.6%)"
+2024-08-01,NVDA,initiate,180.5792,109.16,19711.55,"All entry gates passed — conviction 50, thesis stable"
+2024-08-01,SPY,trim,-19.1724,533.27,10224.08,Sell core to fund satellite position
+2024-08-01,AVGO,initiate,136.0913,144.84,19711.16,"All entry gates passed — conviction 50, thesis stable"
+2024-08-08,AMD,exit,-148.7245,136.32,20274.12,Trailing stop EXIT: -30.1% from 90-day peak (threshold -30%)
+2024-08-08,QCOM,initiate,121.5275,158.66,19280.96,"All entry gates passed — conviction 50, thesis forming (claim impact: +5.2%)"
+2024-08-08,SPY,trim,-35.225,521.13,18356.9,Sell core to fund satellite position
+2024-08-08,INTC,initiate,940.9748,20.49,19280.57,"All entry gates passed — conviction 50, thesis stable (claim impact: +0.8%)"
+2024-08-08,SPY,trim,-37.0682,521.13,19317.46,Sell core to fund satellite position
+2024-08-08,MSFT,initiate,48.5249,397.32,19279.82,"All entry gates passed — conviction 50, thesis forming"
+2024-08-15,INTC,exit,-940.9748,20.69,19468.77,Trailing stop EXIT: -42.5% from 90-day peak (threshold -30%)
+2024-08-15,SPY,trim,-1.4029,543.15,761.97,Sell core to fund satellite position
+2024-08-15,GOOGL,initiate,125.9521,160.16,20172.67,"All entry gates passed — conviction 50, thesis stable"
+2024-08-15,SPY,trim,-37.1779,543.15,20193.19,Sell core to fund satellite position
+2024-08-15,AMZN,initiate,113.5889,177.59,20172.25,"All entry gates passed — conviction 50, thesis stable"
+2024-08-15,SPY,trim,-37.2121,543.15,20211.81,Sell core to fund satellite position
+2024-08-15,CRWD,initiate,77.4365,260.49,20171.44,"All entry gates passed — conviction 50, thesis stable"
+2024-08-22,CRWD,exit,-77.4365,267.64,20725.11,Trailing stop EXIT: -30.3% from 90-day peak (threshold -30%)
+2024-08-22,TSLA,initiate,96.1747,210.66,20260.15,"All entry gates passed — conviction 50, thesis stable"
+2024-08-29,SPY,trim,-36.259,548.34,19882.15,Sell core to fund satellite position
+2024-08-29,PLTR,initiate,653.7336,31.0,20265.74,"All entry gates passed — conviction 50, thesis stable"
+2024-09-05,SPY,trim,-37.0738,539.75,20010.68,Sell core to fund satellite position
+2024-09-05,CRM,initiate,81.8927,243.86,19970.53,"All entry gates passed — conviction 50, thesis stable (claim impact: +0.8%)"
+2024-09-05,SPY,trim,-37.072,539.75,20009.71,Sell core to fund satellite position
+2024-09-05,META,initiate,38.8267,514.33,19969.73,"All entry gates passed — conviction 50, thesis stable"

@@ -108,8 +108,11 @@ class HistoricalEvalConfig:
         return list(UNIVERSE_TICKERS)
 
     def is_usefulness_run(self) -> bool:
-        """Whether this is a real usefulness testing run."""
-        return self.mode == HistoricalRunMode.USEFULNESS_RUN
+        """Whether this is a real usefulness testing run (or evaluate-only re-run)."""
+        return self.mode in (
+            HistoricalRunMode.USEFULNESS_RUN,
+            HistoricalRunMode.EVALUATE_ONLY,
+        )
 
     def extractor_mode_label(self) -> str:
         """Human-readable label for the extraction mode."""

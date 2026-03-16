@@ -37,6 +37,11 @@ from portfolio_decision_engine import (
     DecisionInput, HoldingSnapshot, CandidateSnapshot,
     PortfolioReviewResult, run_decision_engine,
 )
+from price_momentum import (
+    MomentumGuardConfig, MomentumSignals, DISABLED_MOMENTUM_CONFIG,
+    compute_holding_signals, compute_candidate_signals,
+    compute_market_regime,
+)
 from portfolio_review_service import (
     _get_latest_price, _get_price_change_5d,
     _count_novel_claims_7d, _has_checkpoint_ahead,
@@ -47,6 +52,14 @@ from valuation_policy import zone_from_thesis_and_price
 from shadow_portfolio import ShadowPortfolio, PortfolioSnapshot
 from shadow_execution_policy import (
     apply_recommendations, ExecutionResult, get_execution_price,
+)
+from market_sentiment import (
+    compute_market_sentiment, MarketSentimentConfig,
+    DISABLED_SENTIMENT_CONFIG,
+)
+from conviction_decay import (
+    apply_conviction_decay, ConvictionDecayConfig,
+    DISABLED_DECAY_CONFIG,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,6 +207,9 @@ def _build_shadow_holding_snapshot(
     *,
     strict_replay: bool = False,
     purity: Optional[ReplayPurityFlags] = None,
+    prices_by_ticker: Optional[dict[str, list[tuple[date, float]]]] = None,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    market_regime_bullish: Optional[bool] = None,
 ) -> Optional[HoldingSnapshot]:
     """Build HoldingSnapshot from shadow portfolio state + DB research data.
 
@@ -246,6 +262,15 @@ def _build_shadow_holding_snapshot(
 
     zone = zone_from_thesis_and_price(val_gap, base_rerating, current_price)
 
+    # Compute momentum signals from preloaded prices
+    momentum = MomentumSignals()
+    if momentum_config.enabled and prices_by_ticker is not None:
+        ticker_prices = prices_by_ticker.get(ticker, [])
+        momentum = compute_holding_signals(
+            ticker_prices, review_date, current_price, pos.avg_cost, momentum_config,
+        )
+        momentum.market_regime_bullish = market_regime_bullish
+
     return HoldingSnapshot(
         ticker=ticker,
         position_id=0,  # shadow position, no DB id
@@ -267,6 +292,8 @@ def _build_shadow_holding_snapshot(
         novel_claim_count_7d=novel,
         confirming_claim_count_7d=confirming,
         price_change_pct_5d=price_change,
+        add_count=pos.add_count,
+        momentum=momentum,
     )
 
 
@@ -277,6 +304,9 @@ def _build_replay_candidate_snapshot(
     *,
     strict_replay: bool = False,
     purity: Optional[ReplayPurityFlags] = None,
+    prices_by_ticker: Optional[dict[str, list[tuple[date, float]]]] = None,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    market_regime_bullish: Optional[bool] = None,
 ) -> Optional[CandidateSnapshot]:
     """Build CandidateSnapshot for replay with purity-aware valuation and checkpoints.
 
@@ -334,6 +364,13 @@ def _build_replay_candidate_snapshot(
 
     zone = zone_from_thesis_and_price(valuation_gap, base_case, current_price)
 
+    # Compute momentum signals for candidate
+    momentum = MomentumSignals()
+    if momentum_config.enabled and prices_by_ticker is not None:
+        ticker_prices = prices_by_ticker.get(cand.ticker, [])
+        momentum = compute_candidate_signals(ticker_prices, review_date, momentum_config)
+        momentum.market_regime_bullish = market_regime_bullish
+
     return CandidateSnapshot(
         ticker=cand.ticker,
         candidate_id=cand.id,
@@ -349,6 +386,7 @@ def _build_replay_candidate_snapshot(
         confirming_claim_count_7d=confirming,
         cooldown_flag=cand.cooldown_flag,
         cooldown_until=cand.cooldown_until,
+        momentum=momentum,
     )
 
 
@@ -363,6 +401,10 @@ def run_replay_review(
     strict_replay: bool = False,
     relaxed_gates: bool = False,
     exit_policy=None,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    benchmark_ticker: str = "SPY",
+    sentiment_config: MarketSentimentConfig = DISABLED_SENTIMENT_CONFIG,
+    decay_config: ConvictionDecayConfig = DISABLED_DECAY_CONFIG,
 ) -> ReplayReviewRecord:
     """Run a single replay review at the given date.
 
@@ -384,9 +426,20 @@ def run_replay_review(
     )
     purity = record.purity
 
+    # Compute market regime from benchmark (SPY)
+    market_regime_bullish: Optional[bool] = None
+    if momentum_config.enabled and momentum_config.regime_guard_enabled:
+        benchmark_prices = prices_by_ticker.get(benchmark_ticker, [])
+        market_regime_bullish = compute_market_regime(
+            benchmark_prices, review_date, momentum_config.regime_sma_period,
+        )
+
     # Build holding snapshots from shadow positions
     holdings: list[HoldingSnapshot] = []
     for ticker in list(portfolio.held_tickers()):
+        # Skip core ticker — it's a passive benchmark holding, not reviewed
+        if portfolio.is_core_satellite and ticker == portfolio.core_ticker:
+            continue
         if ticker_filter and ticker != ticker_filter:
             continue
         # Find the thesis for this ticker
@@ -402,6 +455,9 @@ def run_replay_review(
         snap = _build_shadow_holding_snapshot(
             session, portfolio, ticker, thesis, review_date,
             strict_replay=strict_replay, purity=purity,
+            prices_by_ticker=prices_by_ticker,
+            momentum_config=momentum_config,
+            market_regime_bullish=market_regime_bullish,
         )
         if snap:
             # Update weight from current portfolio state
@@ -426,6 +482,9 @@ def run_replay_review(
     candidates: list[CandidateSnapshot] = []
     for cand in all_candidates:
         if cand.ticker in held_tickers:
+            continue
+        # Skip core ticker — it's passive, not a candidate
+        if portfolio.is_core_satellite and cand.ticker == portfolio.core_ticker:
             continue
 
         # Step 8.1: candidate temporal filtering
@@ -452,9 +511,89 @@ def run_replay_review(
         snapshot = _build_replay_candidate_snapshot(
             session, cand, review_date,
             strict_replay=strict_replay, purity=purity,
+            prices_by_ticker=prices_by_ticker,
+            momentum_config=momentum_config,
+            market_regime_bullish=market_regime_bullish,
         )
         if snapshot:
             candidates.append(snapshot)
+
+    # --- Conviction decay: erode stale convictions ---
+    if decay_config.enabled:
+        for snap in holdings:
+            # Use novel + confirming claims as proxy for "fresh evidence"
+            fresh_evidence = snap.novel_claim_count_7d + snap.confirming_claim_count_7d
+            days_since = None if fresh_evidence > 0 else 14  # assume stale if no claims
+            new_score, decay_amt = apply_conviction_decay(
+                snap.conviction_score, days_since, snap.price_change_pct_5d, decay_config,
+            )
+            if decay_amt > 0:
+                logger.debug(
+                    "Conviction decay: %s %.1f -> %.1f (decayed %.1f)",
+                    snap.ticker, snap.conviction_score, new_score, decay_amt,
+                )
+                snap.conviction_score = new_score
+
+    # --- Claim impact profiling: learn from realized outcomes ---
+    from claim_impact_profiler import (
+        compute_profiles_for_replay,
+        get_recent_claims_for_ticker,
+        compute_weighted_claim_signal,
+    )
+    impact_profiles = compute_profiles_for_replay(session, prices_by_ticker, review_date)
+    if impact_profiles:
+        # Enrich holding snapshots with claim impact signal
+        for snap in holdings:
+            recent = get_recent_claims_for_ticker(session, snap.ticker, review_date)
+            if recent:
+                snap.claim_impact_signal = compute_weighted_claim_signal(recent, impact_profiles)
+        # Enrich candidate snapshots
+        for snap in candidates:
+            recent = get_recent_claims_for_ticker(session, snap.ticker, review_date)
+            if recent:
+                snap.claim_impact_signal = compute_weighted_claim_signal(recent, impact_profiles)
+
+    # --- Market sentiment: compute macro risk signal ---
+    market_sentiment_score = None
+    if sentiment_config.enabled:
+        # Read VIX from preloaded prices
+        vix_level = None
+        vix_prices = prices_by_ticker.get("^VIX", [])
+        for d, p in reversed(vix_prices):
+            if d <= review_date:
+                vix_level = p
+                break
+
+        # Read yield curve from preloaded FRED data
+        yield_curve_spread = None
+        yc_prices = prices_by_ticker.get("MACRO:T10Y2Y", [])
+        for d, p in reversed(yc_prices):
+            if d <= review_date:
+                yield_curve_spread = p
+                break
+
+        # Read DXY from preloaded prices
+        dxy_level = None
+        dxy_prices = prices_by_ticker.get("MACRO:DXY", [])
+        for d, p in reversed(dxy_prices):
+            if d <= review_date:
+                dxy_level = p
+                break
+
+        market_sentiment_score = compute_market_sentiment(
+            as_of=review_date,
+            vix_level=vix_level,
+            yield_curve_spread=yield_curve_spread,
+            benchmark_above_sma=market_regime_bullish,
+            dxy_level=dxy_level,
+            config=sentiment_config,
+        )
+        logger.debug(
+            "Market sentiment: %s (risk=%.0f, sizing=%.2f)",
+            market_sentiment_score.regime.value,
+            market_sentiment_score.risk_score,
+            market_sentiment_score.sizing_multiplier,
+        )
 
     # Run decision engine
     engine_input = DecisionInput(
@@ -462,6 +601,8 @@ def run_replay_review(
         holdings=holdings,
         candidates=candidates,
         relaxed_gates=relaxed_gates,
+        momentum_config=momentum_config,
+        market_sentiment=market_sentiment_score,
     )
     if exit_policy is not None:
         engine_input.exit_policy = exit_policy
@@ -484,6 +625,23 @@ def run_replay_review(
                     pos.probation_reviews_count = 0
                 elif pos and pos.probation_flag:
                     pos.probation_reviews_count += 1
+
+        # Set cooldown on candidates after forced/trailing-stop exits
+        from portfolio_decision_engine import COOLDOWN_DAYS
+        for decision in result.decisions:
+            if decision.action == ActionType.EXIT:
+                cooldown_end = review_date + timedelta(days=COOLDOWN_DAYS)
+                # Update the DB candidate so future reviews see the cooldown
+                cand = session.scalars(
+                    select(Candidate).where(Candidate.ticker == decision.ticker)
+                ).first()
+                if cand:
+                    cand.cooldown_flag = True
+                    cand.cooldown_until = cooldown_end
+                    logger.info(
+                        "Cooldown set: %s blocked until %s after exit",
+                        decision.ticker, cooldown_end.isoformat(),
+                    )
 
         # Take portfolio snapshot
         prices_now = {

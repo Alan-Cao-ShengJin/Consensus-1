@@ -82,6 +82,19 @@ def main():
     parser.add_argument("--no-news", action="store_true", help="Skip news RSS backfill")
     parser.add_argument("--no-pr", action="store_true", help="Skip PR RSS backfill")
     parser.add_argument("--no-prices", action="store_true", help="Skip price backfill")
+    parser.add_argument("--no-finnhub", action="store_true", help="Skip Finnhub news backfill")
+    parser.add_argument("--momentum-guards", action="store_true",
+                        help="Enable price momentum guards (SMA, stop-loss, trailing stop, regime filter)")
+    parser.add_argument("--core-satellite", action="store_true",
+                        help="Core-satellite mode: start 95%% in SPY, swap into picks")
+    parser.add_argument("--core-pct", type=float, default=95.0,
+                        help="Core allocation %% (default 95)")
+    parser.add_argument("--smart-signals", action="store_true",
+                        help="Enable conviction decay + market sentiment + priced-in detection")
+    parser.add_argument("--conviction-decay", action="store_true",
+                        help="Enable conviction decay only (stale conviction erosion)")
+    parser.add_argument("--market-sentiment", action="store_true",
+                        help="Enable market sentiment only (VIX/yield curve/regime gating)")
 
     args = parser.parse_args()
 
@@ -106,6 +119,23 @@ def main():
         _run_full_proof(args, tickers, backfill_start, backfill_end, eval_start)
 
 
+def _build_signal_configs(args):
+    """Build sentiment and decay configs from CLI args."""
+    from market_sentiment import DISABLED_SENTIMENT_CONFIG, DEFAULT_SENTIMENT_CONFIG
+    from conviction_decay import DISABLED_DECAY_CONFIG, DEFAULT_DECAY_CONFIG
+
+    smart = getattr(args, 'smart_signals', False)
+    sentiment_cfg = DEFAULT_SENTIMENT_CONFIG if (smart or getattr(args, 'market_sentiment', False)) else DISABLED_SENTIMENT_CONFIG
+    decay_cfg = DEFAULT_DECAY_CONFIG if (smart or getattr(args, 'conviction_decay', False)) else DISABLED_DECAY_CONFIG
+
+    if sentiment_cfg.enabled:
+        print("  Market sentiment: ENABLED (VIX, yield curve, DXY, regime gating)")
+    if decay_cfg.enabled:
+        print("  Conviction decay: ENABLED (stale conviction erosion)")
+
+    return sentiment_cfg, decay_cfg
+
+
 def _build_config(args, tickers, backfill_start, backfill_end, eval_start, mode=None) -> HistoricalEvalConfig:
     run_id = args.run_id or ("usefulness_run" if mode == HistoricalRunMode.USEFULNESS_RUN else "historical_proof")
     return HistoricalEvalConfig(
@@ -123,6 +153,7 @@ def _build_config(args, tickers, backfill_start, backfill_end, eval_start, mode=
         backfill_sec_filings=not args.no_sec,
         backfill_news_rss=not args.no_news,
         backfill_pr_rss=not args.no_pr,
+        backfill_finnhub=not getattr(args, 'no_finnhub', False),
         use_llm=args.use_llm,
         strict_replay=args.strict,
         benchmark_ticker=args.benchmark,
@@ -173,9 +204,24 @@ def _run_usefulness(args, tickers, backfill_start, backfill_end, eval_start):
 
     # Step 3: Evaluate
     print("Step 3/4: Running historical evaluation with usefulness diagnostics...")
+
+    # Build momentum config if requested
+    from price_momentum import DISABLED_MOMENTUM_CONFIG, ENABLED_MOMENTUM_CONFIG
+    momentum_cfg = ENABLED_MOMENTUM_CONFIG if getattr(args, 'momentum_guards', False) else DISABLED_MOMENTUM_CONFIG
+    if momentum_cfg.enabled:
+        print("  Momentum guards: ENABLED (SMA, stop-loss, trailing stop, regime filter)")
+
+    sentiment_cfg, decay_cfg = _build_signal_configs(args)
+
     regen_session = open_regeneration_db(regen_result.db_path)
     try:
-        eval_result = run_historical_evaluation(regen_session, config)
+        eval_result = run_historical_evaluation(
+            regen_session, config, momentum_config=momentum_cfg,
+            core_satellite=getattr(args, 'core_satellite', False),
+            core_allocation_pct=getattr(args, 'core_pct', 95.0),
+            sentiment_config=sentiment_cfg,
+            decay_config=decay_cfg,
+        )
     finally:
         close_regeneration_db(regen_session)
 
@@ -291,9 +337,18 @@ def _run_full_proof(args, tickers, backfill_start, backfill_end, eval_start):
 
     # Step 3: Evaluate
     print("Step 3/4: Running historical evaluation...")
+    from price_momentum import DISABLED_MOMENTUM_CONFIG, ENABLED_MOMENTUM_CONFIG
+    momentum_cfg = ENABLED_MOMENTUM_CONFIG if getattr(args, 'momentum_guards', False) else DISABLED_MOMENTUM_CONFIG
+    sentiment_cfg, decay_cfg = _build_signal_configs(args)
     regen_session = open_regeneration_db(regen_result.db_path)
     try:
-        eval_result = run_historical_evaluation(regen_session, config)
+        eval_result = run_historical_evaluation(
+            regen_session, config, momentum_config=momentum_cfg,
+            core_satellite=getattr(args, 'core_satellite', False),
+            core_allocation_pct=getattr(args, 'core_pct', 95.0),
+            sentiment_config=sentiment_cfg,
+            decay_config=decay_cfg,
+        )
     finally:
         close_regeneration_db(regen_session)
 
@@ -315,10 +370,19 @@ def _run_evaluate_only(args, tickers, backfill_start, backfill_end, eval_start):
     from historical_regeneration import open_regeneration_db, close_regeneration_db
     from historical_evaluation import run_historical_evaluation
     from historical_report import generate_proof_pack
+    from price_momentum import DISABLED_MOMENTUM_CONFIG, ENABLED_MOMENTUM_CONFIG
+    momentum_cfg = ENABLED_MOMENTUM_CONFIG if getattr(args, 'momentum_guards', False) else DISABLED_MOMENTUM_CONFIG
 
+    sentiment_cfg, decay_cfg = _build_signal_configs(args)
     regen_session = open_regeneration_db(args.regen_db)
     try:
-        eval_result = run_historical_evaluation(regen_session, config)
+        eval_result = run_historical_evaluation(
+            regen_session, config, momentum_config=momentum_cfg,
+            core_satellite=getattr(args, 'core_satellite', False),
+            core_allocation_pct=getattr(args, 'core_pct', 95.0),
+            sentiment_config=sentiment_cfg,
+            decay_config=decay_cfg,
+        )
     finally:
         close_regeneration_db(regen_session)
 

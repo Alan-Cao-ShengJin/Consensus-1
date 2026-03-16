@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2025-09-08,TSLA,initiate,50.0,50.0,medium,346.4,14.3,27.14,24.0,"All entry gates passed — conviction 50, thesis forming"
+2025-09-01,INTC,initiate,60.1,60.1,medium,24.35,0.57,21.48,64.23,"All entry gates passed — conviction 60, thesis strengthening"
+2025-09-01,CRWD,initiate,53.5,53.5,medium,423.7,-1.43,18.61,28.16,"All entry gates passed — conviction 54, thesis strengthening"
+2025-09-01,QCOM,initiate,50.0,50.0,medium,157.99,0.01,4.4,13.19,"All entry gates passed — conviction 50, thesis forming"
+2025-09-01,NVDA,initiate,50.0,50.0,medium,174.15,-4.11,1.44,16.26,"All entry gates passed — conviction 50, thesis forming"
+2025-11-03,AAPL,initiate,54.4,54.4,medium,268.54,-0.22,1.0,1.14,"All entry gates passed — conviction 54, thesis strengthening"
+2025-10-06,MSFT,initiate,50.0,50.0,medium,526.38,-3.33,-0.94,-8.42,"All entry gates passed — conviction 50, thesis forming"
+2025-09-08,AVGO,initiate,50.0,50.0,medium,344.4,4.11,-3.05,1.27,"All entry gates passed — conviction 50, thesis forming"
+2025-09-01,AMD,initiate,50.0,50.0,medium,162.63,-7.07,-3.22,57.49,"All entry gates passed — conviction 50, thesis forming"
+2025-09-08,CRM,initiate,67.7,67.7,high,251.43,-3.77,-3.34,-4.75,"All entry gates passed — conviction 68, thesis strengthening"

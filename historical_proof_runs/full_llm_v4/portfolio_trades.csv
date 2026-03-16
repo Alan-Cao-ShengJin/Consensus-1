@@ -1,0 +1,57 @@
+trade_date,ticker,action,shares,price,notional,reason
+2025-09-02,MSFT,initiate,89.4582,503.03,45000.0,"All entry gates passed — conviction 72, thesis strengthening"
+2025-09-02,AMD,initiate,240.2553,162.32,38998.25,"All entry gates passed — conviction 67, thesis strengthening"
+2025-09-02,NVDA,initiate,228.3828,170.75,38996.72,"All entry gates passed — conviction 67, thesis strengthening"
+2025-09-02,AAPL,initiate,122.1048,229.28,27996.56,"All entry gates passed — conviction 57, thesis strengthening"
+2025-09-02,META,initiate,27.2433,734.02,19996.98,"All entry gates passed — conviction 50, thesis forming"
+2025-09-09,AAPL,add,42.7124,233.9,9990.61,Winner with strong conviction and attractive valuation — add
+2025-09-16,AAPL,add,42.1984,237.7,10030.43,Winner with strong conviction and attractive valuation — add
+2025-09-16,NVDA,add,86.0427,174.86,15045.5,Winner with strong conviction and attractive valuation — add
+2025-09-16,MSFT,add,39.5721,506.93,20060.36,Winner with strong conviction and attractive valuation — add
+2025-09-23,AAPL,add,39.6533,253.95,10069.8,Winner with strong conviction and attractive valuation — add
+2025-09-23,NVDA,add,84.6618,178.41,15104.55,Winner with strong conviction and attractive valuation — add
+2025-09-23,MSFT,add,39.7126,507.12,20139.09,Winner with strong conviction and attractive valuation — add
+2025-09-30,AAPL,add,39.7938,254.15,10113.43,Winner with strong conviction and attractive valuation — add
+2025-09-30,NVDA,add,81.3145,186.56,15169.99,Winner with strong conviction and attractive valuation — add
+2025-09-30,MSFT,add,28.0269,515.81,14456.41,Winner with strong conviction and attractive valuation — add
+2025-10-07,AAPL,add,39.9872,255.99,10236.4,Winner with strong conviction and attractive valuation — add
+2025-10-07,AMD,add,96.7925,211.51,20472.59,Winner with strong conviction and attractive valuation — add
+2025-10-07,NVDA,add,71.2735,185.02,13187.01,Winner with strong conviction and attractive valuation — add
+2025-10-07,MSFT,add,-2.4397,521.81,1273.04,Winner with strong conviction and attractive valuation — add
+2025-10-14,AAPL,add,41.0649,247.3,10155.3,Winner with strong conviction and attractive valuation — add
+2025-10-14,AMD,add,93.1285,218.09,20310.39,Winner with strong conviction and attractive valuation — add
+2025-10-14,NVDA,add,-10.5173,180.01,1893.23,Winner with strong conviction and attractive valuation — add
+2025-10-21,AAPL,add,25.67,262.27,6732.48,Winner with strong conviction and attractive valuation — add
+2025-10-21,AMD,add,-2.2955,238.03,546.4,Winner with strong conviction and attractive valuation — add
+2025-10-28,AAPL,add,-2.9109,268.49,781.54,Winner with strong conviction and attractive valuation — add
+2025-10-28,AMD,add,-24.8989,258.01,6424.18,Winner with strong conviction and attractive valuation — add
+2025-10-28,NVDA,add,5.4281,201.01,1091.1,Winner with strong conviction and attractive valuation — add
+2025-10-28,MSFT,add,3.4045,539.83,1837.82,Winner with strong conviction and attractive valuation — add
+2025-11-04,AAPL,add,-4.7372,269.53,1276.8,Winner with strong conviction and attractive valuation — add
+2025-11-04,AMD,add,-4.4243,250.05,1106.29,Winner with strong conviction and attractive valuation — add
+2025-11-04,NVDA,add,-47.4393,198.67,9424.67,Winner with strong conviction and attractive valuation — add
+2025-11-04,MSFT,add,3.2234,512.2,1651.03,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-04,META,add,39.9944,626.81,25068.87,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-11,AAPL,add,-14.064,274.99,3867.5,Winner with strong conviction and attractive valuation — add
+2025-11-11,AMD,add,11.0724,237.52,2629.91,Winner with strong conviction and attractive valuation — add
+2025-11-11,META,add,39.4288,626.57,24704.87,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-18,AMD,add,-2.1138,230.29,486.79,Winner with strong conviction and attractive valuation — add
+2025-11-25,AAPL,add,-21.3705,276.71,5913.46,Winner with strong conviction and attractive valuation — add
+2025-11-25,NVDA,add,29.7118,177.8,5282.77,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-09,META,add,36.7803,656.42,24143.5,Winner with strong conviction and attractive valuation — add
+2025-12-09,AAPL,add,-1.8228,276.92,504.77,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-09,MSFT,add,-3.5691,490.9,1752.07,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-16,AMD,add,47.6049,209.17,9957.52,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-16,MSFT,add,2.121,475.31,1008.1,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-16,META,add,2.4922,657.15,1637.76,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-23,META,add,-1.5289,664.94,1016.66,Winner with strong conviction and attractive valuation — add
+2025-12-23,AMD,add,-10.7357,214.9,2307.11,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-06,AAPL,add,7.4706,262.11,1958.14,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-20,META,add,7.4271,604.12,4486.83,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-27,AMD,add,-62.5302,252.03,15759.47,Winner with strong conviction and attractive valuation — add
+2026-01-27,META,add,-8.8033,672.97,5924.39,Winner with strong conviction and attractive valuation — add
+2026-01-27,NVDA,add,-13.3228,188.51,2511.48,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-03,AAPL,add,-18.281,269.23,4921.77,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-03,MSFT,add,16.0424,410.27,6581.75,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-10,AMD,add,28.7282,213.57,6135.49,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-24,AMD,add,27.185,213.84,5813.25,"Loser with intact thesis, confirming evidence, and attractive valuation — add"

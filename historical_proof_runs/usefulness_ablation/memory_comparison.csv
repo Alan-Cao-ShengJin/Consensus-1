@@ -1,0 +1,8 @@
+metric,memory_on,memory_off,delta
+thesis_updates,75,77,-2
+state_changes,29,28,1
+state_flips,9,8,1
+return,3.16,3.23,-0.07
+drawdown,4.99,4.99,0.0
+initiations,15,15,0
+exits,1,1,0

@@ -1,0 +1,1014 @@
+{
+  "report_version": "2.0",
+  "report_type": "historical_proof_run",
+  "generated_at": "2026-03-14T20:20:14.938664",
+  "config": {
+    "run_id": "usefulness_run",
+    "run_label": "Historical proof: 2024-06-01 to 2025-01-01",
+    "mode": "usefulness_run",
+    "tickers": [
+      "NVDA",
+      "AMD",
+      "AVGO",
+      "QCOM",
+      "INTC",
+      "MSFT",
+      "GOOGL",
+      "AMZN",
+      "META",
+      "CRM",
+      "PLTR",
+      "NOW",
+      "CRWD",
+      "AAPL",
+      "TSLA"
+    ],
+    "backfill_start": "2024-06-01",
+    "backfill_end": "2025-01-01",
+    "eval_start": "2024-07-31",
+    "eval_end": "2025-01-01",
+    "cadence_days": 7,
+    "backfill_prices": true,
+    "backfill_sec_filings": true,
+    "backfill_news_rss": true,
+    "backfill_pr_rss": true,
+    "rebuild_from_scratch": true,
+    "use_llm": false,
+    "extractor_mode": "stub_heuristic",
+    "initial_cash": 1000000,
+    "transaction_cost_bps": 10.0,
+    "strict_replay": false,
+    "forward_return_days": [
+      5,
+      20,
+      60
+    ],
+    "memory_enabled": true,
+    "benchmark_ticker": "SPY",
+    "output_dir": "historical_proof_runs",
+    "seed": 42
+  },
+  "regeneration": {
+    "db_path": "historical_proof_runs\\usefulness_run_regen.db",
+    "total_documents": 111,
+    "total_claims": 115,
+    "total_thesis_updates": 111,
+    "total_state_changes": 15,
+    "total_state_flips": 0,
+    "data_coverage": {
+      "total_documents": 111,
+      "total_claims": 115,
+      "total_prices": 2205,
+      "total_theses": 15,
+      "documents_by_source_type": {
+        "8K": 79,
+        "10Q": 28,
+        "10K": 4
+      },
+      "tickers_with_prices": 15,
+      "tickers_without_prices": 0,
+      "tickers_total": 15
+    },
+    "warnings": [],
+    "steps_count": 62
+  },
+  "evaluation": {
+    "config": {
+      "run_id": "usefulness_run",
+      "run_label": "Historical proof: 2024-06-01 to 2025-01-01",
+      "mode": "usefulness_run",
+      "tickers": [
+        "NVDA",
+        "AMD",
+        "AVGO",
+        "QCOM",
+        "INTC",
+        "MSFT",
+        "GOOGL",
+        "AMZN",
+        "META",
+        "CRM",
+        "PLTR",
+        "NOW",
+        "CRWD",
+        "AAPL",
+        "TSLA"
+      ],
+      "backfill_start": "2024-06-01",
+      "backfill_end": "2025-01-01",
+      "eval_start": "2024-07-31",
+      "eval_end": "2025-01-01",
+      "cadence_days": 7,
+      "backfill_prices": true,
+      "backfill_sec_filings": true,
+      "backfill_news_rss": true,
+      "backfill_pr_rss": true,
+      "rebuild_from_scratch": true,
+      "use_llm": false,
+      "extractor_mode": "stub_heuristic",
+      "initial_cash": 1000000,
+      "transaction_cost_bps": 10.0,
+      "strict_replay": false,
+      "forward_return_days": [
+        5,
+        20,
+        60
+      ],
+      "memory_enabled": true,
+      "benchmark_ticker": "SPY",
+      "output_dir": "historical_proof_runs",
+      "seed": 42
+    },
+    "metrics": {
+      "performance": {
+        "total_return_pct": 10.54,
+        "annualized_return_pct": 26.82,
+        "max_drawdown_pct": 7.92,
+        "max_drawdown_peak_date": "2024-12-11",
+        "max_drawdown_trough_date": "2025-01-01"
+      },
+      "activity": {
+        "initiations": 29,
+        "adds": 44,
+        "trims": 8,
+        "exits": 14,
+        "holds": 243,
+        "no_actions": 5,
+        "probations": 0,
+        "blocked": 2,
+        "hit_rate_pct": null
+      },
+      "turnover": {
+        "total_turnover_pct": 136.21,
+        "avg_per_review_pct": 5.92,
+        "avg_holding_period_days": 20.5
+      },
+      "cash_exposure": {
+        "avg_pct": 0.4,
+        "min_pct": 0.0,
+        "max_pct": 4.0
+      },
+      "discipline": {
+        "probation_to_exit": 0,
+        "funded_pairings": 0,
+        "turnover_cap_blocked": 2,
+        "candidate_beat_weakest": 0
+      },
+      "conviction_at_initiation": {
+        "values": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ],
+        "average": 50.0
+      },
+      "actions_by_month": {
+        "2024-07": {
+          "initiate": 10,
+          "no_action": 3
+        },
+        "2024-08": {
+          "exit": 6,
+          "trim": 4,
+          "initiate": 11,
+          "no_action": 1,
+          "hold": 29,
+          "add": 9
+        },
+        "2024-09": {
+          "exit": 3,
+          "trim": 3,
+          "add": 14,
+          "hold": 36,
+          "initiate": 4
+        },
+        "2024-10": {
+          "exit": 3,
+          "add": 5,
+          "hold": 64,
+          "initiate": 3
+        },
+        "2024-11": {
+          "hold": 54,
+          "add": 6
+        },
+        "2024-12": {
+          "add": 8,
+          "hold": 48,
+          "exit": 2,
+          "trim": 1,
+          "initiate": 1
+        },
+        "2025-01": {
+          "add": 2,
+          "hold": 12,
+          "no_action": 1
+        }
+      },
+      "replay_integrity": {
+        "total_review_dates": 23,
+        "total_recommendations": 343,
+        "total_trades_applied": 140,
+        "total_trades_skipped": 2,
+        "total_fallback_count": 0,
+        "dates_skipped_no_data": 0,
+        "missing_price_events": 0
+      },
+      "purity": {
+        "purity_level": "degraded",
+        "strict_replay": false,
+        "impure_candidate_fallbacks": 0,
+        "impure_valuation_fallbacks": 343,
+        "impure_checkpoint_fallbacks": 0,
+        "skipped_impure_total": 0
+      }
+    },
+    "diagnostics": {
+      "action_counts": {
+        "initiate": 29,
+        "no_action": 5,
+        "exit": 14,
+        "trim": 8,
+        "hold": 243,
+        "add": 44
+      },
+      "action_pcts": {
+        "initiate": 8.5,
+        "no_action": 1.5,
+        "exit": 4.1,
+        "trim": 2.3,
+        "hold": 70.8,
+        "add": 12.8
+      },
+      "actions_by_ticker": {
+        "NVDA": {
+          "initiate": 2,
+          "exit": 1,
+          "add": 4,
+          "hold": 16
+        },
+        "AMD": {
+          "initiate": 2,
+          "exit": 2,
+          "add": 5,
+          "hold": 12,
+          "trim": 1,
+          "no_action": 1
+        },
+        "AVGO": {
+          "initiate": 2,
+          "exit": 1,
+          "hold": 17,
+          "add": 3
+        },
+        "QCOM": {
+          "initiate": 3,
+          "exit": 2,
+          "add": 5,
+          "hold": 13
+        },
+        "INTC": {
+          "initiate": 5,
+          "trim": 7,
+          "exit": 3,
+          "hold": 7,
+          "add": 1
+        },
+        "MSFT": {
+          "initiate": 1,
+          "hold": 18,
+          "add": 4
+        },
+        "GOOGL": {
+          "initiate": 1,
+          "hold": 22
+        },
+        "META": {
+          "initiate": 1,
+          "hold": 22
+        },
+        "PLTR": {
+          "initiate": 1,
+          "hold": 17,
+          "add": 5
+        },
+        "CRWD": {
+          "initiate": 6,
+          "exit": 5,
+          "hold": 10,
+          "add": 2
+        },
+        "TSLA": {
+          "no_action": 2,
+          "initiate": 1,
+          "add": 8,
+          "hold": 12
+        },
+        "CRM": {
+          "no_action": 1,
+          "initiate": 1,
+          "hold": 21
+        },
+        "NOW": {
+          "no_action": 1,
+          "initiate": 1,
+          "hold": 20,
+          "add": 1
+        },
+        "AMZN": {
+          "initiate": 1,
+          "hold": 16,
+          "add": 5
+        },
+        "AAPL": {
+          "initiate": 1,
+          "add": 1,
+          "hold": 20
+        }
+      },
+      "recommendation_changes": 109,
+      "recommendation_change_rate": 4.739,
+      "attribution": {
+        "valuation_driven": 44,
+        "evidence_driven": 0,
+        "checkpoint_driven": 0,
+        "deterioration_driven": 0
+      },
+      "candidate_rankings_count": 10,
+      "short_hold_exits": 12
+    },
+    "benchmark": {
+      "portfolio_return_pct": 10.54,
+      "benchmark": {
+        "ticker": "SPY",
+        "return_pct": 7.09,
+        "excess_return_pct": 3.45,
+        "data_available": true
+      },
+      "equal_weight_baseline": {
+        "return_pct": 28.21,
+        "vs_equal_weight_pct": -17.66,
+        "tickers_count": 15,
+        "tickers_with_data": 15
+      }
+    },
+    "forward_return_summary": [
+      {
+        "action": "add",
+        "count": 44,
+        "avg_forward_5d_pct": 0.89,
+        "avg_forward_20d_pct": 3.26,
+        "avg_forward_60d_pct": 6.41,
+        "count_with_5d_data": 42,
+        "count_with_20d_data": 36,
+        "count_with_60d_data": 28
+      },
+      {
+        "action": "exit",
+        "count": 14,
+        "avg_forward_5d_pct": 2.85,
+        "avg_forward_20d_pct": 10.11,
+        "avg_forward_60d_pct": 16.97,
+        "count_with_5d_data": 14,
+        "count_with_20d_data": 12,
+        "count_with_60d_data": 12
+      },
+      {
+        "action": "hold",
+        "count": 243,
+        "avg_forward_5d_pct": 1.03,
+        "avg_forward_20d_pct": 4.42,
+        "avg_forward_60d_pct": 15.99,
+        "count_with_5d_data": 231,
+        "count_with_20d_data": 211,
+        "count_with_60d_data": 144
+      },
+      {
+        "action": "initiate",
+        "count": 29,
+        "avg_forward_5d_pct": -1.13,
+        "avg_forward_20d_pct": 2.75,
+        "avg_forward_60d_pct": 10.81,
+        "count_with_5d_data": 29,
+        "count_with_20d_data": 28,
+        "count_with_60d_data": 28
+      },
+      {
+        "action": "trim",
+        "count": 8,
+        "avg_forward_5d_pct": 4.03,
+        "avg_forward_20d_pct": 7.13,
+        "avg_forward_60d_pct": 18.47,
+        "count_with_5d_data": 8,
+        "count_with_20d_data": 7,
+        "count_with_60d_data": 7
+      }
+    ],
+    "conviction_buckets": [
+      {
+        "bucket": "low",
+        "action_count": 0,
+        "avg_conviction": null,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null
+      },
+      {
+        "bucket": "medium",
+        "action_count": 338,
+        "avg_conviction": 50.0,
+        "avg_forward_5d_pct": 0.97,
+        "avg_forward_20d_pct": 4.42,
+        "avg_forward_60d_pct": 14.24
+      },
+      {
+        "bucket": "high",
+        "action_count": 0,
+        "avg_conviction": null,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null
+      }
+    ],
+    "action_outcomes_count": 338,
+    "best_decisions": [
+      {
+        "review_date": "2024-11-27",
+        "ticker": "TSLA",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 332.89,
+        "forward_5d_pct": 7.27,
+        "forward_20d_pct": 44.15,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-12-04",
+        "ticker": "AVGO",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 168.58,
+        "forward_5d_pct": 4.91,
+        "forward_20d_pct": 40.9,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-07",
+        "ticker": "NVDA",
+        "action": "exit",
+        "thesis_conviction": 50.0,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 98.86,
+        "forward_5d_pct": 10.22,
+        "forward_20d_pct": 29.71,
+        "forward_60d_pct": 26.31,
+        "rationale": "Trailing stop EXIT: -27.0% from 90-day peak (threshold -25%)"
+      },
+      {
+        "review_date": "2024-07-31",
+        "ticker": "PLTR",
+        "action": "initiate",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 26.89,
+        "forward_5d_pct": -10.41,
+        "forward_20d_pct": 20.19,
+        "forward_60d_pct": 37.0,
+        "rationale": "All entry gates passed \u2014 conviction 50, thesis forming"
+      },
+      {
+        "review_date": "2024-08-28",
+        "ticker": "PLTR",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 30.36,
+        "forward_5d_pct": 3.69,
+        "forward_20d_pct": 20.06,
+        "forward_60d_pct": 47.76,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-07",
+        "ticker": "AVGO",
+        "action": "exit",
+        "thesis_conviction": 50.0,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 134.25,
+        "forward_5d_pct": 9.06,
+        "forward_20d_pct": 18.43,
+        "forward_60d_pct": 30.05,
+        "rationale": "Trailing stop EXIT: -25.3% from 90-day peak (threshold -25%)"
+      },
+      {
+        "review_date": "2024-09-04",
+        "ticker": "INTC",
+        "action": "trim",
+        "thesis_conviction": 50.0,
+        "action_score": 75.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 19.43,
+        "forward_5d_pct": -1.85,
+        "forward_20d_pct": 17.4,
+        "forward_60d_pct": 19.4,
+        "rationale": "Stop-loss TRIM: position -32.7% below cost basis (threshold -20%)"
+      },
+      {
+        "review_date": "2024-08-07",
+        "ticker": "CRWD",
+        "action": "exit",
+        "thesis_conviction": 50.0,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 230.67,
+        "forward_5d_pct": 3.76,
+        "forward_20d_pct": 16.98,
+        "forward_60d_pct": 26.69,
+        "rationale": "Trailing stop EXIT: -41.2% from 90-day peak (threshold -25%)"
+      },
+      {
+        "review_date": "2024-08-07",
+        "ticker": "AMD",
+        "action": "exit",
+        "thesis_conviction": 50.0,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 128.67,
+        "forward_5d_pct": 6.3,
+        "forward_20d_pct": 16.97,
+        "forward_60d_pct": 32.82,
+        "rationale": "Trailing stop EXIT: -30.1% from 90-day peak (threshold -25%)"
+      },
+      {
+        "review_date": "2024-09-04",
+        "ticker": "TSLA",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 219.41,
+        "forward_5d_pct": -1.43,
+        "forward_20d_pct": 15.89,
+        "forward_60d_pct": 13.48,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      }
+    ],
+    "worst_decisions": [
+      {
+        "review_date": "2024-07-31",
+        "ticker": "INTC",
+        "action": "initiate",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 30.55,
+        "forward_5d_pct": -34.58,
+        "forward_20d_pct": -31.28,
+        "forward_60d_pct": -21.73,
+        "rationale": "All entry gates passed \u2014 conviction 50, thesis stable"
+      },
+      {
+        "review_date": "2024-11-20",
+        "ticker": "INTC",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 24.01,
+        "forward_5d_pct": 3.58,
+        "forward_20d_pct": -16.03,
+        "forward_60d_pct": null,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "NVDA",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 128.44,
+        "forward_5d_pct": -1.59,
+        "forward_20d_pct": -15.88,
+        "forward_60d_pct": 7.4,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-10-02",
+        "ticker": "TSLA",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 249.02,
+        "forward_5d_pct": -3.29,
+        "forward_20d_pct": -12.47,
+        "forward_60d_pct": 38.61,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "INTC",
+        "action": "trim",
+        "thesis_conviction": 50.0,
+        "action_score": 75.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 21.41,
+        "forward_5d_pct": -5.98,
+        "forward_20d_pct": -11.35,
+        "forward_60d_pct": 6.35,
+        "rationale": "Stop-loss TRIM: position -25.8% below cost basis (threshold -20%)"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "AMD",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 157.81,
+        "forward_5d_pct": -4.96,
+        "forward_20d_pct": -9.49,
+        "forward_60d_pct": -1.17,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "CRWD",
+        "action": "exit",
+        "thesis_conviction": 50.0,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 273.21,
+        "forward_5d_pct": -2.69,
+        "forward_20d_pct": -9.32,
+        "forward_60d_pct": 13.52,
+        "rationale": "Trailing stop EXIT: -30.3% from 90-day peak (threshold -25%)"
+      },
+      {
+        "review_date": "2024-08-14",
+        "ticker": "NVDA",
+        "action": "initiate",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 118.02,
+        "forward_5d_pct": 10.09,
+        "forward_20d_pct": -8.54,
+        "forward_60d_pct": 14.17,
+        "rationale": "All entry gates passed \u2014 conviction 50, thesis stable"
+      },
+      {
+        "review_date": "2024-08-28",
+        "ticker": "NVDA",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 125.55,
+        "forward_5d_pct": -4.97,
+        "forward_20d_pct": -7.97,
+        "forward_60d_pct": 12.69,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "QCOM",
+        "action": "add",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 167.57,
+        "forward_5d_pct": -2.71,
+        "forward_20d_pct": -6.72,
+        "forward_60d_pct": -1.39,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      }
+    ],
+    "per_name_summary": [
+      {
+        "ticker": "AAPL",
+        "action_count": 22,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 20,
+        "avg_forward_5d_pct": 0.85,
+        "avg_forward_20d_pct": 2.56,
+        "avg_forward_60d_pct": 5.4,
+        "doc_count": 7,
+        "claim_count": 8,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMD",
+        "action_count": 22,
+        "initiate_count": 2,
+        "exit_count": 2,
+        "hold_count": 12,
+        "avg_forward_5d_pct": 0.59,
+        "avg_forward_20d_pct": -0.88,
+        "avg_forward_60d_pct": -3.94,
+        "doc_count": 8,
+        "claim_count": 8,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMZN",
+        "action_count": 22,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 16,
+        "avg_forward_5d_pct": 0.69,
+        "avg_forward_20d_pct": 4.32,
+        "avg_forward_60d_pct": 12.8,
+        "doc_count": 4,
+        "claim_count": 4,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AVGO",
+        "action_count": 23,
+        "initiate_count": 2,
+        "exit_count": 1,
+        "hold_count": 17,
+        "avg_forward_5d_pct": 2.04,
+        "avg_forward_20d_pct": 7.51,
+        "avg_forward_60d_pct": 13.79,
+        "doc_count": 9,
+        "claim_count": 9,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CRM",
+        "action_count": 22,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 21,
+        "avg_forward_5d_pct": 1.29,
+        "avg_forward_20d_pct": 4.6,
+        "avg_forward_60d_pct": 19.27,
+        "doc_count": 8,
+        "claim_count": 8,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CRWD",
+        "action_count": 23,
+        "initiate_count": 6,
+        "exit_count": 5,
+        "hold_count": 10,
+        "avg_forward_5d_pct": 1.45,
+        "avg_forward_20d_pct": 6.21,
+        "avg_forward_60d_pct": 20.99,
+        "doc_count": 9,
+        "claim_count": 9,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GOOGL",
+        "action_count": 23,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 22,
+        "avg_forward_5d_pct": 0.04,
+        "avg_forward_20d_pct": 2.47,
+        "avg_forward_60d_pct": 6.75,
+        "doc_count": 11,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "INTC",
+        "action_count": 23,
+        "initiate_count": 5,
+        "exit_count": 3,
+        "hold_count": 7,
+        "avg_forward_5d_pct": 0.31,
+        "avg_forward_20d_pct": -0.77,
+        "avg_forward_60d_pct": 3.95,
+        "doc_count": 10,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "META",
+        "action_count": 23,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 22,
+        "avg_forward_5d_pct": 0.45,
+        "avg_forward_20d_pct": 3.23,
+        "avg_forward_60d_pct": 8.08,
+        "doc_count": 6,
+        "claim_count": 6,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MSFT",
+        "action_count": 23,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 18,
+        "avg_forward_5d_pct": -0.39,
+        "avg_forward_20d_pct": 0.94,
+        "avg_forward_60d_pct": 1.5,
+        "doc_count": 7,
+        "claim_count": 7,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NOW",
+        "action_count": 22,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 20,
+        "avg_forward_5d_pct": 1.31,
+        "avg_forward_20d_pct": 4.7,
+        "avg_forward_60d_pct": 15.85,
+        "doc_count": 5,
+        "claim_count": 5,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NVDA",
+        "action_count": 23,
+        "initiate_count": 2,
+        "exit_count": 1,
+        "hold_count": 16,
+        "avg_forward_5d_pct": 0.2,
+        "avg_forward_20d_pct": 2.89,
+        "avg_forward_60d_pct": 11.2,
+        "doc_count": 7,
+        "claim_count": 7,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PLTR",
+        "action_count": 23,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 17,
+        "avg_forward_5d_pct": 2.8,
+        "avg_forward_20d_pct": 16.29,
+        "avg_forward_60d_pct": 60.77,
+        "doc_count": 6,
+        "claim_count": 6,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "QCOM",
+        "action_count": 23,
+        "initiate_count": 3,
+        "exit_count": 2,
+        "hold_count": 13,
+        "avg_forward_5d_pct": 0.09,
+        "avg_forward_20d_pct": -0.57,
+        "avg_forward_60d_pct": -3.17,
+        "doc_count": 7,
+        "claim_count": 9,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TSLA",
+        "action_count": 21,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 12,
+        "avg_forward_5d_pct": 2.99,
+        "avg_forward_20d_pct": 13.6,
+        "avg_forward_60d_pct": 44.02,
+        "doc_count": 7,
+        "claim_count": 7,
+        "price_coverage_pct": 97.3
+      }
+    ],
+    "coverage_diagnostics": {
+      "docs_by_ticker": {
+        "AAPL": 7,
+        "AMD": 8,
+        "AMZN": 4,
+        "AVGO": 9,
+        "CRM": 8,
+        "CRWD": 9,
+        "GOOGL": 11,
+        "INTC": 10,
+        "META": 6,
+        "MSFT": 7,
+        "NOW": 5,
+        "NVDA": 7,
+        "PLTR": 6,
+        "QCOM": 7,
+        "TSLA": 7
+      },
+      "docs_by_source_type": {
+        "8K": 79,
+        "10K": 4,
+        "10Q": 28
+      },
+      "docs_by_month": {
+        "2024-06": 14,
+        "2024-07": 21,
+        "2024-08": 23,
+        "2024-09": 6,
+        "2024-10": 19,
+        "2024-11": 16,
+        "2024-12": 12
+      },
+      "claims_by_ticker": {
+        "AAPL": 8,
+        "AMD": 8,
+        "AMZN": 4,
+        "AVGO": 9,
+        "CRM": 8,
+        "CRWD": 9,
+        "GOOGL": 11,
+        "INTC": 11,
+        "META": 6,
+        "MSFT": 7,
+        "NOW": 5,
+        "NVDA": 7,
+        "PLTR": 6,
+        "QCOM": 9,
+        "TSLA": 7
+      },
+      "source_gaps": [
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-01"
+        }
+      ],
+      "extractor_mode": "stub_heuristic",
+      "benchmark_available": true,
+      "tickers_with_prices": 15,
+      "tickers_without_prices": 0,
+      "total_price_rows": 2205
+    },
+    "failure_analysis": {
+      "sparse_coverage_tickers": [],
+      "negative_return_actions": [
+        {
+          "action": "initiate",
+          "count": 29,
+          "avg_5d_pct": -1.13,
+          "concern": "initiate actions have negative avg 5D return (-1.13%)"
+        }
+      ],
+      "non_differentiating_buckets": [],
+      "repeated_bad_recommendations": [
+        {
+          "ticker": "INTC",
+          "bad_initiate_add_count": 2,
+          "concern": "INTC had 2 initiate/add actions followed by >5% loss at 20D"
+        },
+        {
+          "ticker": "NVDA",
+          "bad_initiate_add_count": 3,
+          "concern": "NVDA had 3 initiate/add actions followed by >5% loss at 20D"
+        }
+      ],
+      "low_evidence_periods": [],
+      "degraded_flags": [
+        "Stub extraction: claims are heuristic, not LLM-generated"
+      ]
+    },
+    "warnings": []
+  },
+  "memory_comparison": null
+}

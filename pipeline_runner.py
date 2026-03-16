@@ -145,6 +145,16 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
     if av.available:
         all_connectors.append(av)
 
+    # DefeatBeta connector (free earnings transcripts from HuggingFace)
+    from connectors.defeatbeta_connector import DefeatBetaTranscriptConnector
+    db = DefeatBetaTranscriptConnector()
+    if db.available:
+        all_connectors.append(db)
+
+    # Macro news RSS (broad market headlines)
+    from connectors.macro_rss import MacroNewsRSSConnector
+    all_connectors.append(MacroNewsRSSConnector())
+
     if source_filter:
         return [c for c in all_connectors if c.source_key in source_filter]
     return all_connectors
@@ -152,11 +162,20 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
 
 def _build_non_document_updaters(source_filter: Optional[list[str]] = None) -> list[NonDocumentUpdater]:
     """Instantiate enabled non-document updaters, optionally filtered."""
+    from connectors.vix_connector import VIXUpdater, DXYUpdater
+    from connectors.fred_connector import FREDMacroUpdater
+
     all_updaters: list[NonDocumentUpdater] = [
         YFinancePriceUpdater(),
         YFinanceCalendarUpdater(),
         YFinanceTickerInfoUpdater(),
+        VIXUpdater(),
+        DXYUpdater(),
     ]
+    # FRED connector: only if API key available
+    fred = FREDMacroUpdater()
+    if fred.available:
+        all_updaters.append(fred)
     if source_filter:
         return [u for u in all_updaters if u.source_key in source_filter]
     return all_updaters

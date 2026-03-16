@@ -34,6 +34,32 @@ class ExecutionResult:
     fallback_count: int = 0     # number of times fallback behavior was used
 
 
+# ---------------------------------------------------------------------------
+# Conviction-based position sizing
+# ---------------------------------------------------------------------------
+
+def conviction_based_weight(conviction: float) -> float:
+    """Map conviction score to target initiation weight on a smooth curve.
+
+    Linear interpolation between anchor points:
+      conviction 40 (floor) -> 1.0%
+      conviction 80 (ceiling) -> 7.0%
+
+    Clamped at both ends. Every point of conviction earns proportional sizing.
+    Examples: 50 -> 2.5%, 60 -> 4.0%, 65 -> 4.75%, 70 -> 5.5%, 75 -> 6.25%
+    """
+    floor_conv, floor_wt = 40.0, 1.0
+    ceil_conv, ceil_wt = 80.0, 7.0
+
+    if conviction <= floor_conv:
+        return floor_wt
+    if conviction >= ceil_conv:
+        return ceil_wt
+
+    t = (conviction - floor_conv) / (ceil_conv - floor_conv)
+    return round(floor_wt + t * (ceil_wt - floor_wt), 2)
+
+
 def get_execution_price(
     prices_by_ticker: dict[str, list[tuple[date, float]]],
     ticker: str,
@@ -76,6 +102,10 @@ def apply_recommendations(
       EXIT      -> fully exit position
       HOLD / PROBATION / NO_ACTION -> no trade
 
+    Core-satellite mode: when portfolio.core_ticker is set, buys are
+    funded by selling the core (e.g. SPY), and sell proceeds are
+    reinvested back into the core.
+
     Funded pairings are respected: if a funded_by_ticker is present,
     the funding exit/trim is executed first to free capital.
 
@@ -104,11 +134,25 @@ def apply_recommendations(
     ordered = _order_for_execution(result.decisions, funded_tickers)
 
     for decision in ordered:
+        # Skip decisions for the core ticker itself — it's passive
+        if portfolio.is_core_satellite and decision.ticker == portfolio.core_ticker:
+            continue
+
         trades = _execute_decision(
             portfolio, decision, prices_by_ticker, result.review_date,
             target_initiation_weight_pct, exec_result,
         )
         exec_result.trades_applied.extend(trades)
+
+    # Core-satellite: reinvest any excess cash back to core after all sells
+    if portfolio.is_core_satellite and portfolio.cash > 0:
+        core_exec_date, core_exec_price = get_execution_price(
+            prices_by_ticker, portfolio.core_ticker, result.review_date,
+        )
+        if core_exec_price and core_exec_date:
+            reinvest_trade = portfolio.reinvest_to_core(core_exec_price, core_exec_date)
+            if reinvest_trade:
+                exec_result.trades_applied.append(reinvest_trade)
 
     # Record execution date from first trade
     if exec_result.trades_applied:
@@ -182,7 +226,6 @@ def _execute_decision(
         )
         if trade:
             trades.append(trade)
-            # Set cooldown on shadow position record (already removed from portfolio)
 
     elif action == ActionType.TRIM:
         pos = portfolio.get_position(ticker)
@@ -211,7 +254,7 @@ def _execute_decision(
             trades.append(trade)
 
     elif action == ActionType.INITIATE:
-        # Buy to reach target starter weight
+        # Buy to reach target starter weight — sized by conviction
         prices_now = {
             t: _latest_price_as_of(prices_by_ticker, t, exec_date)
             for t in portfolio.held_tickers()
@@ -221,9 +264,26 @@ def _execute_decision(
         if total_val <= 0:
             total_val = portfolio.cash
 
-        target_weight = decision.suggested_weight or target_initiation_weight_pct
+        # Conviction-based sizing: higher conviction = larger position
+        conviction = decision.thesis_conviction or 50.0
+        target_weight = decision.suggested_weight or conviction_based_weight(conviction)
         target_notional = (target_weight / 100.0) * total_val
+        logger.info(
+            "Initiate sizing: %s conviction=%.1f -> target_weight=%.1f%%",
+            ticker, conviction, target_weight,
+        )
         buy_shares = target_notional / exec_price
+
+        # Core-satellite: sell core to fund the buy if cash is insufficient
+        if portfolio.is_core_satellite and portfolio.cash < target_notional:
+            # Buffer accounts for transaction costs on both sell-core and buy-satellite sides
+            tx_buffer = target_notional * (portfolio.transaction_cost_bps / 10000.0) * 2.5 + 200
+            shortfall = target_notional - portfolio.cash + tx_buffer
+            core_price = _latest_price_as_of(prices_by_ticker, portfolio.core_ticker, exec_date)
+            if core_price > 0:
+                core_trade = portfolio.sell_core_to_fund(shortfall, core_price, exec_date)
+                if core_trade:
+                    trades.append(core_trade)
 
         trade = portfolio.apply_trade(
             trade_date=exec_date,
@@ -231,7 +291,7 @@ def _execute_decision(
             action="initiate",
             shares=buy_shares,
             price=exec_price,
-            funded_by_ticker=decision.funded_by_ticker,
+            funded_by_ticker=decision.funded_by_ticker or portfolio.core_ticker,
             reason=decision.rationale,
         )
         if trade:
@@ -252,6 +312,18 @@ def _execute_decision(
         else:
             add_shares = pos.shares * 0.2  # fallback: add 20%
             exec_result.fallback_count += 1
+
+        add_cost = abs(add_shares * exec_price)
+
+        # Core-satellite: sell core to fund the add if cash is insufficient
+        if portfolio.is_core_satellite and portfolio.cash < add_cost:
+            tx_buffer = add_cost * (portfolio.transaction_cost_bps / 10000.0) * 2.5 + 200
+            shortfall = add_cost - portfolio.cash + tx_buffer
+            core_price = _latest_price_as_of(prices_by_ticker, portfolio.core_ticker, exec_date)
+            if core_price > 0:
+                core_trade = portfolio.sell_core_to_fund(shortfall, core_price, exec_date)
+                if core_trade:
+                    trades.append(core_trade)
 
         trade = portfolio.apply_trade(
             trade_date=exec_date,

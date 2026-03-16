@@ -1,0 +1,9 @@
+review_date,ticker,thesis_conviction,action_score,prior_action,prior_conviction,preceded_by_probation,probation_date,forward_5d_pct,forward_20d_pct,forward_60d_pct,premature_exit_20d,premature_exit_60d
+2024-08-07,AMD,55.5,86.0,initiate,57.8,False,,6.3,16.97,32.82,True,True
+2024-12-25,AMD,70.3,86.0,trim,70.3,False,,-3.05,,,False,False
+2024-08-07,AVGO,71.8,86.0,initiate,71.8,False,,9.06,18.43,30.05,True,True
+2024-08-21,CRWD,69.4,86.0,initiate,69.4,False,,-2.69,-9.32,13.52,False,True
+2024-09-25,CRWD,71.2,86.0,initiate,71.2,False,,-2.09,5.53,29.95,True,True
+2024-08-07,NVDA,50.0,86.0,initiate,50.0,False,,10.22,29.71,26.31,True,True
+2024-08-14,QCOM,54.6,86.0,initiate,50.0,False,,4.25,-2.34,2.22,False,False
+2024-09-11,QCOM,56.9,86.0,initiate,56.9,False,,0.03,-0.47,2.61,False,False

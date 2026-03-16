@@ -104,6 +104,7 @@ def _extract_and_link_claims(
         "primary_company_ticker": ticker,
         "title": doc.title or "",
         "source_type": doc.source_type.value,
+        "document_date": doc.published_at.strftime("%Y-%m-%d") if doc.published_at else "unknown",
     }
     extracted = extractor.extract_claims(doc.raw_text, metadata)
 

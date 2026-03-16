@@ -1,0 +1,14 @@
+ticker,doc_count,claim_count,has_prices
+AMD,8,8,True
+AVGO,9,9,True
+CAT,7,7,True
+COST,9,11,True
+CRM,8,8,True
+HD,9,9,True
+LLY,10,10,True
+META,6,6,True
+NVDA,7,7,True
+PLTR,6,6,True
+TSLA,7,7,True
+UNH,9,9,True
+XOM,9,9,True

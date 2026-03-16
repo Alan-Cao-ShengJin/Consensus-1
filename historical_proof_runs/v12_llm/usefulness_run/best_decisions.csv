@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-11-27,TSLA,add,66.5,55.0,high,332.89,7.27,44.15,,Winner with strong conviction and attractive valuation — add
+2024-10-02,NVDA,add,68.0,55.0,high,118.8,7.46,20.82,16.32,Winner with strong conviction and attractive valuation — add
+2024-08-28,PLTR,initiate,65.2,65.2,high,30.36,3.69,20.06,47.76,"All entry gates passed — conviction 65, thesis strengthening"
+2024-08-07,AMD,exit,55.0,86.0,medium,128.67,6.3,16.97,32.82,Trailing stop EXIT: -30.1% from 90-day peak (threshold -30%)
+2024-09-04,TSLA,add,61.1,50.0,medium,219.41,-1.43,15.89,13.48,Winner with strong conviction and attractive valuation — add
+2024-11-20,PLTR,add,65.3,65.0,high,62.12,4.07,14.12,,Winner with strong conviction and attractive valuation — add
+2024-09-11,TSLA,add,61.1,50.0,medium,228.13,-0.59,13.1,40.81,Winner with strong conviction and attractive valuation — add
+2024-08-07,QCOM,initiate,50.0,55.0,medium,150.16,4.34,11.41,8.75,"All entry gates passed — conviction 50, thesis forming (claim impact: +2.5%)"
+2024-11-20,AMZN,add,67.5,55.0,high,202.88,-0.7,10.92,,Winner with strong conviction and attractive valuation — add
+2024-09-04,META,initiate,65.7,65.7,high,510.23,-1.55,9.97,10.72,"All entry gates passed — conviction 66, thesis strengthening"

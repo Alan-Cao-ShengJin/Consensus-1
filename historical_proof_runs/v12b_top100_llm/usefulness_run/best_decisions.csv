@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-09-04,PLTR,initiate,71.8,71.8,high,30.59,13.11,20.63,37.04,"All entry gates passed — conviction 72, thesis strengthening"
+2024-11-20,PLTR,add,70.8,63.1,high,62.12,4.07,14.12,,Winner with strong conviction and attractive valuation — add
+2024-08-07,MU,initiate,61.2,66.7,medium,86.31,9.03,12.74,17.8,"All entry gates passed — conviction 61, thesis strengthening (claim impact: +2.7%)"
+2024-08-14,CSCO,initiate,52.3,59.4,medium,43.73,9.99,10.17,20.3,"All entry gates passed — conviction 52, thesis weakening (claim impact: +3.5%)"
+2024-08-07,ORCL,initiate,65.7,65.7,high,124.05,5.31,9.99,35.71,"All entry gates passed — conviction 66, thesis strengthening"
+2024-08-28,INTC,exit,51.1,86.0,medium,19.61,12.39,9.48,15.66,Trailing stop EXIT: -43.4% from 90-day peak (threshold -30%)
+2024-08-07,AAPL,initiate,50.0,58.4,medium,208.21,3.79,8.8,8.22,"All entry gates passed — conviction 50, thesis forming (claim impact: +4.2%)"
+2024-07-31,NVDA,initiate,66.6,66.6,high,116.96,-14.16,8.74,3.75,"All entry gates passed — conviction 67, thesis strengthening"
+2024-09-11,AMD,add,65.1,55.0,high,149.86,1.48,6.6,-1.27,Winner with strong conviction and attractive valuation — add
+2024-12-11,PLTR,add,73.8,55.0,high,72.51,4.47,4.3,,Winner with strong conviction and attractive valuation — add

@@ -1,0 +1,6 @@
+trade_date,ticker,action,shares,price,notional,reason
+2025-10-02,MSFT,initiate,38.9405,513.6,20000.0,"All entry gates passed — conviction 50, thesis forming"
+2025-10-09,AMD,initiate,85.8979,232.89,20004.77,"All entry gates passed — conviction 50, thesis forming"
+2025-10-30,META,initiate,30.1004,665.93,20044.68,"All entry gates passed — conviction 50, thesis forming"
+2025-11-06,AAPL,initiate,74.1449,269.26,19964.02,"All entry gates passed — conviction 50, thesis stable"
+2025-11-20,NVDA,initiate,110.0246,180.62,19872.66,"All entry gates passed — conviction 50, thesis forming"

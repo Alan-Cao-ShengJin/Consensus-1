@@ -1,0 +1,399 @@
+{
+  "report_version": "2.0",
+  "report_type": "historical_proof_run",
+  "generated_at": "2026-03-13T23:55:55.170861",
+  "config": {
+    "run_id": "full_llm_v2",
+    "run_label": "Historical proof: 2025-06-01 to 2026-03-01",
+    "mode": "usefulness_run",
+    "tickers": [
+      "NVDA"
+    ],
+    "backfill_start": "2025-06-01",
+    "backfill_end": "2026-03-01",
+    "eval_start": "2025-09-01",
+    "eval_end": "2026-03-01",
+    "cadence_days": 7,
+    "backfill_prices": true,
+    "backfill_sec_filings": true,
+    "backfill_news_rss": true,
+    "backfill_pr_rss": true,
+    "rebuild_from_scratch": true,
+    "use_llm": true,
+    "extractor_mode": "real_llm",
+    "initial_cash": 1000000,
+    "transaction_cost_bps": 10.0,
+    "strict_replay": false,
+    "forward_return_days": [
+      5,
+      20,
+      60
+    ],
+    "memory_enabled": true,
+    "benchmark_ticker": "SPY",
+    "output_dir": "historical_proof_runs",
+    "seed": 42
+  },
+  "regeneration": {
+    "db_path": "historical_proof_runs\\full_llm_v2_regen.db",
+    "total_documents": 12,
+    "total_claims": 58,
+    "total_thesis_updates": 11,
+    "total_state_changes": 2,
+    "total_state_flips": 0,
+    "data_coverage": {
+      "total_documents": 12,
+      "total_claims": 58,
+      "total_prices": 178,
+      "total_theses": 1,
+      "documents_by_source_type": {
+        "8K": 6,
+        "10Q": 5,
+        "10K": 1
+      },
+      "tickers_with_prices": 1,
+      "tickers_without_prices": 0,
+      "tickers_total": 1
+    },
+    "warnings": [],
+    "steps_count": 6
+  },
+  "evaluation": {
+    "config": {
+      "run_id": "full_llm_v2",
+      "run_label": "Historical proof: 2025-06-01 to 2026-03-01",
+      "mode": "usefulness_run",
+      "tickers": [
+        "NVDA"
+      ],
+      "backfill_start": "2025-06-01",
+      "backfill_end": "2026-03-01",
+      "eval_start": "2025-09-01",
+      "eval_end": "2026-03-01",
+      "cadence_days": 7,
+      "backfill_prices": true,
+      "backfill_sec_filings": true,
+      "backfill_news_rss": true,
+      "backfill_pr_rss": true,
+      "rebuild_from_scratch": true,
+      "use_llm": true,
+      "extractor_mode": "real_llm",
+      "initial_cash": 1000000,
+      "transaction_cost_bps": 10.0,
+      "strict_replay": false,
+      "forward_return_days": [
+        5,
+        20,
+        60
+      ],
+      "memory_enabled": true,
+      "benchmark_ticker": "SPY",
+      "output_dir": "historical_proof_runs",
+      "seed": 42
+    },
+    "metrics": {
+      "performance": {
+        "total_return_pct": 0.41,
+        "annualized_return_pct": 0.86,
+        "max_drawdown_pct": 0.6,
+        "max_drawdown_peak_date": "2025-11-03",
+        "max_drawdown_trough_date": "2025-12-15"
+      },
+      "activity": {
+        "initiations": 1,
+        "adds": 0,
+        "trims": 0,
+        "exits": 0,
+        "holds": 25,
+        "no_actions": 0,
+        "probations": 0,
+        "blocked": 0,
+        "hit_rate_pct": null
+      },
+      "turnover": {
+        "total_turnover_pct": 3.4,
+        "avg_per_review_pct": 0.13,
+        "avg_holding_period_days": null
+      },
+      "cash_exposure": {
+        "avg_pct": 96.3,
+        "min_pct": 95.9,
+        "max_pct": 96.6
+      },
+      "discipline": {
+        "probation_to_exit": 0,
+        "funded_pairings": 0,
+        "turnover_cap_blocked": 0,
+        "candidate_beat_weakest": 0
+      },
+      "conviction_at_initiation": {
+        "values": [
+          62.6
+        ],
+        "average": 62.6
+      },
+      "actions_by_month": {
+        "2025-09": {
+          "initiate": 1,
+          "hold": 4
+        },
+        "2025-10": {
+          "hold": 4
+        },
+        "2025-11": {
+          "hold": 4
+        },
+        "2025-12": {
+          "hold": 5
+        },
+        "2026-01": {
+          "hold": 4
+        },
+        "2026-02": {
+          "hold": 4
+        }
+      },
+      "replay_integrity": {
+        "total_review_dates": 26,
+        "total_recommendations": 26,
+        "total_trades_applied": 1,
+        "total_trades_skipped": 0,
+        "total_fallback_count": 0,
+        "dates_skipped_no_data": 0,
+        "missing_price_events": 0
+      },
+      "purity": {
+        "purity_level": "degraded",
+        "strict_replay": false,
+        "impure_candidate_fallbacks": 0,
+        "impure_valuation_fallbacks": 26,
+        "impure_checkpoint_fallbacks": 0,
+        "skipped_impure_total": 0
+      }
+    },
+    "diagnostics": {
+      "action_counts": {
+        "initiate": 1,
+        "hold": 25
+      },
+      "action_pcts": {
+        "initiate": 3.8,
+        "hold": 96.2
+      },
+      "actions_by_ticker": {
+        "NVDA": {
+          "initiate": 1,
+          "hold": 25
+        }
+      },
+      "recommendation_changes": 1,
+      "recommendation_change_rate": 0.038,
+      "attribution": {
+        "valuation_driven": 0,
+        "evidence_driven": 0,
+        "checkpoint_driven": 0,
+        "deterioration_driven": 0
+      },
+      "candidate_rankings_count": 1,
+      "short_hold_exits": 0
+    },
+    "benchmark": {
+      "portfolio_return_pct": 0.41,
+      "benchmark": {
+        "ticker": "SPY",
+        "return_pct": 7.76,
+        "excess_return_pct": -7.34,
+        "data_available": true
+      },
+      "equal_weight_baseline": {
+        "return_pct": 3.77,
+        "vs_equal_weight_pct": -3.35,
+        "tickers_count": 1,
+        "tickers_with_data": 1
+      }
+    },
+    "forward_return_summary": [
+      {
+        "action": "hold",
+        "count": 25,
+        "avg_forward_5d_pct": -0.58,
+        "avg_forward_20d_pct": -0.11,
+        "avg_forward_60d_pct": -0.15,
+        "count_with_5d_data": 25,
+        "count_with_20d_data": 23,
+        "count_with_60d_data": 17
+      },
+      {
+        "action": "initiate",
+        "count": 1,
+        "avg_forward_5d_pct": -4.11,
+        "avg_forward_20d_pct": 1.44,
+        "avg_forward_60d_pct": 16.26,
+        "count_with_5d_data": 1,
+        "count_with_20d_data": 1,
+        "count_with_60d_data": 1
+      }
+    ],
+    "conviction_buckets": [
+      {
+        "bucket": "low",
+        "action_count": 0,
+        "avg_conviction": null,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null
+      },
+      {
+        "bucket": "medium",
+        "action_count": 12,
+        "avg_conviction": 62.6,
+        "avg_forward_5d_pct": -1.06,
+        "avg_forward_20d_pct": -0.27,
+        "avg_forward_60d_pct": 0.3
+      },
+      {
+        "bucket": "high",
+        "action_count": 14,
+        "avg_conviction": 73.8,
+        "avg_forward_5d_pct": -0.42,
+        "avg_forward_20d_pct": 0.17,
+        "avg_forward_60d_pct": 1.69
+      }
+    ],
+    "action_outcomes_count": 26,
+    "best_decisions": [
+      {
+        "review_date": "2025-09-01",
+        "ticker": "NVDA",
+        "action": "initiate",
+        "thesis_conviction": 62.6,
+        "action_score": 62.6,
+        "conviction_bucket": "medium",
+        "price_at_decision": 174.15,
+        "forward_5d_pct": -4.11,
+        "forward_20d_pct": 1.44,
+        "forward_60d_pct": 16.26,
+        "rationale": "All entry gates passed \u2014 conviction 63, thesis strengthening"
+      }
+    ],
+    "worst_decisions": [
+      {
+        "review_date": "2025-09-01",
+        "ticker": "NVDA",
+        "action": "initiate",
+        "thesis_conviction": 62.6,
+        "action_score": 62.6,
+        "conviction_bucket": "medium",
+        "price_at_decision": 174.15,
+        "forward_5d_pct": -4.11,
+        "forward_20d_pct": 1.44,
+        "forward_60d_pct": 16.26,
+        "rationale": "All entry gates passed \u2014 conviction 63, thesis strengthening"
+      }
+    ],
+    "per_name_summary": [
+      {
+        "ticker": "NVDA",
+        "action_count": 26,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 25,
+        "avg_forward_5d_pct": -0.72,
+        "avg_forward_20d_pct": -0.05,
+        "avg_forward_60d_pct": 0.77,
+        "doc_count": 12,
+        "claim_count": 58,
+        "price_coverage_pct": 95.9
+      }
+    ],
+    "coverage_diagnostics": {
+      "docs_by_ticker": {
+        "NVDA": 12
+      },
+      "docs_by_source_type": {
+        "8K": 6,
+        "10K": 1,
+        "10Q": 5
+      },
+      "docs_by_month": {
+        "2025-07": 1,
+        "2025-08": 4,
+        "2025-11": 3,
+        "2026-01": 1,
+        "2026-02": 3
+      },
+      "claims_by_ticker": {
+        "NVDA": 58
+      },
+      "source_gaps": [
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-06"
+        },
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-09"
+        },
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-10"
+        },
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-12"
+        },
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2026-03"
+        }
+      ],
+      "extractor_mode": "real_llm",
+      "benchmark_available": true,
+      "tickers_with_prices": 1,
+      "tickers_without_prices": 0,
+      "total_price_rows": 178
+    },
+    "failure_analysis": {
+      "sparse_coverage_tickers": [],
+      "negative_return_actions": [
+        {
+          "action": "hold",
+          "count": 25,
+          "avg_20d_pct": -0.11,
+          "concern": "hold actions have negative avg 20D return (-0.11%)"
+        }
+      ],
+      "non_differentiating_buckets": [
+        {
+          "buckets": {
+            "medium": -0.2699630940639008,
+            "high": 0.17333481133649994
+          },
+          "spread_pct": 0.44,
+          "concern": "Conviction buckets do not meaningfully differentiate outcomes"
+        }
+      ],
+      "repeated_bad_recommendations": [],
+      "low_evidence_periods": [
+        {
+          "period": "2025-07",
+          "doc_count": 1,
+          "concern": "Only 1 document(s) in 2025-07"
+        },
+        {
+          "period": "2026-01",
+          "doc_count": 1,
+          "concern": "Only 1 document(s) in 2026-01"
+        }
+      ],
+      "degraded_flags": []
+    },
+    "warnings": []
+  },
+  "memory_comparison": null
+}

@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-08-28,PLTR,initiate,50.0,50.0,medium,30.36,3.69,20.06,47.76,"All entry gates passed — conviction 50, thesis stable"
+2024-07-31,LLY,initiate,50.0,50.0,medium,794.56,-3.61,18.28,9.29,"All entry gates passed — conviction 50, thesis stable"
+2024-08-07,AMD,initiate,50.0,57.4,medium,128.67,6.3,16.97,32.82,"All entry gates passed — conviction 50, thesis stable (claim impact: +3.7%)"
+2024-09-04,META,initiate,50.0,50.0,medium,510.23,-1.55,9.97,10.72,"All entry gates passed — conviction 50, thesis stable"
+2024-08-07,HD,initiate,50.0,50.0,medium,328.12,1.0,8.99,19.99,"All entry gates passed — conviction 50, thesis stable"
+2024-07-31,NVDA,initiate,50.0,50.0,medium,116.96,-14.16,8.74,3.75,"All entry gates passed — conviction 50, thesis stable"
+2024-08-07,CAT,initiate,50.0,57.4,medium,319.06,3.14,7.77,21.88,"All entry gates passed — conviction 50, thesis stable (claim impact: +3.7%)"
+2024-07-31,COST,initiate,50.0,50.0,medium,815.53,-2.45,6.59,7.74,"All entry gates passed — conviction 50, thesis stable"
+2024-08-14,TSLA,initiate,50.0,50.0,medium,201.38,10.6,4.58,8.15,"All entry gates passed — conviction 50, thesis stable"
+2024-08-14,AVGO,initiate,50.0,50.0,medium,155.35,6.35,-3.11,15.47,"All entry gates passed — conviction 50, thesis stable"

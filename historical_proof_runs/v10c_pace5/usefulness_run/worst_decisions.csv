@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-07-31,INTC,initiate,50.0,50.0,medium,30.55,-34.58,-31.28,-21.73,"All entry gates passed — conviction 50, thesis stable"
+2024-08-21,INTC,trim,50.0,75.0,medium,21.41,-5.98,-11.35,6.35,Stop-loss TRIM: position -25.8% below cost basis (threshold -20%)
+2024-08-21,CRWD,exit,50.0,86.0,medium,273.21,-2.69,-9.32,13.52,Trailing stop EXIT: -30.3% from 90-day peak (threshold -25%)
+2024-08-28,NVDA,initiate,50.0,50.0,medium,125.55,-4.97,-7.97,12.69,"All entry gates passed — conviction 50, thesis stable"
+2024-07-31,QCOM,initiate,50.0,50.0,medium,174.04,-12.71,-4.89,-5.49,"All entry gates passed — conviction 50, thesis forming"
+2024-08-14,AAPL,initiate,50.0,50.0,medium,220.27,1.88,0.47,2.63,"All entry gates passed — conviction 50, thesis stable"
+2024-08-14,INTC,trim,50.0,75.0,medium,19.92,8.03,0.9,18.27,Stop-loss TRIM: position -31.0% below cost basis (threshold -20%)
+2024-08-28,AMD,initiate,50.0,50.0,medium,146.36,1.5,3.05,6.74,"All entry gates passed — conviction 50, thesis stable"
+2024-07-31,AVGO,initiate,50.0,50.0,medium,158.29,-11.58,3.28,7.83,"All entry gates passed — conviction 50, thesis stable"
+2024-09-25,QCOM,initiate,50.0,50.0,medium,162.68,1.06,3.46,-6.82,"All entry gates passed — conviction 50, thesis stable"

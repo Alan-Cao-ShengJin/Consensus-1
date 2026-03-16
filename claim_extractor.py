@@ -237,16 +237,62 @@ class StubClaimExtractor(ClaimExtractorBase):
                 is_structural=True,
             ))
 
-        # Fallback: always return at least one generic claim
+        # Heuristic 7: sentiment-aware fallback from headline keywords
         if not claims:
+            title = metadata.get("title", "")
+            text_combined = f"{title} {clean_text[:500]}".lower()
+
+            # Detect direction from sentiment keywords
+            pos_signals = len(re.findall(
+                r"\b(surge|soar|rally|jump|gain|rise|beat|strong|boost|record high|upgrade|outperform|bullish)\b",
+                text_combined,
+            ))
+            neg_signals = len(re.findall(
+                r"\b(drop|fall|plunge|crash|miss|weak|decline|loss|cut|downgrade|underperform|bearish|warning|layoff|recall)\b",
+                text_combined,
+            ))
+
+            if pos_signals > neg_signals:
+                direction = Direction.POSITIVE
+                strength = min(0.8, 0.4 + pos_signals * 0.1)
+                novelty = NoveltyType.NEW
+            elif neg_signals > pos_signals:
+                direction = Direction.NEGATIVE
+                strength = min(0.8, 0.4 + neg_signals * 0.1)
+                novelty = NoveltyType.NEW
+            else:
+                direction = Direction.NEUTRAL
+                strength = 0.3
+                novelty = NoveltyType.REPETITIVE
+
+            # Detect claim type from context
+            if re.search(r"\b(regulation|sec |fda |antitrust|lawsuit|fine)\b", text_combined):
+                claim_type = ClaimType.REGULATION
+                channel = EconomicChannel.SENTIMENT
+            elif re.search(r"\b(compet|market share|rival|challenger)\b", text_combined):
+                claim_type = ClaimType.COMPETITION
+                channel = EconomicChannel.MULTIPLE
+            elif re.search(r"\b(buyback|dividend|acquisition|merger|ipo)\b", text_combined):
+                claim_type = ClaimType.CAPITAL_ALLOCATION
+                channel = EconomicChannel.LIQUIDITY
+            elif re.search(r"\b(supply|chip shortage|inventory|backlog)\b", text_combined):
+                claim_type = ClaimType.SUPPLY_CHAIN
+                channel = EconomicChannel.TIMING
+            elif re.search(r"\b(customer|subscriber|user|adoption|demand)\b", text_combined):
+                claim_type = ClaimType.CUSTOMER_BEHAVIOR
+                channel = EconomicChannel.REVENUE
+            else:
+                claim_type = ClaimType.DEMAND
+                channel = EconomicChannel.SENTIMENT
+
             claims.append(ExtractedClaim(
-                claim_text_normalized="Document contains relevant company information",
-                claim_text_short="General info",
-                claim_type=ClaimType.DEMAND,
-                economic_channel=EconomicChannel.SENTIMENT,
-                direction=Direction.NEUTRAL,
-                strength=0.3,
-                novelty_type=NoveltyType.REPETITIVE,
+                claim_text_normalized=title[:200] if title else "Document contains relevant company information",
+                claim_text_short=title[:80] if title else "General info",
+                claim_type=claim_type,
+                economic_channel=channel,
+                direction=direction,
+                strength=strength,
+                novelty_type=novelty,
                 confidence=0.4,
                 affected_tickers=[ticker] if ticker else [],
                 themes=[],

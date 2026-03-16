@@ -1,0 +1,6 @@
+ticker,doc_count,claim_count,has_prices
+AAPL,7,8,True
+AMD,10,11,True
+META,8,8,True
+MSFT,6,6,True
+NVDA,5,5,True

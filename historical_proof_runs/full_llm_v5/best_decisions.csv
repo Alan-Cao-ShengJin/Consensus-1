@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2025-10-09,AMD,add,88.5,55.0,high,232.89,-6.35,13.5,-5.06,Winner with strong conviction and attractive valuation — add
+2026-02-05,AMD,add,97.4,40.0,high,192.5,10.95,9.54,,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-07-31,AAPL,initiate,57.9,57.9,medium,206.94,-2.24,9.01,22.71,"All entry gates passed — conviction 58, thesis strengthening"
+2025-09-18,NVDA,trim,37.2,55.0,low,176.22,1.24,7.3,5.88,Thesis weakening with conviction 37 — trim
+2025-09-11,NVDA,trim,37.2,55.0,low,177.15,-1.29,5.68,12.35,Thesis weakening with conviction 37 — trim
+2025-09-04,AAPL,add,81.5,55.0,high,239.32,-2.26,5.23,12.21,Winner with strong conviction and attractive valuation — add
+2025-08-07,AAPL,add,81.5,55.0,high,219.36,4.49,4.87,16.79,Winner with strong conviction and attractive valuation — add
+2025-12-18,AMD,add,95.1,40.0,high,201.06,6.88,4.46,3.11,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-10-09,MSFT,add,91.1,55.0,high,520.24,-1.69,3.67,-5.83,Winner with strong conviction and attractive valuation — add
+2025-09-04,NVDA,trim,37.2,55.0,low,171.63,-0.52,3.1,20.52,Thesis weakening with conviction 37 — trim

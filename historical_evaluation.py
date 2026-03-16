@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from exit_policy import ExitPolicyConfig, BASELINE_POLICY
 from historical_eval_config import HistoricalEvalConfig
 from replay_runner import run_replay
+from price_momentum import MomentumGuardConfig, DISABLED_MOMENTUM_CONFIG
 from replay_engine import ReplayRunResult, _preload_prices
 from replay_metrics import ReplayMetrics
 from shadow_portfolio import ShadowPortfolio
@@ -255,6 +256,11 @@ def run_historical_evaluation(
     session: Session,
     config: HistoricalEvalConfig,
     exit_policy: ExitPolicyConfig = BASELINE_POLICY,
+    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    core_satellite: bool = False,
+    core_allocation_pct: float = 95.0,
+    sentiment_config=None,
+    decay_config=None,
 ) -> HistoricalEvalResult:
     """Run evaluation on regenerated historical state.
 
@@ -274,8 +280,7 @@ def run_historical_evaluation(
 
     # 1. Run replay
     try:
-        run_result, portfolio, metrics = run_replay(
-            session,
+        replay_kwargs = dict(
             start_date=config.eval_start,
             end_date=config.eval_end,
             cadence_days=config.cadence_days,
@@ -285,7 +290,16 @@ def run_historical_evaluation(
             strict_replay=config.strict_replay,
             relaxed_gates=config.is_usefulness_run(),
             exit_policy=exit_policy,
+            momentum_config=momentum_config,
+            benchmark_ticker=config.benchmark_ticker,
+            core_satellite=core_satellite,
+            core_allocation_pct=core_allocation_pct,
         )
+        if sentiment_config is not None:
+            replay_kwargs["sentiment_config"] = sentiment_config
+        if decay_config is not None:
+            replay_kwargs["decay_config"] = decay_config
+        run_result, portfolio, metrics = run_replay(session, **replay_kwargs)
     except Exception as e:
         result.warnings.append(f"Replay failed: {e}")
         logger.error("Historical replay failed: %s", e)

@@ -1,0 +1,2 @@
+trade_date,ticker,action,shares,price,notional,reason
+2024-07-31,SPY,initiate,1756.2298,540.93,950000.0,Core position: 95% allocation to SPY

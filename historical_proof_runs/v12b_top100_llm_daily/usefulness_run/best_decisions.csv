@@ -1,0 +1,11 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2024-08-03,PLTR,initiate,50.0,50.0,medium,24.74,18.35,28.46,51.54,"All entry gates passed — conviction 50, thesis forming"
+2024-09-06,AMAT,exit,56.5,86.0,medium,172.4,6.4,19.95,6.71,Trailing stop EXIT: -31.3% from 90-day peak (threshold -30%)
+2024-08-27,PLTR,add,71.8,55.0,high,30.84,2.08,17.74,45.46,Winner with strong conviction and attractive valuation — add
+2024-08-07,AMD,exit,57.2,86.0,medium,128.67,6.3,16.97,32.82,Trailing stop EXIT: -30.1% from 90-day peak (threshold -30%)
+2024-08-26,PLTR,add,71.8,55.0,high,30.85,2.04,15.36,45.41,Winner with strong conviction and attractive valuation — add
+2024-08-02,AMD,initiate,60.9,66.8,medium,132.5,-2.89,14.49,20.57,"All entry gates passed — conviction 61, thesis strengthening (claim impact: +3.0%)"
+2024-08-05,CSCO,initiate,65.7,65.7,high,43.05,1.63,13.41,18.8,"All entry gates passed — conviction 66, thesis strengthening"
+2024-08-02,MU,exit,48.8,86.0,medium,92.17,-6.36,12.47,8.21,Trailing stop EXIT: -39.5% from 90-day peak (threshold -30%)
+2024-08-04,TXN,initiate,45.2,45.2,medium,179.21,2.53,11.96,7.58,"All entry gates passed — conviction 45, thesis weakening"
+2024-09-11,ANET,initiate,61.4,61.4,medium,85.73,4.73,11.35,16.77,"All entry gates passed — conviction 61, thesis strengthening"

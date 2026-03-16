@@ -1,0 +1,2658 @@
+{
+  "report_version": "2.0",
+  "report_type": "historical_proof_run",
+  "generated_at": "2026-03-16T05:01:58.126524",
+  "config": {
+    "run_id": "usefulness_run",
+    "run_label": "Historical proof: 2024-06-01 to 2025-01-01",
+    "mode": "evaluate_only",
+    "tickers": [
+      "NVDA",
+      "AAPL",
+      "MSFT",
+      "AVGO",
+      "ORCL",
+      "MU",
+      "AMD",
+      "CSCO",
+      "AMAT",
+      "LRCX",
+      "PLTR",
+      "IBM",
+      "INTC",
+      "TXN",
+      "KLAC",
+      "ANET",
+      "APH",
+      "ADI",
+      "PANW",
+      "QCOM",
+      "INTU",
+      "NOW",
+      "ACN",
+      "CRM",
+      "CRWD",
+      "LLY",
+      "JNJ",
+      "ABBV",
+      "UNH",
+      "MRK",
+      "AMGN",
+      "ABT",
+      "GILD",
+      "TMO",
+      "ISRG",
+      "PFE",
+      "DHR",
+      "SYK",
+      "VRTX",
+      "BMY",
+      "JPM",
+      "V",
+      "MA",
+      "BAC",
+      "WFC",
+      "MS",
+      "GS",
+      "AXP",
+      "C",
+      "SCHW",
+      "BLK",
+      "CB",
+      "SPGI",
+      "PGR",
+      "AMZN",
+      "TSLA",
+      "HD",
+      "MCD",
+      "TJX",
+      "BKNG",
+      "LOW",
+      "UBER",
+      "SBUX",
+      "WMT",
+      "COST",
+      "PG",
+      "KO",
+      "PM",
+      "PEP",
+      "MO",
+      "CAT",
+      "GE",
+      "RTX",
+      "BA",
+      "HON",
+      "DE",
+      "LMT",
+      "UNP",
+      "ETN",
+      "PH",
+      "GEV",
+      "XOM",
+      "CVX",
+      "COP",
+      "GOOGL",
+      "META",
+      "NFLX",
+      "TMUS",
+      "VZ",
+      "DIS",
+      "T",
+      "NEE",
+      "LIN",
+      "WELL",
+      "PLD",
+      "BRK-B",
+      "APP",
+      "HCA",
+      "MCK",
+      "NEM"
+    ],
+    "backfill_start": "2024-06-01",
+    "backfill_end": "2025-01-01",
+    "eval_start": "2024-07-31",
+    "eval_end": "2025-01-01",
+    "cadence_days": 1,
+    "backfill_prices": true,
+    "backfill_sec_filings": true,
+    "backfill_news_rss": true,
+    "backfill_pr_rss": true,
+    "rebuild_from_scratch": true,
+    "use_llm": true,
+    "extractor_mode": "real_llm",
+    "initial_cash": 1000000,
+    "transaction_cost_bps": 10.0,
+    "strict_replay": false,
+    "forward_return_days": [
+      5,
+      20,
+      60
+    ],
+    "memory_enabled": true,
+    "benchmark_ticker": "SPY",
+    "output_dir": "historical_proof_runs/v12b_top100_llm_daily",
+    "seed": 42
+  },
+  "regeneration": null,
+  "evaluation": {
+    "config": {
+      "run_id": "usefulness_run",
+      "run_label": "Historical proof: 2024-06-01 to 2025-01-01",
+      "mode": "evaluate_only",
+      "tickers": [
+        "NVDA",
+        "AAPL",
+        "MSFT",
+        "AVGO",
+        "ORCL",
+        "MU",
+        "AMD",
+        "CSCO",
+        "AMAT",
+        "LRCX",
+        "PLTR",
+        "IBM",
+        "INTC",
+        "TXN",
+        "KLAC",
+        "ANET",
+        "APH",
+        "ADI",
+        "PANW",
+        "QCOM",
+        "INTU",
+        "NOW",
+        "ACN",
+        "CRM",
+        "CRWD",
+        "LLY",
+        "JNJ",
+        "ABBV",
+        "UNH",
+        "MRK",
+        "AMGN",
+        "ABT",
+        "GILD",
+        "TMO",
+        "ISRG",
+        "PFE",
+        "DHR",
+        "SYK",
+        "VRTX",
+        "BMY",
+        "JPM",
+        "V",
+        "MA",
+        "BAC",
+        "WFC",
+        "MS",
+        "GS",
+        "AXP",
+        "C",
+        "SCHW",
+        "BLK",
+        "CB",
+        "SPGI",
+        "PGR",
+        "AMZN",
+        "TSLA",
+        "HD",
+        "MCD",
+        "TJX",
+        "BKNG",
+        "LOW",
+        "UBER",
+        "SBUX",
+        "WMT",
+        "COST",
+        "PG",
+        "KO",
+        "PM",
+        "PEP",
+        "MO",
+        "CAT",
+        "GE",
+        "RTX",
+        "BA",
+        "HON",
+        "DE",
+        "LMT",
+        "UNP",
+        "ETN",
+        "PH",
+        "GEV",
+        "XOM",
+        "CVX",
+        "COP",
+        "GOOGL",
+        "META",
+        "NFLX",
+        "TMUS",
+        "VZ",
+        "DIS",
+        "T",
+        "NEE",
+        "LIN",
+        "WELL",
+        "PLD",
+        "BRK-B",
+        "APP",
+        "HCA",
+        "MCK",
+        "NEM"
+      ],
+      "backfill_start": "2024-06-01",
+      "backfill_end": "2025-01-01",
+      "eval_start": "2024-07-31",
+      "eval_end": "2025-01-01",
+      "cadence_days": 1,
+      "backfill_prices": true,
+      "backfill_sec_filings": true,
+      "backfill_news_rss": true,
+      "backfill_pr_rss": true,
+      "rebuild_from_scratch": true,
+      "use_llm": true,
+      "extractor_mode": "real_llm",
+      "initial_cash": 1000000,
+      "transaction_cost_bps": 10.0,
+      "strict_replay": false,
+      "forward_return_days": [
+        5,
+        20,
+        60
+      ],
+      "memory_enabled": true,
+      "benchmark_ticker": "SPY",
+      "output_dir": "historical_proof_runs/v12b_top100_llm_daily",
+      "seed": 42
+    },
+    "metrics": {
+      "performance": {
+        "total_return_pct": 22.4,
+        "annualized_return_pct": 61.45,
+        "max_drawdown_pct": 7.53,
+        "max_drawdown_peak_date": "2024-08-21",
+        "max_drawdown_trough_date": "2024-09-06"
+      },
+      "activity": {
+        "initiations": 15,
+        "adds": 15,
+        "trims": 3,
+        "exits": 5,
+        "holds": 1496,
+        "no_actions": 13845,
+        "probations": 0,
+        "blocked": 0,
+        "hit_rate_pct": null
+      },
+      "turnover": {
+        "total_turnover_pct": 109.33,
+        "avg_per_review_pct": 0.71,
+        "avg_holding_period_days": 8.2
+      },
+      "cash_exposure": {
+        "avg_pct": 1.0,
+        "min_pct": 0.0,
+        "max_pct": 4.4
+      },
+      "discipline": {
+        "probation_to_exit": 0,
+        "funded_pairings": 0,
+        "turnover_cap_blocked": 0,
+        "candidate_beat_weakest": 0
+      },
+      "conviction_at_initiation": {
+        "values": [
+          77.0,
+          66.6,
+          55.7,
+          65.7,
+          53.7,
+          48.8,
+          79.5,
+          66.8,
+          50.0,
+          65.2,
+          50.0,
+          45.2,
+          65.7,
+          77.7,
+          61.4
+        ],
+        "average": 61.9
+      },
+      "actions_by_month": {
+        "2024-07": {
+          "initiate": 3,
+          "no_action": 90
+        },
+        "2024-08": {
+          "initiate": 11,
+          "hold": 278,
+          "no_action": 2721,
+          "exit": 4,
+          "add": 12
+        },
+        "2024-09": {
+          "hold": 293,
+          "no_action": 2674,
+          "add": 1,
+          "exit": 1,
+          "initiate": 1
+        },
+        "2024-10": {
+          "hold": 309,
+          "no_action": 2780,
+          "add": 1
+        },
+        "2024-11": {
+          "hold": 296,
+          "no_action": 2700,
+          "trim": 3,
+          "add": 1
+        },
+        "2024-12": {
+          "hold": 310,
+          "no_action": 2790
+        },
+        "2025-01": {
+          "hold": 10,
+          "no_action": 90
+        }
+      },
+      "replay_integrity": {
+        "total_review_dates": 155,
+        "total_recommendations": 15379,
+        "total_trades_applied": 65,
+        "total_trades_skipped": 0,
+        "total_fallback_count": 0,
+        "dates_skipped_no_data": 0,
+        "missing_price_events": 0
+      },
+      "purity": {
+        "purity_level": "degraded",
+        "strict_replay": false,
+        "impure_candidate_fallbacks": 0,
+        "impure_valuation_fallbacks": 15379,
+        "impure_checkpoint_fallbacks": 0,
+        "skipped_impure_total": 0
+      }
+    },
+    "diagnostics": {
+      "action_counts": {
+        "initiate": 15,
+        "no_action": 13845,
+        "hold": 1496,
+        "exit": 5,
+        "add": 15,
+        "trim": 3
+      },
+      "action_pcts": {
+        "initiate": 0.1,
+        "no_action": 90.0,
+        "hold": 9.7,
+        "exit": 0.0,
+        "add": 0.1,
+        "trim": 0.0
+      },
+      "actions_by_ticker": {
+        "AVGO": {
+          "initiate": 1,
+          "hold": 152,
+          "add": 2
+        },
+        "NVDA": {
+          "initiate": 1,
+          "hold": 152,
+          "add": 2
+        },
+        "MSFT": {
+          "initiate": 1,
+          "hold": 152,
+          "add": 2
+        },
+        "ORCL": {
+          "no_action": 1,
+          "initiate": 1,
+          "hold": 151,
+          "add": 2
+        },
+        "MU": {
+          "no_action": 153,
+          "initiate": 1,
+          "exit": 1
+        },
+        "AMD": {
+          "no_action": 149,
+          "initiate": 1,
+          "hold": 4,
+          "exit": 1
+        },
+        "CSCO": {
+          "no_action": 5,
+          "initiate": 1,
+          "hold": 149
+        },
+        "AMAT": {
+          "no_action": 119,
+          "initiate": 1,
+          "hold": 34,
+          "exit": 1
+        },
+        "LRCX": {
+          "no_action": 153,
+          "initiate": 1,
+          "exit": 1
+        },
+        "PLTR": {
+          "no_action": 3,
+          "initiate": 1,
+          "hold": 149,
+          "add": 2
+        },
+        "IBM": {
+          "no_action": 155
+        },
+        "INTC": {
+          "no_action": 153,
+          "initiate": 1,
+          "exit": 1
+        },
+        "TXN": {
+          "no_action": 4,
+          "initiate": 1,
+          "hold": 150
+        },
+        "KLAC": {
+          "no_action": 8,
+          "initiate": 1,
+          "hold": 141,
+          "add": 2,
+          "trim": 3
+        },
+        "ANET": {
+          "no_action": 42,
+          "initiate": 1,
+          "hold": 110,
+          "add": 2
+        },
+        "APH": {
+          "no_action": 155
+        },
+        "QCOM": {
+          "no_action": 155
+        },
+        "INTU": {
+          "no_action": 155
+        },
+        "NOW": {
+          "no_action": 155
+        },
+        "ACN": {
+          "no_action": 155
+        },
+        "CRM": {
+          "no_action": 155
+        },
+        "CRWD": {
+          "no_action": 155
+        },
+        "LLY": {
+          "no_action": 155
+        },
+        "JNJ": {
+          "no_action": 155
+        },
+        "ABBV": {
+          "no_action": 155
+        },
+        "UNH": {
+          "no_action": 155
+        },
+        "MRK": {
+          "no_action": 155
+        },
+        "AMGN": {
+          "no_action": 155
+        },
+        "ABT": {
+          "no_action": 155
+        },
+        "GILD": {
+          "no_action": 155
+        },
+        "TMO": {
+          "no_action": 155
+        },
+        "ISRG": {
+          "no_action": 155
+        },
+        "PFE": {
+          "no_action": 155
+        },
+        "DHR": {
+          "no_action": 155
+        },
+        "SYK": {
+          "no_action": 155
+        },
+        "VRTX": {
+          "no_action": 155
+        },
+        "BMY": {
+          "no_action": 155
+        },
+        "JPM": {
+          "no_action": 155
+        },
+        "V": {
+          "no_action": 155
+        },
+        "MA": {
+          "no_action": 155
+        },
+        "BAC": {
+          "no_action": 155
+        },
+        "WFC": {
+          "no_action": 155
+        },
+        "MS": {
+          "no_action": 155
+        },
+        "GS": {
+          "no_action": 155
+        },
+        "AXP": {
+          "no_action": 155
+        },
+        "C": {
+          "no_action": 155
+        },
+        "SCHW": {
+          "no_action": 155
+        },
+        "CB": {
+          "no_action": 155
+        },
+        "SPGI": {
+          "no_action": 155
+        },
+        "PGR": {
+          "no_action": 155
+        },
+        "TSLA": {
+          "no_action": 155
+        },
+        "HD": {
+          "no_action": 155
+        },
+        "MCD": {
+          "no_action": 155
+        },
+        "TJX": {
+          "no_action": 155
+        },
+        "BKNG": {
+          "no_action": 155
+        },
+        "LOW": {
+          "no_action": 155
+        },
+        "SBUX": {
+          "no_action": 155
+        },
+        "WMT": {
+          "no_action": 155
+        },
+        "COST": {
+          "no_action": 155
+        },
+        "PG": {
+          "no_action": 155
+        },
+        "KO": {
+          "no_action": 155
+        },
+        "PM": {
+          "no_action": 155
+        },
+        "PEP": {
+          "no_action": 155
+        },
+        "MO": {
+          "no_action": 155
+        },
+        "CAT": {
+          "no_action": 155
+        },
+        "GE": {
+          "no_action": 155
+        },
+        "RTX": {
+          "no_action": 155
+        },
+        "BA": {
+          "no_action": 155
+        },
+        "HON": {
+          "no_action": 155
+        },
+        "DE": {
+          "no_action": 155
+        },
+        "LMT": {
+          "no_action": 155
+        },
+        "UNP": {
+          "no_action": 155
+        },
+        "ETN": {
+          "no_action": 155
+        },
+        "PH": {
+          "no_action": 155
+        },
+        "GEV": {
+          "no_action": 155
+        },
+        "XOM": {
+          "no_action": 155
+        },
+        "CVX": {
+          "no_action": 155
+        },
+        "COP": {
+          "no_action": 155
+        },
+        "GOOGL": {
+          "no_action": 155
+        },
+        "META": {
+          "no_action": 155
+        },
+        "NFLX": {
+          "no_action": 155
+        },
+        "TMUS": {
+          "no_action": 155
+        },
+        "VZ": {
+          "no_action": 155
+        },
+        "DIS": {
+          "no_action": 155
+        },
+        "T": {
+          "no_action": 155
+        },
+        "NEE": {
+          "no_action": 155
+        },
+        "LIN": {
+          "no_action": 155
+        },
+        "WELL": {
+          "no_action": 155
+        },
+        "PLD": {
+          "no_action": 155
+        },
+        "APP": {
+          "no_action": 155
+        },
+        "HCA": {
+          "no_action": 155
+        },
+        "MCK": {
+          "no_action": 155
+        },
+        "NEM": {
+          "no_action": 155
+        },
+        "AAPL": {
+          "initiate": 1,
+          "hold": 152,
+          "add": 1
+        },
+        "AMZN": {
+          "no_action": 154
+        },
+        "UBER": {
+          "no_action": 153
+        },
+        "BRK-B": {
+          "no_action": 150
+        },
+        "PANW": {
+          "no_action": 136
+        },
+        "ADI": {
+          "no_action": 134
+        },
+        "BLK": {
+          "no_action": 83
+        }
+      },
+      "recommendation_changes": 53,
+      "recommendation_change_rate": 0.342,
+      "attribution": {
+        "valuation_driven": 15,
+        "evidence_driven": 4,
+        "checkpoint_driven": 0,
+        "deterioration_driven": 0
+      },
+      "candidate_rankings_count": 155,
+      "short_hold_exits": 4
+    },
+    "benchmark": {
+      "portfolio_return_pct": 22.4,
+      "benchmark": {
+        "ticker": "SPY",
+        "return_pct": 7.09,
+        "excess_return_pct": 15.31,
+        "data_available": true
+      },
+      "equal_weight_baseline": {
+        "return_pct": 11.58,
+        "vs_equal_weight_pct": 10.82,
+        "tickers_count": 100,
+        "tickers_with_data": 100
+      }
+    },
+    "forward_return_summary": [
+      {
+        "action": "add",
+        "count": 15,
+        "avg_forward_5d_pct": 2.92,
+        "avg_forward_20d_pct": 2.59,
+        "avg_forward_60d_pct": 16.35,
+        "count_with_5d_data": 15,
+        "count_with_20d_data": 15,
+        "count_with_60d_data": 14
+      },
+      {
+        "action": "exit",
+        "count": 5,
+        "avg_forward_5d_pct": 0.68,
+        "avg_forward_20d_pct": 11.33,
+        "avg_forward_60d_pct": 11.81,
+        "count_with_5d_data": 5,
+        "count_with_20d_data": 5,
+        "count_with_60d_data": 5
+      },
+      {
+        "action": "hold",
+        "count": 1496,
+        "avg_forward_5d_pct": 0.94,
+        "avg_forward_20d_pct": 3.64,
+        "avg_forward_60d_pct": 11.65,
+        "count_with_5d_data": 1486,
+        "count_with_20d_data": 1336,
+        "count_with_60d_data": 940
+      },
+      {
+        "action": "initiate",
+        "count": 15,
+        "avg_forward_5d_pct": -2.22,
+        "avg_forward_20d_pct": 8.61,
+        "avg_forward_60d_pct": 12.32,
+        "count_with_5d_data": 15,
+        "count_with_20d_data": 15,
+        "count_with_60d_data": 15
+      },
+      {
+        "action": "trim",
+        "count": 3,
+        "avg_forward_5d_pct": 2.79,
+        "avg_forward_20d_pct": 5.49,
+        "avg_forward_60d_pct": null,
+        "count_with_5d_data": 3,
+        "count_with_20d_data": 3,
+        "count_with_60d_data": 0
+      }
+    ],
+    "conviction_buckets": [
+      {
+        "bucket": "low",
+        "action_count": 0,
+        "avg_conviction": null,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null
+      },
+      {
+        "bucket": "medium",
+        "action_count": 661,
+        "avg_conviction": 52.6,
+        "avg_forward_5d_pct": 0.46,
+        "avg_forward_20d_pct": 1.65,
+        "avg_forward_60d_pct": 5.06
+      },
+      {
+        "bucket": "high",
+        "action_count": 873,
+        "avg_conviction": 73.5,
+        "avg_forward_5d_pct": 1.28,
+        "avg_forward_20d_pct": 5.38,
+        "avg_forward_60d_pct": 18.32
+      }
+    ],
+    "action_outcomes_count": 1534,
+    "best_decisions": [
+      {
+        "review_date": "2024-08-03",
+        "ticker": "PLTR",
+        "action": "initiate",
+        "thesis_conviction": 50.0,
+        "action_score": 50.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 24.74,
+        "forward_5d_pct": 18.35,
+        "forward_20d_pct": 28.46,
+        "forward_60d_pct": 51.54,
+        "rationale": "All entry gates passed \u2014 conviction 50, thesis forming"
+      },
+      {
+        "review_date": "2024-09-06",
+        "ticker": "AMAT",
+        "action": "exit",
+        "thesis_conviction": 56.5,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 172.4,
+        "forward_5d_pct": 6.4,
+        "forward_20d_pct": 19.95,
+        "forward_60d_pct": 6.71,
+        "rationale": "Trailing stop EXIT: -31.3% from 90-day peak (threshold -30%)"
+      },
+      {
+        "review_date": "2024-08-27",
+        "ticker": "PLTR",
+        "action": "add",
+        "thesis_conviction": 71.8,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 30.84,
+        "forward_5d_pct": 2.08,
+        "forward_20d_pct": 17.74,
+        "forward_60d_pct": 45.46,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-07",
+        "ticker": "AMD",
+        "action": "exit",
+        "thesis_conviction": 57.2,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 128.67,
+        "forward_5d_pct": 6.3,
+        "forward_20d_pct": 16.97,
+        "forward_60d_pct": 32.82,
+        "rationale": "Trailing stop EXIT: -30.1% from 90-day peak (threshold -30%)"
+      },
+      {
+        "review_date": "2024-08-26",
+        "ticker": "PLTR",
+        "action": "add",
+        "thesis_conviction": 71.8,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 30.85,
+        "forward_5d_pct": 2.04,
+        "forward_20d_pct": 15.36,
+        "forward_60d_pct": 45.41,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-02",
+        "ticker": "AMD",
+        "action": "initiate",
+        "thesis_conviction": 60.9,
+        "action_score": 66.8,
+        "conviction_bucket": "medium",
+        "price_at_decision": 132.5,
+        "forward_5d_pct": -2.89,
+        "forward_20d_pct": 14.49,
+        "forward_60d_pct": 20.57,
+        "rationale": "All entry gates passed \u2014 conviction 61, thesis strengthening (claim impact: +3.0%)"
+      },
+      {
+        "review_date": "2024-08-05",
+        "ticker": "CSCO",
+        "action": "initiate",
+        "thesis_conviction": 65.7,
+        "action_score": 65.7,
+        "conviction_bucket": "high",
+        "price_at_decision": 43.05,
+        "forward_5d_pct": 1.63,
+        "forward_20d_pct": 13.41,
+        "forward_60d_pct": 18.8,
+        "rationale": "All entry gates passed \u2014 conviction 66, thesis strengthening"
+      },
+      {
+        "review_date": "2024-08-02",
+        "ticker": "MU",
+        "action": "exit",
+        "thesis_conviction": 48.8,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 92.17,
+        "forward_5d_pct": -6.36,
+        "forward_20d_pct": 12.47,
+        "forward_60d_pct": 8.21,
+        "rationale": "Trailing stop EXIT: -39.5% from 90-day peak (threshold -30%)"
+      },
+      {
+        "review_date": "2024-08-04",
+        "ticker": "TXN",
+        "action": "initiate",
+        "thesis_conviction": 45.2,
+        "action_score": 45.2,
+        "conviction_bucket": "medium",
+        "price_at_decision": 179.21,
+        "forward_5d_pct": 2.53,
+        "forward_20d_pct": 11.96,
+        "forward_60d_pct": 7.58,
+        "rationale": "All entry gates passed \u2014 conviction 45, thesis weakening"
+      },
+      {
+        "review_date": "2024-09-11",
+        "ticker": "ANET",
+        "action": "initiate",
+        "thesis_conviction": 61.4,
+        "action_score": 61.4,
+        "conviction_bucket": "medium",
+        "price_at_decision": 85.73,
+        "forward_5d_pct": 4.73,
+        "forward_20d_pct": 11.35,
+        "forward_60d_pct": 16.77,
+        "rationale": "All entry gates passed \u2014 conviction 61, thesis strengthening"
+      }
+    ],
+    "worst_decisions": [
+      {
+        "review_date": "2024-08-14",
+        "ticker": "NVDA",
+        "action": "add",
+        "thesis_conviction": 66.6,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 118.02,
+        "forward_5d_pct": 10.09,
+        "forward_20d_pct": -8.54,
+        "forward_60d_pct": 14.17,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-14",
+        "ticker": "KLAC",
+        "action": "add",
+        "thesis_conviction": 73.5,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 782.53,
+        "forward_5d_pct": 3.53,
+        "forward_20d_pct": -6.44,
+        "forward_60d_pct": 1.42,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-03",
+        "ticker": "INTC",
+        "action": "initiate",
+        "thesis_conviction": 58.0,
+        "action_score": 65.2,
+        "conviction_bucket": "medium",
+        "price_at_decision": 21.34,
+        "forward_5d_pct": -4.0,
+        "forward_20d_pct": -3.77,
+        "forward_60d_pct": 4.9,
+        "rationale": "All entry gates passed \u2014 conviction 58, thesis weakening (claim impact: +3.6%)"
+      },
+      {
+        "review_date": "2024-08-04",
+        "ticker": "INTC",
+        "action": "exit",
+        "thesis_conviction": 55.6,
+        "action_score": 86.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 21.34,
+        "forward_5d_pct": -7.66,
+        "forward_20d_pct": -3.77,
+        "forward_60d_pct": 4.29,
+        "rationale": "Trailing stop EXIT: -38.4% from 90-day peak (threshold -30%)"
+      },
+      {
+        "review_date": "2024-08-14",
+        "ticker": "AVGO",
+        "action": "add",
+        "thesis_conviction": 77.0,
+        "action_score": 55.0,
+        "conviction_bucket": "high",
+        "price_at_decision": 155.35,
+        "forward_5d_pct": 6.35,
+        "forward_20d_pct": -3.11,
+        "forward_60d_pct": 15.47,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-08-21",
+        "ticker": "MSFT",
+        "action": "add",
+        "thesis_conviction": 61.5,
+        "action_score": 56.7,
+        "conviction_bucket": "medium",
+        "price_at_decision": 419.24,
+        "forward_5d_pct": -2.51,
+        "forward_20d_pct": -2.34,
+        "forward_60d_pct": -1.41,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-10-15",
+        "ticker": "ANET",
+        "action": "add",
+        "thesis_conviction": 61.4,
+        "action_score": 55.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 98.08,
+        "forward_5d_pct": 2.47,
+        "forward_20d_pct": 0.66,
+        "forward_60d_pct": 14.57,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-09-03",
+        "ticker": "AAPL",
+        "action": "add",
+        "thesis_conviction": 62.4,
+        "action_score": 55.0,
+        "conviction_bucket": "medium",
+        "price_at_decision": 221.32,
+        "forward_5d_pct": -0.88,
+        "forward_20d_pct": 1.66,
+        "forward_60d_pct": 0.06,
+        "rationale": "Winner with strong conviction and attractive valuation \u2014 add"
+      },
+      {
+        "review_date": "2024-07-31",
+        "ticker": "MSFT",
+        "action": "initiate",
+        "thesis_conviction": 50.0,
+        "action_score": 55.7,
+        "conviction_bucket": "medium",
+        "price_at_decision": 412.77,
+        "forward_5d_pct": -5.55,
+        "forward_20d_pct": 1.72,
+        "forward_60d_pct": 2.5,
+        "rationale": "All entry gates passed \u2014 conviction 50, thesis forming (claim impact: +2.8%)"
+      },
+      {
+        "review_date": "2024-08-22",
+        "ticker": "MSFT",
+        "action": "add",
+        "thesis_conviction": 61.5,
+        "action_score": 42.5,
+        "conviction_bucket": "medium",
+        "price_at_decision": 410.75,
+        "forward_5d_pct": -0.41,
+        "forward_20d_pct": 1.8,
+        "forward_60d_pct": 0.78,
+        "rationale": "Loser with intact thesis, confirming evidence, and attractive valuation \u2014 add"
+      }
+    ],
+    "per_name_summary": [
+      {
+        "ticker": "AAPL",
+        "action_count": 154,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 152,
+        "avg_forward_5d_pct": 0.49,
+        "avg_forward_20d_pct": 2.22,
+        "avg_forward_60d_pct": 5.08,
+        "doc_count": 7,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ABBV",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 25,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ABT",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ACN",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 10,
+        "claim_count": 34,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ADI",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 18,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMAT",
+        "action_count": 36,
+        "initiate_count": 1,
+        "exit_count": 1,
+        "hold_count": 34,
+        "avg_forward_5d_pct": -0.12,
+        "avg_forward_20d_pct": -1.38,
+        "avg_forward_60d_pct": -0.87,
+        "doc_count": 5,
+        "claim_count": 15,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMD",
+        "action_count": 6,
+        "initiate_count": 1,
+        "exit_count": 1,
+        "hold_count": 4,
+        "avg_forward_5d_pct": 1.73,
+        "avg_forward_20d_pct": 15.93,
+        "avg_forward_60d_pct": 25.82,
+        "doc_count": 8,
+        "claim_count": 37,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMGN",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AMZN",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 4,
+        "claim_count": 12,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ANET",
+        "action_count": 113,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 110,
+        "avg_forward_5d_pct": 1.05,
+        "avg_forward_20d_pct": 4.02,
+        "avg_forward_60d_pct": 8.42,
+        "doc_count": 6,
+        "claim_count": 14,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "APH",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 28,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "APP",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 34,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AVGO",
+        "action_count": 155,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 152,
+        "avg_forward_5d_pct": 1.79,
+        "avg_forward_20d_pct": 7.37,
+        "avg_forward_60d_pct": 13.87,
+        "doc_count": 9,
+        "claim_count": 35,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "AXP",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 13,
+        "claim_count": 53,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BA",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 13,
+        "claim_count": 33,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BAC",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BKNG",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 25,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BLK",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 17,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BMY",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 13,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "BRK-B",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 13,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "C",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 12,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CAT",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CB",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 10,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "COP",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 12,
+        "claim_count": 35,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "COST",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 28,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CRM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CRWD",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 25,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CSCO",
+        "action_count": 150,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 149,
+        "avg_forward_5d_pct": 0.96,
+        "avg_forward_20d_pct": 3.47,
+        "avg_forward_60d_pct": 11.91,
+        "doc_count": 8,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "CVX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 25,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "DE",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 10,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "DHR",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "DIS",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 14,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ETN",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GE",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GEV",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GILD",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 17,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GOOGL",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 11,
+        "claim_count": 45,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "GS",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 13,
+        "claim_count": 26,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "HCA",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "HD",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 35,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "HON",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 13,
+        "claim_count": 34,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "IBM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 25,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "INTC",
+        "action_count": 2,
+        "initiate_count": 1,
+        "exit_count": 1,
+        "hold_count": 0,
+        "avg_forward_5d_pct": -5.83,
+        "avg_forward_20d_pct": -3.77,
+        "avg_forward_60d_pct": 4.59,
+        "doc_count": 10,
+        "claim_count": 39,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "INTU",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ISRG",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 13,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "JNJ",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 15,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "JPM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 17,
+        "claim_count": 37,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "KLAC",
+        "action_count": 147,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 141,
+        "avg_forward_5d_pct": -0.45,
+        "avg_forward_20d_pct": -3.01,
+        "avg_forward_60d_pct": -10.98,
+        "doc_count": 11,
+        "claim_count": 30,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "KO",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 12,
+        "claim_count": 33,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "LIN",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 33,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "LLY",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 10,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "LMT",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 26,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "LOW",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "LRCX",
+        "action_count": 2,
+        "initiate_count": 1,
+        "exit_count": 1,
+        "hold_count": 0,
+        "avg_forward_5d_pct": 1.39,
+        "avg_forward_20d_pct": 10.29,
+        "avg_forward_60d_pct": 5.92,
+        "doc_count": 9,
+        "claim_count": 26,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MA",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 26,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MCD",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 17,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MCK",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 26,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "META",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MO",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 4,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MRK",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MS",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 13,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MSFT",
+        "action_count": 155,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 152,
+        "avg_forward_5d_pct": 0.11,
+        "avg_forward_20d_pct": 0.85,
+        "avg_forward_60d_pct": 1.95,
+        "doc_count": 7,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "MU",
+        "action_count": 2,
+        "initiate_count": 1,
+        "exit_count": 1,
+        "hold_count": 0,
+        "avg_forward_5d_pct": -9.34,
+        "avg_forward_20d_pct": 9.59,
+        "avg_forward_60d_pct": 5.19,
+        "doc_count": 10,
+        "claim_count": 36,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NEE",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 13,
+        "claim_count": 38,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NEM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NFLX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NOW",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "NVDA",
+        "action_count": 155,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 152,
+        "avg_forward_5d_pct": 0.84,
+        "avg_forward_20d_pct": 3.28,
+        "avg_forward_60d_pct": 12.5,
+        "doc_count": 7,
+        "claim_count": 17,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "ORCL",
+        "action_count": 154,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 151,
+        "avg_forward_5d_pct": 0.82,
+        "avg_forward_20d_pct": 3.79,
+        "avg_forward_60d_pct": 14.49,
+        "doc_count": 8,
+        "claim_count": 27,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PANW",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 33,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PEP",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PFE",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PG",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 10,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PGR",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 11,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PH",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 16,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PLD",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 10,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PLTR",
+        "action_count": 152,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 149,
+        "avg_forward_5d_pct": 4.0,
+        "avg_forward_20d_pct": 16.04,
+        "avg_forward_60d_pct": 63.13,
+        "doc_count": 6,
+        "claim_count": 13,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "PM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 16,
+        "claim_count": 33,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "QCOM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "RTX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "SBUX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 20,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "SCHW",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 19,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "SPGI",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 27,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "SYK",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 16,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "T",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 22,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TJX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 6,
+        "claim_count": 14,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TMO",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 11,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TMUS",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 11,
+        "claim_count": 37,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TSLA",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "TXN",
+        "action_count": 151,
+        "initiate_count": 1,
+        "exit_count": 0,
+        "hold_count": 150,
+        "avg_forward_5d_pct": 0.09,
+        "avg_forward_20d_pct": -0.33,
+        "avg_forward_60d_pct": -1.14,
+        "doc_count": 5,
+        "claim_count": 17,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "UBER",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "UNH",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 21,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "UNP",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 5,
+        "claim_count": 18,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "V",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 24,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "VRTX",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 7,
+        "claim_count": 18,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "VZ",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 16,
+        "claim_count": 100,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "WELL",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 29,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "WFC",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 8,
+        "claim_count": 15,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "WMT",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 10,
+        "claim_count": 37,
+        "price_coverage_pct": 97.3
+      },
+      {
+        "ticker": "XOM",
+        "action_count": 0,
+        "initiate_count": 0,
+        "exit_count": 0,
+        "hold_count": 0,
+        "avg_forward_5d_pct": null,
+        "avg_forward_20d_pct": null,
+        "avg_forward_60d_pct": null,
+        "doc_count": 9,
+        "claim_count": 15,
+        "price_coverage_pct": 97.3
+      }
+    ],
+    "coverage_diagnostics": {
+      "docs_by_ticker": {
+        "AAPL": 7,
+        "ABBV": 8,
+        "ABT": 5,
+        "ACN": 10,
+        "ADI": 8,
+        "AMAT": 5,
+        "AMD": 8,
+        "AMGN": 5,
+        "AMZN": 4,
+        "ANET": 6,
+        "APH": 8,
+        "APP": 9,
+        "AVGO": 9,
+        "AXP": 13,
+        "BA": 13,
+        "BAC": 8,
+        "BKNG": 8,
+        "BLK": 5,
+        "BMY": 5,
+        "BRK-B": 5,
+        "C": 12,
+        "CAT": 7,
+        "CB": 9,
+        "COP": 12,
+        "COST": 9,
+        "CRM": 8,
+        "CRWD": 9,
+        "CSCO": 8,
+        "CVX": 9,
+        "DE": 7,
+        "DHR": 6,
+        "DIS": 6,
+        "ETN": 7,
+        "GE": 6,
+        "GEV": 5,
+        "GILD": 6,
+        "GOOGL": 11,
+        "GS": 13,
+        "HCA": 6,
+        "HD": 9,
+        "HON": 13,
+        "IBM": 9,
+        "INTC": 10,
+        "INTU": 7,
+        "ISRG": 5,
+        "JNJ": 7,
+        "JPM": 17,
+        "KLAC": 11,
+        "KO": 12,
+        "LIN": 9,
+        "LLY": 10,
+        "LMT": 9,
+        "LOW": 6,
+        "LRCX": 9,
+        "MA": 7,
+        "MCD": 5,
+        "MCK": 9,
+        "META": 6,
+        "MO": 4,
+        "MRK": 5,
+        "MS": 8,
+        "MSFT": 7,
+        "MU": 10,
+        "NEE": 13,
+        "NEM": 7,
+        "NFLX": 6,
+        "NOW": 5,
+        "NVDA": 7,
+        "ORCL": 8,
+        "PANW": 8,
+        "PEP": 7,
+        "PFE": 9,
+        "PG": 10,
+        "PGR": 11,
+        "PH": 6,
+        "PLD": 5,
+        "PLTR": 6,
+        "PM": 16,
+        "QCOM": 7,
+        "RTX": 8,
+        "SBUX": 8,
+        "SCHW": 6,
+        "SPGI": 7,
+        "SYK": 5,
+        "T": 7,
+        "TJX": 6,
+        "TMO": 5,
+        "TMUS": 11,
+        "TSLA": 7,
+        "TXN": 5,
+        "UBER": 7,
+        "UNH": 9,
+        "UNP": 5,
+        "V": 7,
+        "VRTX": 7,
+        "VZ": 16,
+        "WELL": 9,
+        "WFC": 8,
+        "WMT": 10,
+        "XOM": 9
+      },
+      "docs_by_source_type": {
+        "8K": 596,
+        "10K": 21,
+        "10Q": 185
+      },
+      "docs_by_month": {
+        "2024-06": 79,
+        "2024-07": 173,
+        "2024-08": 125,
+        "2024-09": 69,
+        "2024-10": 180,
+        "2024-11": 105,
+        "2024-12": 71
+      },
+      "claims_by_ticker": {
+        "AAPL": 20,
+        "ABBV": 25,
+        "ABT": 11,
+        "ACN": 34,
+        "ADI": 18,
+        "AMAT": 15,
+        "AMD": 37,
+        "AMGN": 19,
+        "AMZN": 12,
+        "ANET": 14,
+        "APH": 28,
+        "APP": 34,
+        "AVGO": 35,
+        "AXP": 53,
+        "BA": 33,
+        "BAC": 20,
+        "BKNG": 25,
+        "BLK": 17,
+        "BMY": 13,
+        "BRK-B": 13,
+        "C": 24,
+        "CAT": 20,
+        "CB": 10,
+        "COP": 35,
+        "COST": 28,
+        "CRM": 24,
+        "CRWD": 25,
+        "CSCO": 24,
+        "CVX": 25,
+        "DE": 10,
+        "DHR": 19,
+        "DIS": 14,
+        "ETN": 24,
+        "GE": 21,
+        "GEV": 19,
+        "GILD": 17,
+        "GOOGL": 45,
+        "GS": 26,
+        "HCA": 19,
+        "HD": 35,
+        "HON": 34,
+        "IBM": 25,
+        "INTC": 39,
+        "INTU": 21,
+        "ISRG": 13,
+        "JNJ": 15,
+        "JPM": 37,
+        "KLAC": 30,
+        "KO": 33,
+        "LIN": 33,
+        "LLY": 21,
+        "LMT": 26,
+        "LOW": 19,
+        "LRCX": 26,
+        "MA": 26,
+        "MCD": 17,
+        "MCK": 26,
+        "META": 20,
+        "MO": 11,
+        "MRK": 11,
+        "MS": 13,
+        "MSFT": 20,
+        "MU": 36,
+        "NEE": 38,
+        "NEM": 11,
+        "NFLX": 21,
+        "NOW": 24,
+        "NVDA": 17,
+        "ORCL": 27,
+        "PANW": 33,
+        "PEP": 21,
+        "PFE": 21,
+        "PG": 20,
+        "PGR": 20,
+        "PH": 16,
+        "PLD": 10,
+        "PLTR": 13,
+        "PM": 33,
+        "QCOM": 19,
+        "RTX": 24,
+        "SBUX": 20,
+        "SCHW": 19,
+        "SPGI": 27,
+        "SYK": 16,
+        "T": 22,
+        "TJX": 14,
+        "TMO": 11,
+        "TMUS": 37,
+        "TSLA": 24,
+        "TXN": 17,
+        "UBER": 21,
+        "UNH": 21,
+        "UNP": 18,
+        "V": 24,
+        "VRTX": 18,
+        "VZ": 100,
+        "WELL": 29,
+        "WFC": 15,
+        "WMT": 37,
+        "XOM": 15
+      },
+      "source_gaps": [
+        {
+          "ticker": "ALL",
+          "issue": "empty_month",
+          "detail": "No documents ingested in 2025-01"
+        }
+      ],
+      "extractor_mode": "real_llm",
+      "benchmark_available": true,
+      "tickers_with_prices": 100,
+      "tickers_without_prices": 0,
+      "total_price_rows": 14700
+    },
+    "failure_analysis": {
+      "sparse_coverage_tickers": [],
+      "negative_return_actions": [
+        {
+          "action": "initiate",
+          "count": 15,
+          "avg_5d_pct": -2.22,
+          "concern": "initiate actions have negative avg 5D return (-2.22%)"
+        }
+      ],
+      "non_differentiating_buckets": [],
+      "repeated_bad_recommendations": [],
+      "low_evidence_periods": [],
+      "degraded_flags": []
+    },
+    "warnings": []
+  },
+  "memory_comparison": null
+}

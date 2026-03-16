@@ -1,0 +1,131 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,prior_weight,new_weight,weight_change,suggested_weight,rationale
+2025-09-01,MSFT,initiate,72.1,72.1,high,0.0,4.51,4.51,4.5,"All entry gates passed — conviction 72, thesis strengthening"
+2025-09-01,AMD,initiate,67.3,67.3,high,0.0,3.9,3.9,3.9,"All entry gates passed — conviction 67, thesis strengthening"
+2025-09-01,NVDA,initiate,66.8,66.8,high,0.0,3.97,3.97,3.9,"All entry gates passed — conviction 67, thesis strengthening"
+2025-09-01,AAPL,initiate,56.8,56.8,medium,0.0,2.83,2.83,2.8,"All entry gates passed — conviction 57, thesis strengthening"
+2025-09-01,META,initiate,50.0,50.0,medium,0.0,2.01,2.01,2.0,"All entry gates passed — conviction 50, thesis forming"
+2025-09-08,AAPL,add,56.8,55.0,medium,2.83,3.92,1.1,3.91,Winner with strong conviction and attractive valuation — add
+2025-09-08,AMD,hold,67.3,0.0,high,3.9,3.9,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-09-08,NVDA,hold,66.8,0.0,high,3.97,3.97,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-09-08,MSFT,hold,72.1,0.0,high,4.51,4.51,0.0,,"Hold — conviction 72, thesis strengthening"
+2025-09-08,META,hold,50.0,0.0,medium,2.01,2.01,0.0,,"Hold — conviction 50, thesis forming"
+2025-09-15,AAPL,add,56.8,55.0,medium,3.92,4.87,0.95,4.88,Winner with strong conviction and attractive valuation — add
+2025-09-15,NVDA,add,66.8,55.0,high,3.85,5.56,1.71,5.54,Winner with strong conviction and attractive valuation — add
+2025-09-15,MSFT,add,72.1,55.0,high,4.45,6.59,2.15,6.57,Winner with strong conviction and attractive valuation — add
+2025-09-15,AMD,hold,67.3,0.0,high,3.65,3.65,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-09-15,META,hold,50.0,0.0,medium,2.05,2.05,0.0,,"Hold — conviction 50, thesis forming"
+2025-09-22,AAPL,add,56.8,55.0,medium,4.87,6.24,1.37,6.24,Winner with strong conviction and attractive valuation — add
+2025-09-22,NVDA,add,66.8,55.0,high,5.56,7.25,1.69,7.22,Winner with strong conviction and attractive valuation — add
+2025-09-22,MSFT,add,72.1,55.0,high,6.59,8.56,1.96,8.55,Winner with strong conviction and attractive valuation — add
+2025-09-22,AMD,hold,67.3,0.0,high,3.86,3.86,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-09-22,META,hold,50.0,0.0,medium,2.07,2.07,0.0,,"Hold — conviction 50, thesis forming"
+2025-09-29,AAPL,add,56.8,55.0,medium,6.24,7.21,0.97,7.21,Winner with strong conviction and attractive valuation — add
+2025-09-29,NVDA,add,66.8,55.0,high,7.25,8.66,1.41,8.69,Winner with strong conviction and attractive valuation — add
+2025-09-29,MSFT,add,72.1,55.0,high,8.56,10.0,1.44,10.0,Winner with strong conviction and attractive valuation — add
+2025-09-29,AMD,hold,67.3,0.0,high,3.8,3.8,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-09-29,META,hold,50.0,0.0,medium,2.06,2.06,0.0,,"Hold — conviction 50, thesis forming"
+2025-10-06,AAPL,add,56.8,55.0,medium,7.21,8.2,0.99,8.17,Winner with strong conviction and attractive valuation — add
+2025-10-06,AMD,add,75.1,55.0,high,3.84,6.73,2.89,6.78,Winner with strong conviction and attractive valuation — add
+2025-10-06,NVDA,add,66.8,55.0,high,8.66,10.04,1.37,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-06,MSFT,add,83.3,55.0,high,10.0,10.03,0.03,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-06,META,hold,50.0,0.0,medium,2.01,2.01,0.0,,"Hold — conviction 50, thesis forming"
+2025-10-13,AAPL,add,56.8,55.0,medium,8.2,8.94,0.74,8.91,Winner with strong conviction and attractive valuation — add
+2025-10-13,AMD,add,75.1,55.0,high,6.73,9.17,2.43,9.15,Winner with strong conviction and attractive valuation — add
+2025-10-13,NVDA,add,66.8,55.0,high,10.04,10.03,-0.0,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-13,MSFT,hold,83.3,0.0,high,10.03,10.03,0.0,,"Hold — conviction 83, thesis strengthening"
+2025-10-13,META,hold,50.0,0.0,medium,1.91,1.91,0.0,,"Hold — conviction 50, thesis forming"
+2025-10-20,AAPL,add,56.8,55.0,medium,8.94,10.01,1.06,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-20,AMD,add,75.1,55.0,high,9.17,10.01,0.84,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-20,NVDA,hold,66.8,0.0,high,10.03,10.03,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-10-20,MSFT,hold,83.3,0.0,high,9.79,9.79,0.0,,"Hold — conviction 83, thesis strengthening"
+2025-10-20,META,hold,50.0,0.0,medium,1.92,1.92,0.0,,"Hold — conviction 50, thesis forming"
+2025-10-27,AAPL,add,56.8,55.0,medium,10.01,10.14,0.13,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-27,AMD,add,81.6,55.0,high,10.01,10.13,0.12,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-27,NVDA,add,66.8,55.0,high,9.61,10.14,0.52,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-27,MSFT,add,83.3,55.0,high,9.73,10.14,0.41,10.0,Winner with strong conviction and attractive valuation — add
+2025-10-27,META,hold,50.0,0.0,medium,1.94,1.94,0.0,,"Hold — conviction 50, thesis forming"
+2025-11-03,AAPL,add,82.9,55.0,high,10.14,10.24,0.09,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-03,AMD,add,81.6,55.0,high,10.13,10.23,0.1,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-03,NVDA,add,66.8,55.0,high,10.14,10.21,0.07,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-03,MSFT,add,85.1,40.0,high,10.14,10.23,0.09,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-03,META,add,81.9,40.0,high,1.98,4.24,2.26,4.18,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-10,AAPL,add,82.9,55.0,high,10.24,10.08,-0.15,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-10,AMD,add,83.6,55.0,high,10.23,10.08,-0.15,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-10,META,add,81.9,40.0,high,4.24,6.79,2.55,6.75,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-10,NVDA,hold,66.8,0.0,high,10.21,10.21,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-11-10,MSFT,hold,85.1,0.0,high,10.23,10.23,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-11-17,AMD,add,83.6,55.0,high,10.08,10.01,-0.07,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-17,AAPL,hold,82.9,0.0,high,10.08,10.08,0.0,,"Hold — conviction 83, thesis strengthening"
+2025-11-17,NVDA,hold,66.8,0.0,high,10.02,10.02,0.0,,"Hold — conviction 67, thesis strengthening"
+2025-11-17,MSFT,hold,85.1,0.0,high,10.21,10.21,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-11-17,META,hold,81.9,0.0,high,6.79,6.79,0.0,,"Hold — conviction 82, thesis strengthening"
+2025-11-24,AAPL,add,82.9,55.0,high,10.14,10.13,-0.01,10.0,Winner with strong conviction and attractive valuation — add
+2025-11-24,NVDA,add,74.4,40.0,high,9.51,10.13,0.62,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-11-24,AMD,hold,83.6,0.0,high,10.01,10.01,0.0,,"Hold — conviction 84, thesis strengthening"
+2025-11-24,MSFT,hold,85.1,0.0,high,10.37,10.37,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-11-24,META,hold,81.9,0.0,high,6.55,6.55,0.0,,"Hold — conviction 82, thesis strengthening"
+2025-12-01,AAPL,hold,82.9,0.0,high,10.13,10.13,0.0,,"Hold — conviction 83, thesis strengthening"
+2025-12-01,AMD,hold,83.6,0.0,high,9.2,9.2,0.0,,"Hold — conviction 84, thesis strengthening"
+2025-12-01,NVDA,hold,74.4,0.0,high,10.13,10.13,0.0,,"Hold — conviction 74, thesis strengthening"
+2025-12-01,MSFT,hold,85.1,0.0,high,9.97,9.97,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-12-01,META,hold,81.9,0.0,high,6.86,6.86,0.0,,"Hold — conviction 82, thesis strengthening"
+2025-12-08,META,add,81.9,55.0,high,7.1,9.93,2.82,9.85,Winner with strong conviction and attractive valuation — add
+2025-12-08,AAPL,add,84.6,40.0,high,10.3,10.04,-0.25,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-08,MSFT,add,90.0,40.0,high,10.15,10.04,-0.1,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-08,AMD,hold,83.6,0.0,high,9.31,9.31,0.0,,"Hold — conviction 84, thesis strengthening"
+2025-12-08,NVDA,hold,74.4,0.0,high,9.89,9.89,0.0,,"Hold — conviction 74, thesis strengthening"
+2025-12-15,AMD,add,85.1,40.0,high,9.36,10.0,0.64,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-15,MSFT,add,90.0,40.0,high,10.04,10.0,-0.04,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-15,META,add,81.9,40.0,high,9.93,10.0,0.07,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-15,AAPL,hold,84.6,0.0,high,10.04,10.04,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-12-15,NVDA,hold,74.4,0.0,high,10.19,10.19,0.0,,"Hold — conviction 74, thesis strengthening"
+2025-12-22,META,add,78.5,55.0,high,10.0,10.07,0.07,10.0,Winner with strong conviction and attractive valuation — add
+2025-12-22,AMD,add,85.1,40.0,high,10.0,10.07,0.07,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2025-12-22,AAPL,hold,84.6,0.0,high,10.09,10.09,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-12-22,NVDA,hold,74.4,0.0,high,9.86,9.86,0.0,,"Hold — conviction 74, thesis strengthening"
+2025-12-22,MSFT,hold,90.0,0.0,high,10.0,10.0,0.0,,"Hold — conviction 90, thesis strengthening"
+2025-12-29,AAPL,hold,84.6,0.0,high,9.94,9.94,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-12-29,AMD,hold,85.1,0.0,high,10.07,10.07,0.0,,"Hold — conviction 85, thesis strengthening"
+2025-12-29,NVDA,hold,74.4,0.0,high,10.24,10.24,0.0,,"Hold — conviction 74, thesis strengthening"
+2025-12-29,MSFT,hold,90.0,0.0,high,10.18,10.18,0.0,,"Hold — conviction 90, thesis strengthening"
+2025-12-29,META,hold,78.5,0.0,high,10.07,10.07,0.0,,"Hold — conviction 78, thesis strengthening"
+2026-01-05,AAPL,add,85.8,40.0,high,10.0,10.0,0.0,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-05,AMD,hold,85.1,0.0,high,10.06,10.06,0.0,,"Hold — conviction 85, thesis strengthening"
+2026-01-05,NVDA,hold,74.4,0.0,high,10.45,10.45,0.0,,"Hold — conviction 74, thesis strengthening"
+2026-01-05,MSFT,hold,90.0,0.0,high,10.18,10.18,0.0,,"Hold — conviction 90, thesis strengthening"
+2026-01-05,META,hold,78.5,0.0,high,9.99,9.99,0.0,,"Hold — conviction 78, thesis strengthening"
+2026-01-12,AAPL,hold,85.8,0.0,high,10.0,10.0,0.0,,"Hold — conviction 86, thesis strengthening"
+2026-01-12,AMD,hold,85.1,0.0,high,10.35,10.35,0.0,,"Hold — conviction 85, thesis strengthening"
+2026-01-12,NVDA,hold,74.4,0.0,high,10.48,10.48,0.0,,"Hold — conviction 74, thesis strengthening"
+2026-01-12,MSFT,hold,90.0,0.0,high,9.91,9.91,0.0,,"Hold — conviction 90, thesis strengthening"
+2026-01-12,META,hold,78.5,0.0,high,10.02,10.02,0.0,,"Hold — conviction 78, thesis strengthening"
+2026-01-19,META,add,80.4,40.0,high,9.88,10.01,0.12,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-19,AAPL,hold,85.8,0.0,high,9.86,9.86,0.0,,"Hold — conviction 86, thesis strengthening"
+2026-01-19,AMD,hold,85.1,0.0,high,9.84,9.84,0.0,,"Hold — conviction 85, thesis strengthening"
+2026-01-19,NVDA,hold,74.4,0.0,high,10.43,10.43,0.0,,"Hold — conviction 74, thesis strengthening"
+2026-01-19,MSFT,hold,90.0,0.0,high,10.13,10.13,0.0,,"Hold — conviction 90, thesis strengthening"
+2026-01-26,AMD,add,87.2,55.0,high,10.95,10.53,-0.42,10.0,Winner with strong conviction and attractive valuation — add
+2026-01-26,META,add,80.4,55.0,high,10.01,10.55,0.54,10.0,Winner with strong conviction and attractive valuation — add
+2026-01-26,NVDA,add,75.3,40.0,high,10.46,10.54,0.08,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-01-26,AAPL,hold,85.8,0.0,high,9.65,9.65,0.0,,"Hold — conviction 86, thesis strengthening"
+2026-01-26,MSFT,hold,90.0,0.0,high,9.73,9.73,0.0,,"Hold — conviction 90, thesis strengthening"
+2026-02-02,AAPL,add,86.6,40.0,high,9.96,10.11,0.15,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-02,MSFT,add,90.7,40.0,high,10.27,10.11,-0.16,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-02,AMD,hold,87.2,0.0,high,10.53,10.53,0.0,,"Hold — conviction 87, thesis strengthening"
+2026-02-02,NVDA,hold,75.3,0.0,high,10.54,10.54,0.0,,"Hold — conviction 75, thesis strengthening"
+2026-02-02,META,hold,67.1,0.0,high,10.55,10.55,0.0,,"Hold — conviction 67, thesis weakening"
+2026-02-09,AMD,add,90.4,40.0,high,10.45,10.0,-0.44,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-09,AAPL,hold,86.6,0.0,high,10.11,10.11,0.0,,"Hold — conviction 87, thesis strengthening"
+2026-02-09,NVDA,hold,75.3,0.0,high,10.63,10.63,0.0,,"Hold — conviction 75, thesis strengthening"
+2026-02-09,MSFT,hold,90.7,0.0,high,10.11,10.11,0.0,,"Hold — conviction 91, thesis strengthening"
+2026-02-09,META,hold,67.1,0.0,high,11.22,11.22,0.0,,"Hold — conviction 67, thesis weakening"
+2026-02-16,AAPL,hold,86.6,0.0,high,10.45,10.45,0.0,,"Hold — conviction 87, thesis strengthening"
+2026-02-16,AMD,hold,90.4,0.0,high,10.0,10.0,0.0,,"Hold — conviction 90, thesis strengthening"
+2026-02-16,NVDA,hold,75.3,0.0,high,11.05,11.05,0.0,,"Hold — conviction 75, thesis strengthening"
+2026-02-16,MSFT,hold,90.7,0.0,high,10.03,10.03,0.0,,"Hold — conviction 91, thesis strengthening"
+2026-02-16,META,hold,67.1,0.0,high,10.93,10.93,0.0,,"Hold — conviction 67, thesis weakening"
+2026-02-23,AMD,add,93.1,40.0,high,9.84,9.96,0.12,10.0,"Loser with intact thesis, confirming evidence, and attractive valuation — add"
+2026-02-23,AAPL,hold,86.6,0.0,high,9.98,9.98,0.0,,"Hold — conviction 87, thesis strengthening"
+2026-02-23,NVDA,hold,75.3,0.0,high,10.9,10.9,0.0,,"Hold — conviction 75, thesis strengthening"
+2026-02-23,MSFT,hold,90.7,0.0,high,9.98,9.98,0.0,,"Hold — conviction 91, thesis strengthening"
+2026-02-23,META,hold,67.1,0.0,high,10.58,10.58,0.0,,"Hold — conviction 67, thesis weakening"

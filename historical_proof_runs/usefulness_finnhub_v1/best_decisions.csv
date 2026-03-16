@@ -1,0 +1,6 @@
+review_date,ticker,action,thesis_conviction,action_score,conviction_bucket,price_at_decision,forward_5d_pct,forward_20d_pct,forward_60d_pct,rationale
+2025-10-08,AMD,initiate,50.0,50.0,medium,235.56,-8.13,9.53,-7.47,"All entry gates passed — conviction 50, thesis forming"
+2025-11-05,AAPL,initiate,50.0,50.0,medium,269.63,-0.17,2.63,0.42,"All entry gates passed — conviction 50, thesis stable"
+2025-10-01,MSFT,initiate,50.0,50.0,medium,517.56,1.7,-0.39,-5.15,"All entry gates passed — conviction 50, thesis forming"
+2025-11-19,NVDA,initiate,50.0,50.0,medium,186.5,-2.13,-0.83,-0.15,"All entry gates passed — conviction 50, thesis forming"
+2025-10-29,META,initiate,50.0,50.0,medium,751.06,-15.16,-20.49,-11.69,"All entry gates passed — conviction 50, thesis forming"

@@ -1,0 +1,42 @@
+trade_date,ticker,action,shares,price,notional,reason
+2024-07-31,SPY,initiate,1756.2298,540.93,950000.0,Core position: 95% allocation to SPY
+2024-08-01,NVDA,initiate,180.5827,109.16,19711.94,"All entry gates passed — conviction 50, thesis stable"
+2024-08-01,AMD,initiate,148.7215,132.54,19711.55,"All entry gates passed — conviction 50, thesis stable"
+2024-08-01,SPY,trim,-19.1724,533.27,10224.07,Sell core to fund satellite position
+2024-08-01,AVGO,initiate,136.0914,144.84,19711.15,"All entry gates passed — conviction 50, thesis stable"
+2024-08-08,AVGO,exit,-136.0914,143.58,19539.54,Trailing stop EXIT: -25.3% from 90-day peak (threshold -25%)
+2024-08-08,AMD,exit,-148.7215,136.32,20273.72,Trailing stop EXIT: -30.1% from 90-day peak (threshold -25%)
+2024-08-08,NVDA,exit,-180.5827,104.92,18946.63,Trailing stop EXIT: -27.0% from 90-day peak (threshold -25%)
+2024-08-08,QCOM,initiate,121.5226,158.66,19280.19,"All entry gates passed — conviction 50, thesis forming"
+2024-08-08,INTC,initiate,940.9371,20.49,19279.8,"All entry gates passed — conviction 50, thesis stable"
+2024-08-08,MSFT,initiate,48.5239,397.32,19279.41,"All entry gates passed — conviction 50, thesis forming"
+2024-08-15,QCOM,exit,-121.5226,166.72,20260.85,Trailing stop EXIT: -26.4% from 90-day peak (threshold -25%)
+2024-08-15,INTC,exit,-940.9371,20.69,19467.99,Trailing stop EXIT: -42.5% from 90-day peak (threshold -25%)
+2024-08-15,GOOGL,initiate,125.4036,160.16,20084.82,"All entry gates passed — conviction 50, thesis stable"
+2024-08-15,AMZN,initiate,113.0943,177.59,20084.42,"All entry gates passed — conviction 50, thesis stable"
+2024-08-15,SPY,trim,-36.5099,543.15,19830.37,Sell core to fund satellite position
+2024-08-15,CRWD,initiate,77.1009,260.49,20084.02,"All entry gates passed — conviction 50, thesis stable"
+2024-08-22,CRWD,exit,-77.1009,267.64,20635.29,Trailing stop EXIT: -30.3% from 90-day peak (threshold -25%)
+2024-08-22,TSLA,initiate,95.8735,210.66,20196.71,"All entry gates passed — conviction 50, thesis stable"
+2024-08-29,SPY,trim,-36.2639,548.34,19884.79,Sell core to fund satellite position
+2024-08-29,NVDA,initiate,172.2288,117.53,20242.62,"All entry gates passed — conviction 50, thesis stable"
+2024-08-29,SPY,trim,-36.9882,548.34,20281.95,Sell core to fund satellite position
+2024-08-29,AMD,initiate,139.1286,145.49,20241.82,"All entry gates passed — conviction 50, thesis stable"
+2024-08-29,SPY,trim,-36.9874,548.34,20281.53,Sell core to fund satellite position
+2024-08-29,AVGO,initiate,130.9246,154.6,20241.01,"All entry gates passed — conviction 50, thesis stable"
+2024-09-05,SPY,trim,-37.0309,539.75,19987.57,Sell core to fund satellite position
+2024-09-05,QCOM,initiate,126.0345,158.27,19947.04,"All entry gates passed — conviction 50, thesis stable"
+2024-09-05,SPY,trim,-37.0284,539.75,19986.18,Sell core to fund satellite position
+2024-09-05,INTC,initiate,1028.1569,19.4,19946.24,"All entry gates passed — conviction 50, thesis stable"
+2024-09-05,SPY,trim,-37.0269,539.75,19985.38,Sell core to fund satellite position
+2024-09-05,META,initiate,38.7795,514.33,19945.45,"All entry gates passed — conviction 50, thesis stable"
+2024-09-12,INTC,exit,-1028.1569,19.36,19905.12,Trailing stop EXIT: -43.3% from 90-day peak (threshold -25%)
+2024-09-12,QCOM,exit,-126.0345,159.5,20103.01,Trailing stop EXIT: -26.3% from 90-day peak (threshold -25%)
+2024-09-19,CRWD,initiate,75.0568,277.38,20819.26,"All entry gates passed — conviction 50, thesis stable"
+2024-09-19,SPY,trim,-3.0865,560.74,1730.73,Sell core to fund satellite position
+2024-09-19,AAPL,initiate,91.5611,227.38,20818.84,"All entry gates passed — conviction 50, thesis stable"
+2024-09-26,CRWD,exit,-75.0568,281.48,21126.99,Trailing stop EXIT: -26.9% from 90-day peak (threshold -25%)
+2024-10-03,QCOM,initiate,127.3937,163.31,20805.07,"All entry gates passed — conviction 50, thesis stable"
+2024-12-19,AMD,exit,-139.1286,118.88,16539.61,Trailing stop EXIT: -29.7% from 90-day peak (threshold -25%)
+2024-12-26,SPY,trim,-9.838,594.36,5847.34,Sell core to fund satellite position
+2024-12-26,INTC,initiate,1107.0373,20.44,22627.84,"All entry gates passed — conviction 50, thesis stable"

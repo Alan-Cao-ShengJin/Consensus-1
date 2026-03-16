@@ -38,13 +38,17 @@ class FinnhubNewsConnector(DocumentConnector):
             time.sleep(1.0 - elapsed)
         self._last_request_time = time.time()
 
-    def fetch(self, ticker: str, days: int = 7) -> list[DocumentPayload]:
+    def fetch(self, ticker: str, days: int = 7, start_date=None, end_date=None) -> list[DocumentPayload]:
         if not self._api_key:
             logger.info("Finnhub: FINNHUB_API_KEY not set, skipping")
             return []
 
-        to_date = datetime.utcnow().strftime("%Y-%m-%d")
-        from_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+        if start_date and end_date:
+            from_date = start_date.strftime("%Y-%m-%d") if hasattr(start_date, 'strftime') else str(start_date)
+            to_date = end_date.strftime("%Y-%m-%d") if hasattr(end_date, 'strftime') else str(end_date)
+        else:
+            to_date = datetime.utcnow().strftime("%Y-%m-%d")
+            from_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
 
         self._rate_limit()
 

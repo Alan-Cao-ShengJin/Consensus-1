@@ -1,0 +1,16 @@
+ticker,doc_count,claim_count,has_prices
+AAPL,3,6,True
+AMD,6,15,True
+AMZN,3,9,True
+AVGO,7,25,True
+CRM,6,15,True
+CRWD,5,20,True
+GOOGL,5,16,True
+INTC,13,32,True
+META,5,14,True
+MSFT,4,10,True
+NOW,6,10,True
+NVDA,4,11,True
+PLTR,2,6,True
+QCOM,6,13,True
+TSLA,5,14,True
