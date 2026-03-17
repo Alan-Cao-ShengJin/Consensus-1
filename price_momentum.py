@@ -13,7 +13,7 @@ Features:
   6. Overbought guard: block ADDs/INITIATEs when price within 5% of 90-day high
 
 All thresholds are configurable via MomentumGuardConfig.
-Guards are disabled by default (enabled=False) for backward compatibility.
+Guards are enabled by default (enabled=True) for capital protection.
 """
 from __future__ import annotations
 
@@ -26,9 +26,9 @@ from typing import Optional
 class MomentumGuardConfig:
     """Configuration for all momentum guards.
 
-    enabled=False means all guards are bypassed (backward compatible).
+    enabled=True activates all momentum guards. Set False to bypass.
     """
-    enabled: bool = False
+    enabled: bool = True
 
     # SMA guard: block ADDs when price < SMA
     sma_period: int = 20

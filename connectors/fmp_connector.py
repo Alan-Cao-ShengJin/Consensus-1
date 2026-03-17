@@ -456,6 +456,122 @@ class FMPEstimatesConnector(DocumentConnector):
         logger.info("FMP estimates: fetched %d periods for %s (days=%d)", len(payloads), ticker, days)
         return payloads
 
+    def persist_estimates(self, session, ticker: str, days: int = 365) -> int:
+        """Fetch estimates from FMP and persist to EarningsEstimate table.
+
+        Returns number of rows upserted.
+        """
+        if not self._api_key:
+            return 0
+
+        from models import EarningsEstimate
+        from earnings_surprise import compute_earnings_surprise
+
+        limit = max(3, days // 365 + 1)
+
+        estimates = _fmp_get("/analyst-estimates", {
+            "symbol": ticker, "period": "annual", "page": 0, "limit": limit,
+        })
+        if not estimates or not isinstance(estimates, list):
+            return 0
+
+        # Get actuals
+        income_data = _fmp_get("/income-statement", {
+            "symbol": ticker, "period": "annual", "limit": limit,
+        })
+        actuals_by_date: dict[str, dict] = {}
+        if income_data and isinstance(income_data, list):
+            for inc in income_data:
+                actuals_by_date[inc.get("date", "")] = inc
+
+        count = 0
+        for est in estimates:
+            date_str = est.get("date", "")
+            try:
+                fiscal_date = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
+            except (ValueError, AttributeError):
+                continue
+
+            est_rev = est.get("revenueAvg") or est.get("estimatedRevenueAvg")
+            est_eps = est.get("epsAvg") or est.get("estimatedEpsAvg")
+            est_ebitda = est.get("ebitdaAvg") or est.get("estimatedEbitdaAvg")
+            est_ni = est.get("netIncomeAvg") or est.get("estimatedNetIncomeAvg")
+            num_analysts = (
+                est.get("numAnalystsRevenue")
+                or est.get("numberAnalystEstimatedRevenue")
+                or est.get("numberAnalystsEstimatedRevenue")
+            )
+
+            actual = actuals_by_date.get(date_str, {})
+            actual_rev = actual.get("revenue")
+            actual_eps = actual.get("eps") or actual.get("epsdiluted")
+
+            # Compute surprise
+            surprise = compute_earnings_surprise(
+                ticker,
+                actual_revenue=actual_rev,
+                estimated_revenue=est_rev,
+                actual_eps=actual_eps,
+                estimated_eps=est_eps,
+                num_analysts=num_analysts,
+                fiscal_period=f"FY{fiscal_date.year}",
+            )
+
+            surprise_bucket = surprise.composite_bucket if surprise else None
+            rev_surprise_pct = surprise.revenue.surprise_pct if surprise and surprise.revenue else None
+            eps_surprise_pct = surprise.eps.surprise_pct if surprise and surprise.eps else None
+
+            # Upsert
+            from sqlalchemy import select
+            existing = session.scalars(
+                select(EarningsEstimate).where(
+                    EarningsEstimate.ticker == ticker,
+                    EarningsEstimate.fiscal_date == fiscal_date,
+                )
+            ).first()
+
+            if existing:
+                existing.estimated_revenue = est_rev
+                existing.estimated_eps = est_eps
+                existing.estimated_ebitda = est_ebitda
+                existing.estimated_net_income = est_ni
+                existing.num_analysts = num_analysts
+                existing.actual_revenue = actual_rev
+                existing.actual_eps = actual_eps
+                existing.revenue_surprise_pct = rev_surprise_pct
+                existing.eps_surprise_pct = eps_surprise_pct
+                existing.surprise_bucket = surprise_bucket
+                existing.revenue_low = est.get("revenueLow") or est.get("estimatedRevenueLow")
+                existing.revenue_high = est.get("revenueHigh") or est.get("estimatedRevenueHigh")
+                existing.eps_low = est.get("epsLow") or est.get("estimatedEpsLow")
+                existing.eps_high = est.get("epsHigh") or est.get("estimatedEpsHigh")
+                existing.source = "fmp"
+            else:
+                session.add(EarningsEstimate(
+                    ticker=ticker,
+                    fiscal_date=fiscal_date,
+                    fiscal_period=f"FY{fiscal_date.year}",
+                    estimated_revenue=est_rev,
+                    estimated_eps=est_eps,
+                    estimated_ebitda=est_ebitda,
+                    estimated_net_income=est_ni,
+                    num_analysts=num_analysts,
+                    actual_revenue=actual_rev,
+                    actual_eps=actual_eps,
+                    revenue_surprise_pct=rev_surprise_pct,
+                    eps_surprise_pct=eps_surprise_pct,
+                    surprise_bucket=surprise_bucket,
+                    revenue_low=est.get("revenueLow") or est.get("estimatedRevenueLow"),
+                    revenue_high=est.get("revenueHigh") or est.get("estimatedRevenueHigh"),
+                    eps_low=est.get("epsLow") or est.get("estimatedEpsLow"),
+                    eps_high=est.get("epsHigh") or est.get("estimatedEpsHigh"),
+                    source="fmp",
+                ))
+            count += 1
+
+        logger.info("FMP estimates: persisted %d estimate rows for %s", count, ticker)
+        return count
+
 
 # ---------------------------------------------------------------------------
 # 4. Stock News

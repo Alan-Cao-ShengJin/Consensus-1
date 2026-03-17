@@ -94,8 +94,8 @@ MAX_CASH_MISMATCH_DOLLARS = 100.0
 # ---------------------------------------------------------------------------
 
 def check_environment(environment: str) -> ReadinessCheck:
-    """Environment must be live_readonly — not demo, paper, or live."""
-    if environment == Environment.LIVE_READONLY:
+    """Environment must be live_readonly or live."""
+    if environment in (Environment.LIVE_READONLY, Environment.LIVE):
         return ReadinessCheck(
             name="environment",
             passed=True,
@@ -105,14 +105,8 @@ def check_environment(environment: str) -> ReadinessCheck:
         return ReadinessCheck(
             name="environment",
             passed=False,
-            message=f"Environment is {environment} — not live_readonly. "
+            message=f"Environment is {environment} — not live. "
                     f"Broker sync results may not reflect real account state.",
-        )
-    elif environment == Environment.LIVE:
-        return ReadinessCheck(
-            name="environment",
-            passed=False,
-            message="LIVE environment is not implemented",
         )
     elif environment == Environment.LIVE_DISABLED:
         return ReadinessCheck(
@@ -308,18 +302,64 @@ def check_no_duplicate_batch(
 
 
 def check_no_live_order_path(environment: str) -> ReadinessCheck:
-    """Verify that the environment cannot place live orders."""
+    """Verify live order path status.
+
+    For LIVE environment, this check PASSES (live orders are intentional).
+    For all other environments, live order path must be blocked.
+    """
+    if environment == Environment.LIVE:
+        return ReadinessCheck(
+            name="live_order_path",
+            passed=True,
+            message="Live order path is ENABLED — real money at risk",
+            severity="warning",
+        )
     blocked = {Environment.DEMO, Environment.PAPER, Environment.LIVE_READONLY, Environment.LIVE_DISABLED}
     if environment in blocked:
         return ReadinessCheck(
-            name="no_live_order_path",
+            name="live_order_path",
             passed=True,
             message=f"Live order path is blocked in {environment} mode",
         )
     return ReadinessCheck(
-        name="no_live_order_path",
+        name="live_order_path",
         passed=False,
-        message=f"Environment {environment} may permit live orders — DANGEROUS",
+        message=f"Environment {environment} has unknown live order status — DANGEROUS",
+    )
+
+
+def check_kill_switch() -> ReadinessCheck:
+    """Kill switch must not be active."""
+    import kill_switch
+    if kill_switch.is_active():
+        reason = kill_switch.get_reason()
+        return ReadinessCheck(
+            name="kill_switch",
+            passed=False,
+            message=f"Kill switch is ACTIVE: {reason}",
+        )
+    return ReadinessCheck(
+        name="kill_switch",
+        passed=True,
+        message="Kill switch is not active",
+    )
+
+
+def check_market_open(broker=None) -> ReadinessCheck:
+    """Market must be open for live trading."""
+    import market_hours
+    is_open = market_hours.is_market_open(broker)
+    if not is_open:
+        next_open = market_hours.next_market_open(broker)
+        return ReadinessCheck(
+            name="market_hours",
+            passed=False,
+            message=f"Market is closed (next open: {next_open or 'unknown'})",
+        )
+    return ReadinessCheck(
+        name="market_hours",
+        passed=True,
+        message="Market is open",
     )
 
 
@@ -333,6 +373,7 @@ def run_readiness_checks(
     approval: Optional[ApprovalRecord] = None,
     batch_id: Optional[str] = None,
     prior_batch_ids: Optional[list[str]] = None,
+    broker=None,
     max_sync_age_minutes: int = MAX_SYNC_AGE_MINUTES,
     max_unresolved: int = MAX_UNRESOLVED_MISMATCHES,
     max_cash_diff: float = MAX_CASH_MISMATCH_DOLLARS,
@@ -345,11 +386,16 @@ def run_readiness_checks(
 
     report.add(check_environment(environment))
     report.add(check_no_live_order_path(environment))
+    report.add(check_kill_switch())
     report.add(check_sync_freshness(reconciliation, max_sync_age_minutes))
     report.add(check_reconciliation_clean(reconciliation, max_unresolved, max_cash_diff))
     report.add(check_approval_current(approval))
     report.add(check_intents_consistent(reconciliation))
     report.add(check_no_duplicate_batch(batch_id, prior_batch_ids))
+
+    # Live-specific checks
+    if environment == Environment.LIVE:
+        report.add(check_market_open(broker))
 
     logger.info(
         "Readiness checks: %s (%d errors, %d warnings)",

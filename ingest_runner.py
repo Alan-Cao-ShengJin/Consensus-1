@@ -41,7 +41,7 @@ def run_ingestion(
     ticker: Optional[str] = None,
     thesis_id: Optional[int] = None,
     extractor: Optional[ClaimExtractorBase] = None,
-    extractor_type: str = "stub",
+    extractor_type: str = "llm",
     **loader_overrides,
 ) -> IngestResult:
     """Load, parse, extract, and ingest a document in one call.

@@ -45,7 +45,7 @@ class SystemConfig:
     # --- Ingestion ---
     ingestion_days: int = 7
     source_filter: Optional[list[str]] = None
-    use_llm: bool = False
+    use_llm: bool = True
 
     # --- Review ---
     review_type: str = "weekly"
@@ -81,6 +81,15 @@ class SystemConfig:
     # --- Dry run ---
     dry_run: bool = False
 
+    # --- Broker ---
+    broker_mode: str = "mock"  # "mock", "file", "alpaca"
+    broker_api_key: str = ""
+    broker_secret_key: str = ""
+    broker_paper: bool = True  # Alpaca paper vs live endpoint
+
+    # --- Alerting ---
+    alert_webhook_url: str = ""
+
     # --- Database ---
     database_url: str = ""
 
@@ -91,10 +100,9 @@ class SystemConfig:
                 f"Must be one of: {', '.join(sorted(Environment.VALID))}"
             )
         if self.environment == Environment.LIVE:
-            raise ValueError(
-                "LIVE environment is not implemented. "
-                "Use 'live_readonly' for read-only broker sync, "
-                "or 'live_disabled' as a protective default."
+            logger.warning(
+                "LIVE environment active — real money at risk. "
+                "Ensure broker_mode, kill switch, and circuit breakers are configured."
             )
         if not self.database_url:
             self.database_url = os.getenv("DATABASE_URL", "sqlite:///consensus.db")
@@ -167,6 +175,15 @@ LIVE_DISABLED_CONFIG = SystemConfig(
     paper_execute=False,
 )
 
+LIVE_CONFIG = SystemConfig(
+    environment=Environment.LIVE,
+    dry_run=False,
+    require_approval=True,
+    paper_execute=False,
+    broker_mode="alpaca",
+    broker_paper=True,  # Start with paper — set False only for real money
+)
+
 
 def get_default_config(environment: str) -> SystemConfig:
     """Get the default configuration for an environment."""
@@ -179,6 +196,6 @@ def get_default_config(environment: str) -> SystemConfig:
     elif environment == Environment.LIVE_DISABLED:
         return SystemConfig.from_dict(LIVE_DISABLED_CONFIG.to_dict())
     elif environment == Environment.LIVE:
-        raise ValueError("LIVE environment is not implemented.")
+        return SystemConfig.from_dict(LIVE_CONFIG.to_dict())
     else:
         raise ValueError(f"Unknown environment: {environment}")

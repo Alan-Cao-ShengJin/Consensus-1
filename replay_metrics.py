@@ -23,6 +23,13 @@ class ReplayMetrics:
     max_drawdown_peak_date: Optional[date] = None
     max_drawdown_trough_date: Optional[date] = None
 
+    # --- Risk-adjusted returns ---
+    sharpe_ratio: Optional[float] = None           # annualized Sharpe (rf=0, weekly returns)
+    sortino_ratio: Optional[float] = None          # annualized Sortino (downside deviation only)
+    calmar_ratio: Optional[float] = None           # annualized return / max drawdown
+    win_rate_pct: Optional[float] = None           # % of periods with positive return
+    profit_factor: Optional[float] = None          # sum of gains / sum of losses
+
     # --- Activity ---
     total_initiations: int = 0
     total_adds: int = 0
@@ -82,6 +89,11 @@ class ReplayMetrics:
                 "max_drawdown_pct": round(self.max_drawdown_pct, 2),
                 "max_drawdown_peak_date": self.max_drawdown_peak_date.isoformat() if self.max_drawdown_peak_date else None,
                 "max_drawdown_trough_date": self.max_drawdown_trough_date.isoformat() if self.max_drawdown_trough_date else None,
+                "sharpe_ratio": round(self.sharpe_ratio, 2) if self.sharpe_ratio is not None else None,
+                "sortino_ratio": round(self.sortino_ratio, 2) if self.sortino_ratio is not None else None,
+                "calmar_ratio": round(self.calmar_ratio, 2) if self.calmar_ratio is not None else None,
+                "win_rate_pct": round(self.win_rate_pct, 1) if self.win_rate_pct is not None else None,
+                "profit_factor": round(self.profit_factor, 2) if self.profit_factor is not None else None,
             },
             "activity": {
                 "initiations": self.total_initiations,
@@ -167,10 +179,19 @@ def compute_metrics(
                 if total_return_factor > 0:
                     m.annualized_return_pct = (total_return_factor ** (365.0 / days) - 1) * 100.0
 
+        # Risk-adjusted returns (from periodic returns)
+        m.sharpe_ratio, m.sortino_ratio, m.win_rate_pct, m.profit_factor = (
+            _compute_risk_metrics(snapshots)
+        )
+
         # Max drawdown
         m.max_drawdown_pct, m.max_drawdown_peak_date, m.max_drawdown_trough_date = (
             _compute_max_drawdown(snapshots)
         )
+
+        # Calmar ratio: annualized return / max drawdown
+        if m.annualized_return_pct is not None and m.max_drawdown_pct > 0:
+            m.calmar_ratio = m.annualized_return_pct / m.max_drawdown_pct
 
     # --- Cash exposure ---
     if snapshots:
@@ -313,3 +334,65 @@ def _compute_holding_periods(portfolio: ShadowPortfolio) -> list[float]:
             del entry_dates[trade.ticker]
 
     return periods
+
+
+def _compute_risk_metrics(
+    snapshots: list[PortfolioSnapshot],
+) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+    """Compute Sharpe, Sortino, win rate, and profit factor from portfolio snapshots.
+
+    Uses periodic returns between consecutive snapshots (typically weekly).
+    Assumes risk-free rate = 0 (standard for strategy backtests).
+
+    Returns:
+        (sharpe_ratio, sortino_ratio, win_rate_pct, profit_factor)
+    """
+    if len(snapshots) < 3:
+        return None, None, None, None
+
+    # Compute periodic returns
+    returns: list[float] = []
+    for i in range(1, len(snapshots)):
+        prev_val = snapshots[i - 1].total_value
+        if prev_val > 0:
+            ret = (snapshots[i].total_value - prev_val) / prev_val
+            returns.append(ret)
+
+    if len(returns) < 2:
+        return None, None, None, None
+
+    # Mean and std of returns
+    mean_ret = sum(returns) / len(returns)
+    variance = sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)
+    std_ret = variance ** 0.5
+
+    # Annualization factor: estimate periods per year from snapshot cadence
+    total_days = (snapshots[-1].date - snapshots[0].date).days
+    periods_per_year = len(returns) * 365.0 / total_days if total_days > 0 else 52.0
+
+    # Sharpe ratio (annualized, rf=0)
+    sharpe = None
+    if std_ret > 0:
+        sharpe = (mean_ret / std_ret) * (periods_per_year ** 0.5)
+
+    # Sortino ratio (annualized, rf=0, downside deviation only)
+    sortino = None
+    downside_returns = [r for r in returns if r < 0]
+    if downside_returns:
+        downside_var = sum(r ** 2 for r in downside_returns) / len(returns)
+        downside_dev = downside_var ** 0.5
+        if downside_dev > 0:
+            sortino = (mean_ret / downside_dev) * (periods_per_year ** 0.5)
+
+    # Win rate: % of periods with positive return
+    positive_periods = sum(1 for r in returns if r > 0)
+    win_rate = (positive_periods / len(returns)) * 100.0
+
+    # Profit factor: sum of gains / abs(sum of losses)
+    profit_factor = None
+    gains = sum(r for r in returns if r > 0)
+    losses = abs(sum(r for r in returns if r < 0))
+    if losses > 0:
+        profit_factor = gains / losses
+
+    return sharpe, sortino, win_rate, profit_factor

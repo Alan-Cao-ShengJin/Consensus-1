@@ -61,7 +61,7 @@ class HistoricalEvalConfig:
 
     # --- Thesis regeneration ---
     rebuild_from_scratch: bool = True           # True = clean DB, False = incremental
-    use_llm: bool = False                       # stub mode by default
+    use_llm: bool = True                        # real LLM extraction
 
     # --- Portfolio ---
     initial_cash: float = 1_000_000.0
@@ -215,7 +215,7 @@ class HistoricalEvalConfig:
         backfill_end: date = date(2025, 1, 1),
         eval_start: date | None = None,
         cadence_days: int = 7,
-        use_llm: bool = False,
+        use_llm: bool = True,
         output_dir: str = "historical_proof_runs",
         run_id: str = "usefulness_run",
     ) -> HistoricalEvalConfig:

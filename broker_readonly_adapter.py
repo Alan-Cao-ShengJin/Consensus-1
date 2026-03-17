@@ -214,15 +214,28 @@ def create_broker_adapter(
     """Create a broker adapter by mode.
 
     Args:
-        mode: "mock" or "file"
+        mode: "mock", "file", or "alpaca"
         snapshot_path: Required for "file" mode
-        **kwargs: Passed to MockBrokerAdapter for "mock" mode
+        **kwargs: Passed to adapter constructor.
+            For "alpaca": api_key, secret_key, paper (bool)
     """
     if mode == "mock":
-        return MockBrokerAdapter(**kwargs)
+        # Filter out broker-specific kwargs that MockBrokerAdapter doesn't accept
+        mock_kwargs = {k: v for k, v in kwargs.items()
+                       if k in ("cash", "buying_power", "positions", "open_orders",
+                                "recent_fills", "prices", "broker_name", "account_id")}
+        return MockBrokerAdapter(**mock_kwargs)
     elif mode == "file":
         if not snapshot_path:
             raise ValueError("snapshot_path required for file broker adapter")
         return FileBrokerAdapter(snapshot_path)
+    elif mode == "alpaca":
+        from alpaca_broker_adapter import AlpacaBrokerAdapter
+        api_key = kwargs.get("api_key", "")
+        secret_key = kwargs.get("secret_key", "")
+        paper = kwargs.get("paper", True)
+        if not api_key or not secret_key:
+            raise ValueError("api_key and secret_key required for alpaca broker adapter")
+        return AlpacaBrokerAdapter(api_key=api_key, secret_key=secret_key, paper=paper)
     else:
         raise ValueError(f"Unknown broker adapter mode: {mode}")

@@ -254,7 +254,18 @@ def format_replay_text(
     if m.annualized_return_pct is not None:
         lines.append(f"  Annualized return: {m.annualized_return_pct:+.2f}%")
     lines.extend([
-        f"  Max drawdown:      {m.max_drawdown_pct:.2f}%",
+        f"  Max drawdown:      {m.max_drawdown_pct:.2f}%",])
+    if m.sharpe_ratio is not None:
+        lines.append(f"  Sharpe ratio:      {m.sharpe_ratio:.2f}")
+    if m.sortino_ratio is not None:
+        lines.append(f"  Sortino ratio:     {m.sortino_ratio:.2f}")
+    if m.calmar_ratio is not None:
+        lines.append(f"  Calmar ratio:      {m.calmar_ratio:.2f}")
+    if m.win_rate_pct is not None:
+        lines.append(f"  Win rate:          {m.win_rate_pct:.1f}%")
+    if m.profit_factor is not None:
+        lines.append(f"  Profit factor:     {m.profit_factor:.2f}")
+    lines.extend([
         "",
         "--- ACTIVITY ---",
         f"  Initiations: {m.total_initiations}  Adds: {m.total_adds}  "

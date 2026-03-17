@@ -380,11 +380,16 @@ class LLMClaimExtractor(ClaimExtractorBase):
     def __init__(self, model: str | None = None):
         self._model = model
 
-    def extract_claims(self, clean_text: str, metadata: dict) -> list[ExtractedClaim]:
+    def extract_claims(
+        self, clean_text: str, metadata: dict,
+        estimates_context: str = "",
+    ) -> list[ExtractedClaim]:
         from llm_client import call_openai_json
         from prompts import build_extraction_messages
 
-        messages = build_extraction_messages(clean_text, metadata)
+        messages = build_extraction_messages(
+            clean_text, metadata, estimates_context=estimates_context,
+        )
         raw_claims = call_openai_json(messages, model=self._model)
 
         validated: list[ExtractedClaim] = []

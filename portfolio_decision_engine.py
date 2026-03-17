@@ -4,16 +4,16 @@ into explicit portfolio actions under capital constraints.
 All decision logic is deterministic code. LLM is not used here.
 
 Decision precedence for holdings (strongest wins, checked in this order):
-  Priority 1 — FORCED EXIT:  thesis broken, probation expired
-  Priority 2 — STRONG EXIT:  conviction critically low (≤ EXIT_CONVICTION_CEILING),
+  Priority 1 — FORCED EXIT:  thesis broken
+  Priority 2 — STRONG EXIT:  conviction critically low (≤ 25),
                               thesis achieved + not BUY, FULL_EXIT valuation zone
-  Priority 3 — DEFENSIVE:    enter/continue probation, trim (valuation or weakness)
+  Priority 3 — DEFENSIVE:    trim on low conviction (≤ 35), trim on stretched valuation
   Priority 4 — GROWTH:       add to winner, add to loser (with evidence)
   Priority 5 — NEUTRAL:      hold
 
 A stronger rule always takes precedence over a weaker one. For example,
-conviction ≤ 25 produces EXIT even though it also satisfies the probation
-threshold (≤ 35). Thesis broken produces EXIT regardless of valuation zone.
+conviction ≤ 25 produces EXIT. Thesis broken produces EXIT regardless of
+valuation zone.
 """
 from __future__ import annotations
 
@@ -27,11 +27,11 @@ from typing import Optional
 from models import (
     ActionType, ThesisState, ZoneState, PositionStatus,
 )
-from exit_policy import ExitPolicyConfig, ExitPolicyMode, BASELINE_POLICY
+from exit_policy import ExitPolicyConfig, ExitPolicyMode, BASELINE_POLICY, GRADUATED_POLICY
 from valuation_policy import zone_from_thesis_and_price, ZoneThresholds, DEFAULT_THRESHOLDS
 from price_momentum import (
     MomentumGuardConfig, MomentumSignals,
-    DISABLED_MOMENTUM_CONFIG,
+    DISABLED_MOMENTUM_CONFIG, ENABLED_MOMENTUM_CONFIG,
 )
 from market_sentiment import (
     MarketSentimentScore, MarketRegime,
@@ -90,15 +90,17 @@ class ReasonCode(str, Enum):
     CONVICTION_DECAYED = "CONVICTION_DECAYED"
     # Priced-in detection
     PRICED_IN_DAMPENED = "PRICED_IN_DAMPENED"
+    # Sector concentration
+    SECTOR_CAP_REACHED = "SECTOR_CAP_REACHED"
 
 
 # ---------------------------------------------------------------------------
 # Recommendation priority tiers (lower number = higher precedence)
 # ---------------------------------------------------------------------------
 
-PRIORITY_FORCED_EXIT = 1       # thesis broken, probation expired
+PRIORITY_FORCED_EXIT = 1       # thesis broken
 PRIORITY_STRONG_EXIT = 2       # critical conviction, achieved+exhausted, FULL_EXIT zone
-PRIORITY_DEFENSIVE = 3         # probation entry, trim
+PRIORITY_DEFENSIVE = 3         # trim (low conviction or stretched valuation)
 PRIORITY_CAPITAL_REDEPLOY = 4  # funded initiations
 PRIORITY_GROWTH = 5            # adds, unfunded initiations
 PRIORITY_NEUTRAL = 6           # hold, no_action
@@ -134,6 +136,7 @@ class HoldingSnapshot:
     prior_conviction: Optional[float] = None       # conviction at previous review (for graduated policy)
     claim_impact_signal: float = 0.0               # weighted expected-impact from recent claims (from profiler)
     add_count: int = 0                             # number of adds already made to this position
+    sector: Optional[str] = None                   # GICS sector for concentration tracking
     momentum: MomentumSignals = field(default_factory=MomentumSignals)
 
 
@@ -157,6 +160,7 @@ class CandidateSnapshot:
     cooldown_flag: bool = False
     cooldown_until: Optional[date] = None
     watch_reason: Optional[str] = None
+    sector: Optional[str] = None                   # GICS sector for concentration tracking
     momentum: MomentumSignals = field(default_factory=MomentumSignals)
 
 
@@ -174,8 +178,9 @@ class DecisionInput:
     max_initiations_per_review: int = 3       # pace deployment: max new positions per review cycle
     zone_thresholds: ZoneThresholds = field(default_factory=lambda: DEFAULT_THRESHOLDS)
     relaxed_gates: bool = False               # relax entry gates for historical usefulness runs
-    exit_policy: ExitPolicyConfig = field(default_factory=lambda: BASELINE_POLICY)
-    momentum_config: MomentumGuardConfig = field(default_factory=lambda: DISABLED_MOMENTUM_CONFIG)
+    exit_policy: ExitPolicyConfig = field(default_factory=lambda: GRADUATED_POLICY)
+    momentum_config: MomentumGuardConfig = field(default_factory=lambda: ENABLED_MOMENTUM_CONFIG)
+    max_sector_weight: float = 30.0               # max % of portfolio in any single sector
     market_sentiment: Optional[MarketSentimentScore] = None  # macro risk-on/risk-off signal
 
 
@@ -298,12 +303,11 @@ TRIM_CONVICTION_CEILING = 40.0          # trim if conviction drops below this
 EXIT_CONVICTION_CEILING = 25.0          # force exit below this
 PROBATION_CONVICTION_CEILING = 35.0     # enter probation below this
 
-# Probation rules
-PROBATION_MAX_REVIEWS = 2               # forced exit after N weekly reviews without improvement
-PROBATION_IMPROVEMENT_DELTA = 3.0       # conviction must improve by this much to exit probation
+# Trim threshold (replaces probation system — simpler, more defensible)
+TRIM_CONVICTION_THRESHOLD = 35.0        # trim when conviction falls to this level
 
 # Cooldown
-COOLDOWN_DAYS = 42                      # re-entry blocked for 6 weeks after exit
+COOLDOWN_DAYS = 14                      # re-entry blocked for 2 weeks after exit
 
 # Weight sizing
 DEFAULT_INITIATION_WEIGHT = 3.0         # starting weight for new positions (fallback)
@@ -368,7 +372,7 @@ def evaluate_holding(
     review_date: date,
     exit_policy: ExitPolicyConfig = BASELINE_POLICY,
     relaxed_gates: bool = False,
-    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    momentum_config: MomentumGuardConfig = ENABLED_MOMENTUM_CONFIG,
 ) -> TickerDecision:
     """Evaluate a current holding and produce a decision.
 
@@ -377,16 +381,14 @@ def evaluate_holding(
 
     Decision precedence (checked in this order — first match wins):
       1. FORCED EXIT:  thesis broken (score 100)
-      2. FORCED EXIT:  probation expired after max reviews (score 90)
-      3. STRONG EXIT:  thesis achieved + not in BUY zone (score 85)
-      4. STRONG EXIT:  FULL_EXIT valuation zone (score 80)
-      5. STRONG EXIT:  conviction critically low (score 95)
+      2. STRONG EXIT:  thesis achieved + not in BUY zone (score 85)
+      3. STRONG EXIT:  FULL_EXIT valuation zone (score 80)
+      4. STRONG EXIT:  conviction critically low ≤25 (score 95)
         - graduated mode: also immediate exit on sharp conviction drop
-      6. DEFENSIVE:    continue probation if already on probation (score 60)
-      7. DEFENSIVE:    enter probation if conviction below threshold (score 65)
-      8. DEFENSIVE:    trim on TRIM zone or conviction < TRIM + weakening (score 55-70)
-      9. GROWTH:       add to winner or loser (score 40-55)
-     10. NEUTRAL:      hold (score 0)
+      5. DEFENSIVE:    trim on low conviction ≤35 (score 65)
+      6. DEFENSIVE:    trim on TRIM zone or conviction < 40 + weakening (score 55-70)
+      7. GROWTH:       add to winner or loser (score 40-55)
+      8. NEUTRAL:      hold (score 0)
     """
     decision = TickerDecision(ticker=holding.ticker, action=ActionType.HOLD)
     decision.thesis_conviction = holding.conviction_score
@@ -423,22 +425,6 @@ def evaluate_holding(
         decision.rationale = "Thesis broken — forced exit"
         decision.reason_codes = reasons
         return decision
-
-    # ---------------------------------------------------------------
-    # Priority 1 — FORCED EXIT: probation expired
-    # ---------------------------------------------------------------
-    if holding.probation_flag:
-        reasons.append(ReasonCode.PROBATION_ACTIVE)
-        if holding.probation_reviews_count >= exit_policy.probation_max_reviews:
-            decision.action = ActionType.EXIT
-            decision.action_score = 90.0
-            decision.recommendation_priority = PRIORITY_FORCED_EXIT
-            decision.target_weight_change = -holding.current_weight
-            decision.suggested_weight = 0.0
-            reasons.append(ReasonCode.PROBATION_EXPIRED)
-            decision.rationale = f"Probation expired after {holding.probation_reviews_count} reviews without improvement — forced exit"
-            decision.reason_codes = reasons
-            return decision
 
     # ---------------------------------------------------------------
     # Priority 2 — STRONG EXIT: thesis achieved + not in BUY zone
@@ -561,29 +547,18 @@ def evaluate_holding(
             return decision
 
     # ---------------------------------------------------------------
-    # Priority 3 — DEFENSIVE: continue probation (already on probation,
-    # not expired — blocks adds, mandates review)
+    # Priority 3 — DEFENSIVE: trim on low conviction (≤ 35)
+    # Replaces the old probation system — simpler, more defensible.
     # ---------------------------------------------------------------
-    if holding.probation_flag:
-        # reasons already has PROBATION_ACTIVE from the expired check above
-        decision.action = ActionType.PROBATION
-        decision.action_score = 60.0
-        decision.recommendation_priority = PRIORITY_DEFENSIVE
-        decision.required_followup.append("Mandatory next-week review — probation active")
-        decision.rationale = f"On probation (review {holding.probation_reviews_count + 1}/{exit_policy.probation_max_reviews}) — no adds allowed"
-        decision.reason_codes = reasons
-        return decision
-
-    # ---------------------------------------------------------------
-    # Priority 3 — DEFENSIVE: enter probation (conviction ≤ 35, not yet on probation)
-    # ---------------------------------------------------------------
-    if holding.conviction_score <= exit_policy.probation_conviction_ceiling:
-        decision.action = ActionType.PROBATION
+    if holding.conviction_score <= TRIM_CONVICTION_THRESHOLD:
+        decision.action = ActionType.TRIM
         decision.action_score = 65.0
         decision.recommendation_priority = PRIORITY_DEFENSIVE
-        decision.required_followup.append("Enter probation — mandatory next-week review")
+        trim_amount = min(TRIM_DECREMENT, holding.current_weight - 1.0)
+        decision.target_weight_change = -trim_amount
+        decision.suggested_weight = holding.current_weight - trim_amount
         reasons.append(ReasonCode.CONVICTION_LOW)
-        decision.rationale = f"Conviction {holding.conviction_score:.0f} below probation threshold {exit_policy.probation_conviction_ceiling:.0f}"
+        decision.rationale = f"Conviction {holding.conviction_score:.0f} below trim threshold {TRIM_CONVICTION_THRESHOLD:.0f} — reduce exposure"
         decision.reason_codes = reasons
         return decision
 
@@ -773,19 +748,20 @@ def _check_entry_gates(
     *,
     relaxed: bool = False,
 ) -> tuple[bool, list[ReasonCode], list[str]]:
-    """Check all four entry gates for candidate initiation.
+    """Check entry gates for candidate initiation.
 
-    Gates:
-    1. Differentiated thesis exists
+    Gates (hard requirements):
+    1. Differentiated thesis exists with conviction above floor
     2. Credible non-duplicative evidence exists
-    3. Valuation asymmetry is attractive
-    4. Visible checkpoint ahead
 
-    When relaxed=True (historical usefulness runs), gates 3 and 4 are
-    treated as advisory (logged but non-blocking) and the conviction
-    floor is lowered to the ADD threshold. This allows the decision
-    engine to produce actions for usefulness evaluation even when
-    valuation data and checkpoints are unavailable in historical mode.
+    Advisory signals (logged but non-blocking):
+    3. Valuation zone
+    4. Checkpoint ahead
+
+    Simplified from original 4-gate system: valuation and checkpoint
+    gates were too restrictive in practice (blocked 60% of valid
+    initiations due to data availability). Conviction + evidence are
+    the defensible gates; valuation/checkpoint are sizing signals.
 
     Returns:
         (all_pass, reason_codes, blocking_conditions)
@@ -823,7 +799,7 @@ def _check_entry_gates(
     else:
         reasons.append(ReasonCode.SUFFICIENT_NOVEL_EVIDENCE)
 
-    # Gate 3: Valuation (advisory in relaxed mode)
+    # Gate 3: Valuation (advisory — logged but non-blocking)
     zone = candidate.zone_state
     if zone is None:
         zone = zone_from_thesis_and_price(
@@ -833,24 +809,14 @@ def _check_entry_gates(
         )
     if zone == ZoneState.BUY:
         reasons.append(ReasonCode.VALUATION_ATTRACTIVE)
-    elif relaxed:
-        # In relaxed mode, valuation gate is non-blocking (advisory only)
-        reasons.append(ReasonCode.VALUATION_NEUTRAL)
     else:
-        all_pass = False
         reasons.append(ReasonCode.VALUATION_NEUTRAL if zone == ZoneState.HOLD else ReasonCode.VALUATION_STRETCHED)
-        blockers.append(f"Valuation zone is {zone.value}, not buy")
 
-    # Gate 4: Checkpoint ahead (advisory in relaxed mode)
+    # Gate 4: Checkpoint ahead (advisory — logged but non-blocking)
     if candidate.has_checkpoint_ahead:
         reasons.append(ReasonCode.CHECKPOINT_AHEAD)
-    elif relaxed:
-        reasons.append(ReasonCode.NO_CHECKPOINT_AHEAD)
-        # Non-blocking in relaxed mode
     else:
-        all_pass = False
         reasons.append(ReasonCode.NO_CHECKPOINT_AHEAD)
-        blockers.append("No visible checkpoint ahead")
 
     return all_pass, reasons, blockers
 
@@ -861,7 +827,7 @@ def evaluate_candidate(
     review_date: date,
     *,
     relaxed_gates: bool = False,
-    momentum_config: MomentumGuardConfig = DISABLED_MOMENTUM_CONFIG,
+    momentum_config: MomentumGuardConfig = ENABLED_MOMENTUM_CONFIG,
 ) -> TickerDecision:
     """Evaluate a candidate for initiation.
 
@@ -1018,6 +984,12 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
     current_position_count = len(inputs.holdings)
     approved_initiations = 0
 
+    # Compute current sector weights for concentration cap
+    sector_weights: dict[str, float] = {}
+    for h in inputs.holdings:
+        if h.sector:
+            sector_weights[h.sector] = sector_weights.get(h.sector, 0.0) + h.current_weight
+
     for c in inputs.candidates:
         # Position count cap — block new initiations if at max
         if current_position_count + approved_initiations >= inputs.max_satellite_positions:
@@ -1048,6 +1020,23 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
             )
             candidate_decisions.append(d)
             continue
+
+        # Sector concentration cap — block initiation if sector is already at limit
+        if c.sector and inputs.max_sector_weight > 0:
+            current_sector_wt = sector_weights.get(c.sector, 0.0)
+            if current_sector_wt >= inputs.max_sector_weight:
+                d = TickerDecision(
+                    ticker=c.ticker,
+                    action=ActionType.NO_ACTION,
+                    thesis_conviction=c.conviction_score or 0.0,
+                    recommendation_priority=PRIORITY_NEUTRAL,
+                    reason_codes=[ReasonCode.SECTOR_CAP_REACHED],
+                    decision_stage="blocked",
+                    rationale=f"Sector cap: {c.sector} at {current_sector_wt:.1f}% (limit {inputs.max_sector_weight:.0f}%)",
+                    blocking_conditions=[f"Sector {c.sector} weight {current_sector_wt:.1f}% >= cap {inputs.max_sector_weight:.0f}%"],
+                )
+                candidate_decisions.append(d)
+                continue
 
         # Market sentiment pre-filter
         if sentiment_blocks_initiations:
@@ -1089,6 +1078,9 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
 
         if d.action == ActionType.INITIATE:
             approved_initiations += 1
+            # Update sector weight tracker for subsequent candidates
+            if c.sector and d.target_weight_change:
+                sector_weights[c.sector] = sector_weights.get(c.sector, 0.0) + d.target_weight_change
         candidate_decisions.append(d)
 
     # Step 4: Combine and rank by priority tier, then score within tier

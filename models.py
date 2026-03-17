@@ -494,6 +494,53 @@ class ClaimOutcome(Base):
     computed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
 
+# ---------- Earnings Estimates ----------
+
+class EarningsEstimate(Base):
+    """Consensus analyst estimates for a ticker/fiscal period.
+
+    Stored BEFORE earnings release so the system can compare actuals vs
+    expectations. One row per ticker per fiscal period.
+    """
+    __tablename__ = "earnings_estimates"
+    __table_args__ = (
+        UniqueConstraint("ticker", "fiscal_date", name="uq_earnings_estimate"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    fiscal_date: Mapped[date] = mapped_column(Date, nullable=False)
+    fiscal_period: Mapped[Optional[str]] = mapped_column(String(10))  # "Q1 2026", "FY2025"
+
+    # Consensus estimates (pre-earnings)
+    estimated_revenue: Mapped[Optional[float]] = mapped_column(Float)
+    estimated_eps: Mapped[Optional[float]] = mapped_column(Float)
+    estimated_ebitda: Mapped[Optional[float]] = mapped_column(Float)
+    estimated_net_income: Mapped[Optional[float]] = mapped_column(Float)
+    revenue_low: Mapped[Optional[float]] = mapped_column(Float)
+    revenue_high: Mapped[Optional[float]] = mapped_column(Float)
+    eps_low: Mapped[Optional[float]] = mapped_column(Float)
+    eps_high: Mapped[Optional[float]] = mapped_column(Float)
+    num_analysts: Mapped[Optional[int]] = mapped_column(Integer)
+
+    # Actuals (filled after earnings release)
+    actual_revenue: Mapped[Optional[float]] = mapped_column(Float)
+    actual_eps: Mapped[Optional[float]] = mapped_column(Float)
+
+    # Computed surprise
+    revenue_surprise_pct: Mapped[Optional[float]] = mapped_column(Float)
+    eps_surprise_pct: Mapped[Optional[float]] = mapped_column(Float)
+    surprise_bucket: Mapped[Optional[str]] = mapped_column(String(20))  # big_miss, small_miss, inline, small_beat, big_beat
+
+    # Earnings date
+    earnings_date: Mapped[Optional[date]] = mapped_column(Date)
+
+    # Metadata
+    source: Mapped[Optional[str]] = mapped_column(String(30))  # "fmp", "alphavantage", "manual"
+    fetched_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, onupdate=datetime.utcnow)
+
+
 # ---------- Step 9: Execution Artifacts ----------
 
 class ExecutionIntentRecord(Base):
@@ -551,3 +598,44 @@ class PaperPortfolioSnapshotRecord(Base):
     positions_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON {ticker: market_value}
     weights_json: Mapped[Optional[str]] = mapped_column(Text)    # JSON {ticker: weight_pct}
     snapshot_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class LiveOrderRecord(Base):
+    """Persisted live order for audit trail."""
+    __tablename__ = "live_orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    order_id: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    broker_order_id: Mapped[Optional[str]] = mapped_column(String(50), index=True)
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    side: Mapped[str] = mapped_column(String(10), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    quantity: Mapped[float] = mapped_column(Float, nullable=False)
+    order_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    limit_price: Mapped[Optional[float]] = mapped_column(Float)
+    time_in_force: Mapped[str] = mapped_column(String(10), default="day", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    filled_quantity: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    filled_avg_price: Mapped[Optional[float]] = mapped_column(Float)
+    intent_id: Mapped[Optional[str]] = mapped_column(String(100))
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    state_history_json: Mapped[Optional[str]] = mapped_column(Text)  # JSON list
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    filled_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+
+class LiveFillRecord(Base):
+    """Persisted live fill for audit trail."""
+    __tablename__ = "live_fills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    fill_id: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    order_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    broker_order_id: Mapped[Optional[str]] = mapped_column(String(50))
+    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    side: Mapped[str] = mapped_column(String(10), nullable=False)
+    shares: Mapped[float] = mapped_column(Float, nullable=False)
+    fill_price: Mapped[float] = mapped_column(Float, nullable=False)
+    notional: Mapped[float] = mapped_column(Float, nullable=False)
+    filled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

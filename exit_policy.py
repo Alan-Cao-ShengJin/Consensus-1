@@ -1,15 +1,13 @@
-"""Exit policy variants for empirical comparison.
+"""Exit policy configuration.
 
-Three bounded, explicit policies:
+The graduated policy is the production default:
+  - Conviction ≤ 25 → immediate exit
+  - Sharp conviction drop (>15pts in one review) → immediate exit
+  - Conviction ≤ 35 → trim (handled by decision engine, not exit policy)
 
-  baseline  — Current policy. Conviction <= 25 -> immediate exit.
-              Probation after 2 reviews -> forced exit.
-  patient   — Extend probation to 3 reviews. Exit conviction threshold
-              lowered to 20. Gives deteriorating names more time.
-  graduated — Distinguish sharp vs moderate deterioration.
-              Sharp conviction drop (>15pts in one review) -> immediate exit.
-              Moderate -> probation with 2-review window (same as baseline).
-              This tests whether exit timing should depend on *speed* of decline.
+Legacy baseline and patient policies retained for backtesting comparison.
+Probation fields are retained for backward compatibility but are no longer
+used by the decision engine (replaced by simple trim-at-35).
 
 All policies are deterministic and inspectable.
 """

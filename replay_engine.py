@@ -31,7 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models import (
-    Candidate, Thesis, Price, ThesisState, ActionType,
+    Candidate, Thesis, Price, ThesisState, ActionType, Company,
 )
 from portfolio_decision_engine import (
     DecisionInput, HoldingSnapshot, CandidateSnapshot,
@@ -271,6 +271,10 @@ def _build_shadow_holding_snapshot(
         )
         momentum.market_regime_bullish = market_regime_bullish
 
+    # Sector lookup for concentration tracking
+    company = session.get(Company, ticker)
+    sector = company.sector if company else None
+
     return HoldingSnapshot(
         ticker=ticker,
         position_id=0,  # shadow position, no DB id
@@ -293,6 +297,7 @@ def _build_shadow_holding_snapshot(
         confirming_claim_count_7d=confirming,
         price_change_pct_5d=price_change,
         add_count=pos.add_count,
+        sector=sector,
         momentum=momentum,
     )
 
@@ -371,6 +376,10 @@ def _build_replay_candidate_snapshot(
         momentum = compute_candidate_signals(ticker_prices, review_date, momentum_config)
         momentum.market_regime_bullish = market_regime_bullish
 
+    # Sector lookup for concentration tracking
+    company = session.get(Company, cand.ticker)
+    sector = company.sector if company else None
+
     return CandidateSnapshot(
         ticker=cand.ticker,
         candidate_id=cand.id,
@@ -386,6 +395,7 @@ def _build_replay_candidate_snapshot(
         confirming_claim_count_7d=confirming,
         cooldown_flag=cand.cooldown_flag,
         cooldown_until=cand.cooldown_until,
+        sector=sector,
         momentum=momentum,
     )
 

@@ -67,9 +67,9 @@ def compute_claim_delta(
     if impact == "supports":
         base = 5.0
     elif impact == "weakens":
-        base = -6.0
+        base = -5.0    # symmetric with supports — defensible to institutional investors
     elif impact == "conflicting":
-        base = -2.0   # mixed evidence is less punitive than outright negative
+        base = -2.0    # mixed evidence is less punitive than outright negative
     elif impact == "neutral":
         base = 0.0
 
@@ -103,19 +103,19 @@ def apply_conviction_update(
     if abs(raw_total) > cap:
         raw_total = cap if raw_total > 0 else -cap
 
-    # Dampening near extremes: reduce effective delta as score approaches bounds
-    # The "headroom" is how far we are from the boundary we're moving toward
-    if raw_total > 0:
-        headroom = 100.0 - current_score
-    elif raw_total < 0:
-        headroom = current_score
-    else:
+    # Asymmetric dampening: only dampen near upper bound (100) to prevent
+    # saturation. No dampening near lower bound — theses must be able to
+    # recover from BROKEN state on strong positive evidence.
+    if raw_total == 0:
         return current_score
 
-    # Dampening factor: full effect in the middle, reduced at extremes
-    # At score=50, factor ~1.0; at score=90 moving up, factor ~0.4; at score=95, ~0.2
-    dampening = min(1.0, headroom / 50.0)
-    dampening = max(0.05, dampening)  # floor: always allow at least 5% of delta through
+    if raw_total > 0:
+        headroom = 100.0 - current_score
+        dampening = min(1.0, headroom / 50.0)
+        dampening = max(0.05, dampening)  # floor: always allow at least 5% through
+    else:
+        # Full effect for negative deltas — no dampening near zero
+        dampening = 1.0
 
     effective_delta = raw_total * dampening
     new_score = current_score + effective_delta

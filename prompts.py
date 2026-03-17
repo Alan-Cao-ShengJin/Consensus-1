@@ -20,6 +20,15 @@ CRITICAL TEMPORAL CONSTRAINT:
 - Do NOT incorporate, reference, or be influenced by knowledge of events that occurred AFTER the document's publication date.
 - Do NOT adjust claim strength, direction, or confidence based on what you know happened after publication.
 - If the document discusses forward-looking expectations, extract them as stated — do NOT evaluate them against actual outcomes.
+
+EARNINGS SURPRISE RULE (when consensus estimates are provided):
+- If consensus estimates are provided below, you MUST judge direction relative to the ESTIMATE, not absolute growth.
+- Revenue of $68B that MISSED the $69B estimate = direction NEGATIVE, even if it grew 9% YoY.
+- EPS of $4.58 that BEAT the $4.20 estimate = direction POSITIVE.
+- Use the surprise bucket (BIG MISS / SMALL MISS / INLINE / SMALL BEAT / BIG BEAT) to calibrate strength.
+- A BIG BEAT should have strength 0.85-0.95. INLINE should have strength 0.15-0.30.
+- A BIG MISS should have strength 0.85-0.95 with direction NEGATIVE.
+- Always note in claim_text_normalized whether the result beat or missed consensus.
 """
 
 USER_PROMPT_TEMPLATE = """\
@@ -33,7 +42,7 @@ Extract atomic investable claims from the document below.
 
 IMPORTANT: This document was published on {document_date}. Extract claims as they would have been understood on that date only.
 
-## Extraction schema
+{estimates_context}## Extraction schema
 Each claim must be a JSON object with these fields:
 - claim_text_normalized (string): Full normalized claim sentence.
 - claim_text_short (string): ≤10-word summary of the claim.
@@ -65,13 +74,28 @@ Return ONLY a JSON array of claim objects. Example:
 def build_extraction_messages(
     clean_text: str,
     metadata: dict,
+    estimates_context: str = "",
 ) -> list[dict]:
-    """Build the messages list for an OpenAI chat completion call."""
+    """Build the messages list for an OpenAI chat completion call.
+
+    Args:
+        clean_text: Document text to extract claims from.
+        metadata: Document metadata (source_type, ticker, title, date).
+        estimates_context: Optional consensus estimates context string.
+            When provided, the LLM judges direction relative to estimates.
+    """
+    # Format estimates section: add header if present, otherwise empty
+    if estimates_context:
+        estimates_section = f"## Consensus estimates (pre-earnings)\n{estimates_context}\n\n"
+    else:
+        estimates_section = ""
+
     user_content = USER_PROMPT_TEMPLATE.format(
         source_type=metadata.get("source_type", "unknown"),
         primary_company_ticker=metadata.get("primary_company_ticker", "N/A"),
         title=metadata.get("title", "Untitled"),
         document_date=metadata.get("document_date", "unknown"),
+        estimates_context=estimates_section,
         document_text=clean_text,
     )
     return [

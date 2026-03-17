@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from models import (
     PortfolioPosition, Candidate, Thesis, ThesisStateHistory,
-    Checkpoint, Price,
+    Checkpoint, Price, Company,
     Claim, ClaimCompanyLink, NoveltyType,
     PortfolioReview, PortfolioDecision,
     ThesisState, PositionStatus, ZoneState, ActionType,
@@ -24,7 +24,7 @@ from models import (
 from portfolio_decision_engine import (
     DecisionInput, HoldingSnapshot, CandidateSnapshot,
     TickerDecision, PortfolioReviewResult,
-    run_decision_engine, COOLDOWN_DAYS, PROBATION_IMPROVEMENT_DELTA,
+    run_decision_engine, COOLDOWN_DAYS,
 )
 from valuation_policy import zone_from_thesis_and_price
 
@@ -233,6 +233,10 @@ def build_holding_snapshot(
         current_price,
     )
 
+    # Sector lookup for concentration tracking
+    company = session.get(Company, position.ticker)
+    sector = company.sector if company else None
+
     return HoldingSnapshot(
         ticker=position.ticker,
         position_id=position.id,
@@ -254,6 +258,7 @@ def build_holding_snapshot(
         novel_claim_count_7d=novel,
         confirming_claim_count_7d=confirming,
         price_change_pct_5d=price_change,
+        sector=sector,
     )
 
 
@@ -286,6 +291,10 @@ def build_candidate_snapshot(
 
     zone = zone_from_thesis_and_price(valuation_gap, base_case, current_price)
 
+    # Sector lookup for concentration tracking
+    company = session.get(Company, candidate.ticker)
+    sector = company.sector if company else None
+
     return CandidateSnapshot(
         ticker=candidate.ticker,
         candidate_id=candidate.id,
@@ -303,6 +312,7 @@ def build_candidate_snapshot(
         cooldown_flag=candidate.cooldown_flag,
         cooldown_until=candidate.cooldown_until,
         watch_reason=candidate.watch_reason,
+        sector=sector,
     )
 
 
@@ -387,10 +397,10 @@ def run_portfolio_review(
 
     logger.info(
         "Review complete: %d holdings, %d candidates, %d decisions "
-        "(initiations=%d, adds=%d, trims=%d, exits=%d, probations=%d)",
+        "(initiations=%d, adds=%d, trims=%d, exits=%d, holds=%d)",
         len(holdings), len(candidates), len(result.decisions),
         len(result.initiations), len(result.adds),
-        len(result.trims), len(result.exits), len(result.probations),
+        len(result.trims), len(result.exits), len(result.holds),
     )
 
     return result
@@ -409,9 +419,6 @@ def _apply_position_side_effects(
     """Apply review-level side effects to position records.
 
     RECOMMENDATION vs EXECUTION BOUNDARY:
-    This function may persist:
-      - Probation tracking state (enter/continue/exit probation) — review metadata
-      - Probation review counters — review metadata
     This function must NOT:
       - Set position status to CLOSED (execution-only)
       - Zero position weights (execution-only)
@@ -419,9 +426,8 @@ def _apply_position_side_effects(
       - Activate cooldown on position or candidate (execution-only, begins
         only after an actual exit is executed in Step 8+)
 
-    Exit recommendations are captured in the PortfolioDecision record
-    (action=EXIT, rationale, reason_codes). The live position remains
-    ACTIVE until an execution layer confirms the trade.
+    Exit/trim recommendations are captured in the PortfolioDecision record.
+    The live position remains ACTIVE until an execution layer confirms the trade.
     """
     pos_by_ticker = {p.ticker: p for p in positions}
 
@@ -430,51 +436,25 @@ def _apply_position_side_effects(
         if pos is None:
             continue
 
-        if decision.action == ActionType.PROBATION and not pos.probation_flag:
-            # Enter probation — review tracking state
-            pos.probation_flag = True
-            pos.probation_start_date = review_date
-            pos.probation_reviews_count = 0
-            decision.state_mutation_performed = True
-            decision.state_mutation_notes.append("probation_flag set to True")
-            logger.info("Position %s entering probation", pos.ticker)
-
-        elif decision.action == ActionType.PROBATION and pos.probation_flag:
-            # Already on probation — increment review count
-            pos.probation_reviews_count += 1
-            decision.state_mutation_performed = True
-            decision.state_mutation_notes.append(
-                f"probation_reviews_count incremented to {pos.probation_reviews_count}"
-            )
-            logger.info(
-                "Position %s probation review %d",
-                pos.ticker, pos.probation_reviews_count,
-            )
-
-        elif decision.action == ActionType.EXIT:
-            # EXIT is recommendation-only in Step 7.
+        if decision.action == ActionType.EXIT:
+            # EXIT is recommendation-only.
             # Do NOT close position, zero weight, write exit_date, or set cooldown.
-            # These mutations happen in Step 8+ execution layer.
+            # These mutations happen in the execution layer.
             decision.state_mutation_performed = False
             decision.state_mutation_notes.append(
                 "exit recommended — position remains ACTIVE until execution"
             )
             logger.info(
-                "Position %s exit recommended (not executed — awaiting Step 8)",
+                "Position %s exit recommended (not executed — awaiting execution)",
                 pos.ticker,
             )
 
-        elif pos.probation_flag and decision.action in (ActionType.HOLD, ActionType.ADD):
-            # Check if conviction improved enough to exit probation
-            thesis = session.get(Thesis, pos.thesis_id)
-            if thesis and thesis.conviction_score and thesis.conviction_score > (pos.conviction_score + PROBATION_IMPROVEMENT_DELTA):
-                pos.probation_flag = False
-                pos.probation_start_date = None
-                pos.probation_reviews_count = 0
-                pos.conviction_score = thesis.conviction_score
-                decision.state_mutation_performed = True
-                decision.state_mutation_notes.append("probation cleared — conviction improved")
-                logger.info("Position %s exiting probation — conviction improved", pos.ticker)
+        elif decision.action == ActionType.TRIM:
+            # TRIM is recommendation-only.
+            decision.state_mutation_performed = False
+            decision.state_mutation_notes.append(
+                "trim recommended — position unchanged until execution"
+            )
 
     session.flush()
 
@@ -531,7 +511,6 @@ def format_review_text(result: PortfolioReviewResult) -> str:
 
     sections = [
         ("EXITS", result.exits),
-        ("PROBATION", result.probations),
         ("TRIMS", result.trims),
         ("INITIATIONS", result.initiations),
         ("ADDS", result.adds),

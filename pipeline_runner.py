@@ -192,7 +192,7 @@ def run_ticker_pipeline(
     days: int = 7,
     dry_run: bool = False,
     source_filter: Optional[list[str]] = None,
-    use_llm: bool = False,
+    use_llm: bool = True,
     documents_only: bool = False,
     non_documents_only: bool = False,
 ) -> TickerRunSummary:
@@ -214,7 +214,7 @@ def run_ticker_pipeline(
         days: Backfill depth in days.
         dry_run: If True, fetch and dedupe but don't persist.
         source_filter: Optional list of source keys to restrict which connectors run.
-        use_llm: Use LLM for claim extraction (default: stub).
+        use_llm: Use LLM for claim extraction.
         documents_only: Only run document sources.
         non_documents_only: Only run non-document sources.
     """
@@ -314,7 +314,7 @@ def run_pipeline(
     days: int = 7,
     dry_run: bool = False,
     source_filter: Optional[list[str]] = None,
-    use_llm: bool = False,
+    use_llm: bool = True,
     documents_only: bool = False,
     non_documents_only: bool = False,
 ) -> list[TickerRunSummary]:

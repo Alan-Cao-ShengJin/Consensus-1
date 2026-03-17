@@ -14,8 +14,8 @@ Rules:
   2. Decay rate scales with conviction level: higher conviction decays faster
      (a 90-score position needs stronger ongoing evidence than a 50-score).
   3. Decay is capped per review cycle to prevent cliff-edge drops.
-  4. Below a floor score (40), decay stops — the position is already on
-     probation/exit path and decay would be redundant.
+  4. Below a floor score (35), decay stops — the position is already on
+     the trim/exit path and decay would be redundant.
   5. Price divergence amplifies decay: if price has fallen >10% while
      conviction is high, decay accelerates (thesis may be wrong).
 
@@ -48,8 +48,8 @@ class ConvictionDecayConfig:
     # Max decay per review cycle (prevents cliff-edge drops)
     max_decay_per_cycle: float = 5.0
 
-    # Floor: stop decaying below this score
-    decay_floor: float = 40.0
+    # Floor: stop decaying below this score (aligned with trim threshold)
+    decay_floor: float = 35.0
 
     # Price divergence amplifier: if price is down >X% while conviction
     # is above the divergence threshold, decay is amplified

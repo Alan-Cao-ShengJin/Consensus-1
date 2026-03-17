@@ -46,7 +46,7 @@ def ingest_document_payload(
     session: Session,
     payload: DocumentPayload,
     ticker: str,
-    use_llm: bool = False,
+    use_llm: bool = True,
 ) -> IngestionResult:
     """Insert a document and extract claims from a connector-sourced payload.
 
@@ -106,7 +106,19 @@ def _extract_and_link_claims(
         "source_type": doc.source_type.value,
         "document_date": doc.published_at.strftime("%Y-%m-%d") if doc.published_at else "unknown",
     }
-    extracted = extractor.extract_claims(doc.raw_text, metadata)
+
+    # Look up consensus estimates for earnings-related documents
+    estimates_context = ""
+    if use_llm and doc.source_type.value in (
+        "earnings_transcript", "10Q", "10K", "8K",
+    ):
+        estimates_context = _get_estimates_context(session, ticker, doc.published_at)
+
+    extract_kwargs = {}
+    if estimates_context and isinstance(extractor, LLMClaimExtractor):
+        extract_kwargs["estimates_context"] = estimates_context
+
+    extracted = extractor.extract_claims(doc.raw_text, metadata, **extract_kwargs)
 
     # Create Claim rows with company and theme links
     claim_ids: list[int] = []
@@ -164,6 +176,28 @@ def _extract_and_link_claims(
         session.flush()
 
     return claim_ids
+
+
+def _get_estimates_context(
+    session: Session,
+    ticker: str,
+    published_at,
+) -> str:
+    """Look up consensus estimates for a ticker near the document date.
+
+    Returns a formatted string for the LLM prompt, or empty string if no
+    estimates are available.
+    """
+    if not published_at:
+        return ""
+    try:
+        from earnings_surprise import lookup_estimates
+        surprise = lookup_estimates(session, ticker, published_at)
+        if surprise:
+            return surprise.to_prompt_context()
+    except Exception as e:
+        logger.debug("Estimates lookup failed for %s: %s", ticker, e)
+    return ""
 
 
 def _apply_contradiction_metadata(
