@@ -10,3 +10,4 @@ build/
 .env
 .claude/
 eval_output*.json
+execution_outputs/
