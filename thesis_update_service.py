@@ -142,15 +142,15 @@ def resolve_state(
 ) -> ThesisState:
     """Resolve the new thesis state with inertia against rapid flips.
 
-    Score guardrails always apply (broken <= 15, probation <= 30).
+    Score guardrails always apply (broken <= 20, probation <= 35).
     But for sentiment-direction flips (bullish <-> bearish), we require
     the score delta to exceed STATE_FLIP_MIN_DELTA to avoid oscillation
     from a single contradictory document.
     """
     # Hard score guardrails always take priority
-    if new_score <= 15:
+    if new_score <= 20:
         return ThesisState.BROKEN
-    if new_score <= 30:
+    if new_score <= 35:
         return ThesisState.PROBATION
 
     # Determine if this is a sentiment-direction flip
@@ -393,6 +393,17 @@ def update_thesis_from_claims(
     except Exception as e:
         logger.warning("Memory retrieval failed (continuing without): %s", e)
 
+    # --- Enrich with prior expectation context + cross-ticker signals ---
+    try:
+        from knowledge_state import get_prior_context
+        prior_ctx = get_prior_context(
+            session, claims, thesis.company_ticker, thesis_id=thesis_id,
+        )
+        if prior_ctx:
+            memory_context = memory_context + "\n\n" + prior_ctx
+    except Exception as e:
+        logger.warning("Prior context build failed (continuing without): %s", e)
+
     # --- LLM classification (or stub fallback) ---
     if use_llm:
         try:
@@ -578,6 +589,21 @@ def update_thesis_from_claims(
 
     session.flush()
 
+    # --- Cross-ticker propagation: write derived signals for related tickers ---
+    propagated_count = 0
+    try:
+        from knowledge_state import propagate_claims, mark_signals_consumed
+        # Mark any incoming signals for this ticker as consumed (we just processed them)
+        consumed = mark_signals_consumed(session, thesis.company_ticker)
+        if consumed:
+            logger.info("Consumed %d derived signals for %s", consumed, thesis.company_ticker)
+        # Propagate outgoing signals to related tickers
+        derived = propagate_claims(session, claims, thesis.company_ticker)
+        propagated_count = len(derived)
+        session.flush()
+    except Exception as e:
+        logger.warning("Cross-ticker propagation failed (continuing): %s", e)
+
     return {
         "thesis_id": thesis.id,
         "before_state": before_state.value,
@@ -586,4 +612,5 @@ def update_thesis_from_claims(
         "after_score": round(new_score, 2),
         "summary_note": llm_result.summary_note,
         "assessments": assessments,
+        "propagated_signals": propagated_count,
     }

@@ -37,6 +37,7 @@ from market_sentiment import (
     MarketSentimentScore, MarketRegime,
     MarketSentimentConfig, DISABLED_SENTIMENT_CONFIG,
 )
+from macro_shock import MacroOverlay
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +183,7 @@ class DecisionInput:
     momentum_config: MomentumGuardConfig = field(default_factory=lambda: ENABLED_MOMENTUM_CONFIG)
     max_sector_weight: float = 30.0               # max % of portfolio in any single sector
     market_sentiment: Optional[MarketSentimentScore] = None  # macro risk-on/risk-off signal
+    macro_overlay: Optional[MacroOverlay] = None               # macro shock conviction overlay (temporary filter)
 
 
 # ---------------------------------------------------------------------------
@@ -295,16 +297,20 @@ class PortfolioReviewResult:
 # Engine configuration
 # ---------------------------------------------------------------------------
 
-# Conviction thresholds (0-100 scale, matching thesis_update_service)
+# Conviction thresholds (0-100 scale, 50 = neutral/forming)
+#
+# Scale:  0────20────30────40────45────50────55────60────70────80────100
+#         BROKEN  EXIT  PROBATION TRIM  WATCH NEUTRAL INIT  ADD   HIGH CONV
+#
 INITIATION_CONVICTION_FLOOR = 55.0      # absolute minimum for initiation
 RELATIVE_HURDLE_MARGIN = 5.0            # candidate must beat weakest holding by this margin
-ADD_CONVICTION_FLOOR = 60.0             # minimum conviction for adds (above default 50)
-TRIM_CONVICTION_CEILING = 40.0          # trim if conviction drops below this
-EXIT_CONVICTION_CEILING = 25.0          # force exit below this
-PROBATION_CONVICTION_CEILING = 35.0     # enter probation below this
+ADD_CONVICTION_FLOOR = 60.0             # minimum conviction for adds
+TRIM_CONVICTION_CEILING = 45.0          # start trimming when conviction slips below neutral
+EXIT_CONVICTION_CEILING = 30.0          # force exit — conviction is deteriorating fast
+PROBATION_CONVICTION_CEILING = 40.0     # put on watch — below neutral, needs to recover
 
 # Trim threshold (replaces probation system — simpler, more defensible)
-TRIM_CONVICTION_THRESHOLD = 35.0        # trim when conviction falls to this level
+TRIM_CONVICTION_THRESHOLD = 45.0        # trim when conviction drops below neutral territory
 
 # Cooldown
 COOLDOWN_DAYS = 14                      # re-entry blocked for 2 weeks after exit
@@ -954,6 +960,16 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
         review_date=inputs.review_date,
         turnover_pct_cap=inputs.weekly_turnover_cap_pct,
     )
+
+    # Step 0: Apply macro overlay to conviction scores (temporary filter, not persisted)
+    overlay = inputs.macro_overlay
+    if overlay and overlay.active:
+        logger.info("Macro overlay active: %s", overlay.summary())
+        for h in inputs.holdings:
+            h.conviction_score = overlay.effective_conviction(h.ticker, h.conviction_score)
+        for c in inputs.candidates:
+            if c.conviction_score is not None:
+                c.conviction_score = overlay.effective_conviction(c.ticker, c.conviction_score)
 
     # Step 1: Evaluate holdings
     holding_decisions: list[TickerDecision] = []

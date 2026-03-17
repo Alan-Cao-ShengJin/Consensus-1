@@ -8,11 +8,24 @@ Your job: read public-market documents (earnings transcripts, news articles, SEC
 
 Rules:
 - Each claim must be a single factual assertion — not a summary of the document.
-- Prefer fewer high-quality claims over many weak ones.
+- Be THOROUGH: extract every distinct investable signal. A rich earnings release or 10-K should yield 15-30+ claims. Do not stop at headline numbers.
 - Do NOT output duplicate or near-duplicate claims.
 - Do NOT summarize the document as a whole.
 - Every claim must conform exactly to the JSON schema provided.
 - Output ONLY a JSON array of claim objects. No prose, no markdown, no explanation.
+
+WHAT TO EXTRACT — look for ALL of these signal types:
+- **Headline financials**: revenue, EPS, net income, free cash flow (with QoQ and YoY comparisons)
+- **Margins**: gross margin, operating margin, and their trends
+- **Forward guidance**: next-quarter and full-year revenue/margin/EPS outlook, including ranges
+- **Segment breakdowns**: revenue and growth by business segment (e.g. Data Center, Gaming, Auto)
+- **Strategic signals**: new products, platform launches, partnerships, customer wins, design wins
+- **Management commentary**: qualitative statements about demand trends, competitive position, market shifts
+- **Capital allocation**: buybacks, dividends, remaining authorization, M&A activity
+- **Regulatory/geopolitical**: export controls, trade restrictions, compliance changes
+- **Supply chain**: capacity expansion, production ramps, inventory levels, supply constraints
+- **Competitive dynamics**: market share shifts, new entrants, pricing pressure
+- **Risk factors** (10-K/10-Q): newly added or materially changed risks vs. prior filings
 
 CRITICAL TEMPORAL CONSTRAINT:
 - You MUST treat the document's publication date as "today" for the purpose of extraction.
@@ -58,6 +71,7 @@ Each claim must be a JSON object with these fields:
 - affected_tickers (list[string]): Tickers affected by this claim. Always include the primary ticker if relevant.
 - themes (list[string]): Thematic tags, e.g. "AI Infrastructure Spend", "Margin Expansion".
 - thesis_link_type (string|null): One of: supports, weakens, context, or null.
+- source_excerpt (string|null): The key phrase or sentence from the document that supports this claim. Quote directly, keep under 200 chars.
 
 ## Document text
 {document_text}
@@ -119,6 +133,8 @@ Rules:
 - For relevant claims, classify impact as: supports, weakens, neutral, or conflicting.
 - Assign a materiality score (0-1) for how significant the claim is to the thesis. Only relevant claims should have materiality > 0.
 - Use the PRIOR MEMORY CONTEXT to calibrate your assessment: a claim that merely repeats what prior claims already established is less material than genuinely new evidence. A claim that contradicts established prior evidence is more significant.
+- The "Prior expectation context" section (if present) shows how each new claim compares to consensus estimates, prior guidance, and historical claims of the same type. Use this to calibrate materiality: an inline result (within 2% of consensus) deserves low materiality (0.1-0.3), while a big beat (>5%) or a surprise guidance raise deserves high materiality (0.7-0.9). A claim that merely confirms what was already guided should have lower materiality than a genuine surprise.
+- The "Cross-ticker signals" section (if present) shows derived impacts from related companies (suppliers, customers, competitors, or companies sharing thematic tags). These are attenuated signals — treat them as supporting/contextual evidence, not primary. A supply chain disruption at a key supplier is more material than a vague sector-wide sentiment shift.
 - Provide a brief rationale for each classification, including why the claim is or is not relevant.
 - Recommend an overall thesis state based on the cumulative RELEVANT evidence only.
 - Output ONLY valid JSON matching the schema provided. No prose, no markdown.

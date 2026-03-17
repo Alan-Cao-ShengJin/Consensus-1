@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import requests
+from dotenv import load_dotenv
+from sqlalchemy import select
+
+load_dotenv()
 
 from models import SourceType, SourceTier
 from connectors.base import DocumentConnector, DocumentPayload
@@ -654,3 +658,96 @@ class FMPNewsConnector(DocumentConnector):
 
         logger.info("FMP news: fetched %d articles for %s (days=%d)", len(payloads), ticker, days)
         return payloads
+
+
+# ---------------------------------------------------------------------------
+# 5. Stock Peers (for cross-ticker relationship discovery)
+# ---------------------------------------------------------------------------
+
+def fetch_fmp_peers(ticker: str) -> list[dict]:
+    """Fetch peer companies from FMP stable/stock-peers endpoint.
+
+    Returns list of dicts with {symbol, companyName, price, mktCap}.
+    Useful for auto-discovering competitor relationships.
+    """
+    data = _fmp_get("/stock-peers", {"symbol": ticker})
+    if not data or not isinstance(data, list):
+        return []
+    # First entry is usually the queried ticker itself
+    peers = [p for p in data if p.get("symbol", "").upper() != ticker.upper()]
+    return peers
+
+
+def discover_peer_relationships(
+    session,
+    tickers: list[str],
+    universe: set[str] | None = None,
+) -> int:
+    """Auto-discover competitor relationships from FMP peers endpoint.
+
+    For each ticker, fetches FMP peers and creates CompanyRelationship rows
+    for any peer that's also in our universe. Only creates relationships
+    that don't already exist.
+
+    Args:
+        session: SQLAlchemy session.
+        tickers: Tickers to discover peers for.
+        universe: Optional set of valid tickers (filters peers to our universe).
+
+    Returns:
+        Number of new relationships created.
+    """
+    from models import CompanyRelationship, RelationshipType
+
+    if not _fmp_api_key():
+        logger.info("FMP API key not set, skipping peer discovery")
+        return 0
+
+    if universe is None:
+        from source_registry import get_universe_tickers
+        universe = set(get_universe_tickers())
+
+    created = 0
+    for ticker in tickers:
+        peers = fetch_fmp_peers(ticker)
+        if not peers:
+            continue
+
+        for peer in peers:
+            peer_ticker = peer.get("symbol", "").upper()
+            if peer_ticker not in universe:
+                continue
+
+            # Check if relationship already exists (either direction)
+            existing = session.scalar(
+                select(CompanyRelationship).where(
+                    ((CompanyRelationship.source_ticker == ticker) &
+                     (CompanyRelationship.target_ticker == peer_ticker)) |
+                    ((CompanyRelationship.source_ticker == peer_ticker) &
+                     (CompanyRelationship.target_ticker == ticker)),
+                    CompanyRelationship.relationship_type == RelationshipType.COMPETITOR,
+                )
+            )
+            if existing:
+                continue
+
+            peer_name = peer.get("companyName", peer_ticker)
+            session.add(CompanyRelationship(
+                source_ticker=ticker,
+                target_ticker=peer_ticker,
+                relationship_type=RelationshipType.COMPETITOR,
+                description=f"FMP sector peer: {peer_name}",
+                strength=0.3,  # default low strength for auto-discovered peers
+                bidirectional=True,
+                source="fmp_peers",
+            ))
+            created += 1
+
+        # Rate limit: 1 request per ticker already sent, brief pause
+        time.sleep(0.2)
+
+    if created:
+        session.flush()
+    logger.info("FMP peer discovery: %d new competitor relationships from %d tickers",
+                created, len(tickers))
+    return created

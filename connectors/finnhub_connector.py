@@ -7,6 +7,9 @@ import time
 from datetime import datetime, timedelta
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models import SourceType, SourceTier
 from connectors.base import DocumentConnector, DocumentPayload

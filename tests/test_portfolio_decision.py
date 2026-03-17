@@ -369,7 +369,7 @@ class TestLowConvictionTrim:
         assert d.action == ActionType.TRIM
 
     def test_conviction_above_threshold_no_trim(self):
-        h = _holding(conviction=36.0, thesis_state=ThesisState.STABLE)
+        h = _holding(conviction=46.0, thesis_state=ThesisState.STABLE)
         d = evaluate_holding(h, TODAY)
         assert d.action != ActionType.TRIM or ReasonCode.CONVICTION_LOW not in d.reason_codes
 
@@ -711,9 +711,9 @@ class TestConvictionPrecedence:
         d = evaluate_holding(h, TODAY)
         assert d.action == ActionType.TRIM
 
-    def test_conviction_36_does_not_trim_on_conviction(self):
-        """Conviction 36 is above trim threshold. Should not trigger conviction-based trim."""
-        h = _holding(conviction=36.0, thesis_state=ThesisState.STABLE)
+    def test_conviction_46_does_not_trim_on_conviction(self):
+        """Conviction 46 is above trim threshold (45). Should not trigger conviction-based trim."""
+        h = _holding(conviction=46.0, thesis_state=ThesisState.STABLE)
         d = evaluate_holding(h, TODAY)
         # Should not be trimmed due to conviction alone
         assert d.action != ActionType.TRIM or ReasonCode.CONVICTION_LOW not in d.reason_codes

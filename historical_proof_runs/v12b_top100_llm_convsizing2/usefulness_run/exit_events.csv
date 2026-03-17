@@ -1,4 +1,0 @@
-review_date,ticker,thesis_conviction,action_score,prior_action,prior_conviction,preceded_by_probation,probation_date,forward_5d_pct,forward_20d_pct,forward_60d_pct,premature_exit_20d,premature_exit_60d
-2024-08-07,AMD,56.0,86.0,initiate,58.3,False,,6.3,16.97,32.82,True,True
-2024-08-21,CRWD,74.7,86.0,initiate,74.7,False,,-2.69,-9.32,13.52,False,True
-2024-08-14,INTC,63.1,86.0,initiate,63.1,False,,8.03,0.9,18.27,False,True

@@ -10,7 +10,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+import logging
+
 from models import SourceType, SourceTier
+
+logger = logging.getLogger(__name__)
 
 
 class AutomationLevel(str, Enum):
@@ -107,6 +111,21 @@ _register(SourceConfig(
     dedupe_key="url",
     rate_limit_per_second=10.0,
     notes="Material events. Creates checkpoints for mgmt changes, M&A, guidance.",
+))
+
+_register(SourceConfig(
+    key="sec_13f",
+    source_type=SourceType.THIRTEEN_F,
+    source_tier=SourceTier.TIER_2,
+    provider="sec_edgar",
+    pull_frequency=PullFrequency.WEEKLY,
+    automation=AutomationLevel.SEMI_AUTOMATIC,
+    feeds_claims=True,
+    creates_checkpoints=False,
+    backfill_depth_days=365,
+    dedupe_key="external_id",
+    rate_limit_per_second=10.0,
+    notes="13F-HR institutional holdings. Filed quarterly by hedge funds/mutual funds. ~45 day delay.",
 ))
 
 # --- Earnings Transcripts ---
@@ -412,6 +431,34 @@ _register(SourceConfig(
 ))
 
 _register(SourceConfig(
+    key="oil_daily",
+    source_type=SourceType.NEWS,       # placeholder — stored as prices
+    source_tier=SourceTier.TIER_2,
+    provider="yfinance",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=False,
+    creates_checkpoints=False,
+    backfill_depth_days=730,
+    dedupe_key="ticker_date",
+    notes="Crude oil futures (CL=F) via yfinance. Energy cost signal for industrials and transports.",
+))
+
+_register(SourceConfig(
+    key="credit_spread_daily",
+    source_type=SourceType.NEWS,       # placeholder — stored as prices
+    source_tier=SourceTier.TIER_2,
+    provider="yfinance",
+    pull_frequency=PullFrequency.DAILY,
+    automation=AutomationLevel.AUTOMATIC,
+    feeds_claims=False,
+    creates_checkpoints=False,
+    backfill_depth_days=730,
+    dedupe_key="ticker_date",
+    notes="Credit spread proxy (LQD/HYG ratio) via yfinance. Widening spread = credit stress.",
+))
+
+_register(SourceConfig(
     key="ticker_master",
     source_type=SourceType.NEWS,       # placeholder — not a real document type
     source_tier=SourceTier.TIER_1,
@@ -456,28 +503,114 @@ def get_checkpoint_sources() -> list[SourceConfig]:
 
 
 # ---------------------------------------------------------------------------
-# Universe definition — the ~50 tickers we monitor
+# Universe definition — S&P 500 constituents, refreshed daily
 # ---------------------------------------------------------------------------
 
-UNIVERSE_TICKERS: list[str] = [
-    # Mega-cap tech (US-domiciled only)
+# Fallback: hardcoded core tickers in case Wikipedia fetch fails
+_FALLBACK_TICKERS: list[str] = [
     "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
-    # Semiconductors
     "AMD", "AVGO", "QCOM", "INTC", "MRVL", "MU",
-    # Cloud / SaaS
     "CRM", "SNOW", "PLTR", "NOW", "DDOG", "NET", "MDB",
-    # Fintech / Payments
     "V", "MA", "SQ", "PYPL", "COIN",
-    # Media / Entertainment
     "NFLX", "DIS", "RBLX",
-    # Healthcare / Biotech
     "LLY", "MRNA", "ISRG",
-    # Energy / Industrial
     "ENPH", "FSLR", "CEG", "VST",
-    # Defense / Aerospace
     "LMT", "RTX", "GD",
-    # Financials
     "GS", "JPM", "BRK-B",
-    # Other high-conviction names
     "UBER", "ABNB", "CRWD", "ZS",
 ]
+
+_cached_universe: list[str] | None = None
+_cached_at: float = 0
+
+
+def _fetch_sp500_from_wikipedia() -> list[str]:
+    """Fetch current S&P 500 constituents from Wikipedia.
+
+    Returns sorted list of ~503 ticker symbols.
+    Wikipedia's list is updated within hours of S&P index changes.
+    """
+    import io
+    import requests
+    import pandas as pd
+
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    headers = {"User-Agent": "Mozilla/5.0 (Consensus-1 Pipeline)"}
+    resp = requests.get(url, headers=headers, timeout=15)
+    resp.raise_for_status()
+
+    tables = pd.read_html(io.StringIO(resp.text))
+    df = tables[0]
+    # Clean tickers: some have dots (BRK.B → BRK-B) for Yahoo compatibility
+    tickers = sorted(
+        df["Symbol"].str.strip().str.replace(".", "-", regex=False).tolist()
+    )
+    return tickers
+
+
+def refresh_universe() -> list[str]:
+    """Refresh the investment universe from Wikipedia. Call daily.
+
+    Also upserts any new companies into the DB so they can receive signals.
+    Returns the updated ticker list.
+    """
+    global _cached_universe, _cached_at
+    import time
+
+    try:
+        tickers = _fetch_sp500_from_wikipedia()
+        _cached_universe = tickers
+        _cached_at = time.time()
+        logger.info("Universe refreshed: %d S&P 500 tickers", len(tickers))
+        return tickers
+    except Exception as e:
+        logger.warning("Universe refresh failed, using cache/fallback: %s", e)
+        return _cached_universe or _FALLBACK_TICKERS
+
+
+def get_universe_tickers() -> list[str]:
+    """Get the current investment universe.
+
+    Uses cached list if refreshed within the last 24 hours,
+    otherwise refreshes from Wikipedia. Falls back to hardcoded
+    list if all else fails.
+    """
+    global _cached_universe, _cached_at
+    import time
+
+    # Use cache if less than 24 hours old
+    if _cached_universe and (time.time() - _cached_at) < 86400:
+        return _cached_universe
+
+    return refresh_universe()
+
+
+# For backward compatibility — lazy-loaded on first access
+class _UniverseProxy(list):
+    """Lazy list that fetches S&P 500 tickers on first access."""
+    _loaded = False
+
+    def _ensure_loaded(self):
+        if not self._loaded:
+            self.clear()
+            self.extend(get_universe_tickers())
+            self._loaded = True
+
+    def __iter__(self):
+        self._ensure_loaded()
+        return super().__iter__()
+
+    def __len__(self):
+        self._ensure_loaded()
+        return super().__len__()
+
+    def __contains__(self, item):
+        self._ensure_loaded()
+        return super().__contains__(item)
+
+    def __getitem__(self, index):
+        self._ensure_loaded()
+        return super().__getitem__(index)
+
+
+UNIVERSE_TICKERS = _UniverseProxy()

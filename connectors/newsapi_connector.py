@@ -6,6 +6,9 @@ import os
 from datetime import datetime, timedelta
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from models import SourceType, SourceTier
 from connectors.base import DocumentConnector, DocumentPayload
@@ -67,7 +70,7 @@ class NewsAPIConnector(DocumentConnector):
             payloads.append(DocumentPayload(
                 source_key=self.source_key,
                 source_type=SourceType.NEWS,
-                source_tier=SourceTier.TIER_2,
+                source_tier=SourceTier.TIER_3,
                 ticker=ticker,
                 title=title,
                 url=article.get("url"),

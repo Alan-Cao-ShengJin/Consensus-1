@@ -1,4 +1,4 @@
-"""Alpha Vantage connector: earnings surprises and company overview.
+"""Alpha Vantage connector: earnings surprises, forward estimates, and company overview.
 
 Requires ALPHAVANTAGE_API_KEY env var. Free tier: 25 requests/day.
 """
@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 import requests
+from dotenv import load_dotenv
 
-from models import SourceType, SourceTier
+load_dotenv()
+
+from models import EarningsEstimate, SourceType, SourceTier
 from connectors.base import DocumentConnector, DocumentPayload
 
 logger = logging.getLogger(__name__)
@@ -140,3 +143,121 @@ class AlphaVantageEarningsConnector(DocumentConnector):
         logger.info("Alpha Vantage earnings: fetched %d quarters for %s (days=%d)",
                      len(payloads), ticker, days)
         return payloads
+
+
+def fetch_forward_estimates(ticker: str) -> Optional[dict]:
+    """Fetch the next quarter's consensus EPS estimate from AV EARNINGS_CALENDAR.
+
+    Returns dict with {fiscal_date, report_date, estimated_eps, currency} or None.
+    This is a lightweight call — only returns the next upcoming earnings.
+    """
+    import csv
+    import io
+
+    api_key = _av_api_key()
+    if not api_key:
+        return None
+
+    # EARNINGS_CALENDAR returns CSV, not JSON
+    params = {
+        "function": "EARNINGS_CALENDAR",
+        "symbol": ticker,
+        "horizon": "3month",
+        "apikey": api_key,
+    }
+    try:
+        resp = requests.get(AV_BASE, params=params, timeout=30)
+        resp.raise_for_status()
+        reader = csv.DictReader(io.StringIO(resp.text))
+        rows = list(reader)
+    except Exception as e:
+        logger.error("AV EARNINGS_CALENDAR failed for %s: %s", ticker, e)
+        return None
+
+    if not rows:
+        logger.info("No upcoming earnings for %s", ticker)
+        return None
+
+    row = rows[0]  # next upcoming quarter
+    estimate_str = row.get("estimate", "")
+    if not estimate_str:
+        logger.info("AV EARNINGS_CALENDAR: no estimate for %s", ticker)
+        return None
+
+    try:
+        estimated_eps = float(estimate_str)
+    except (ValueError, TypeError):
+        logger.warning("AV EARNINGS_CALENDAR: bad estimate value '%s' for %s", estimate_str, ticker)
+        return None
+
+    result = {
+        "ticker": ticker,
+        "report_date": row.get("reportDate", ""),
+        "fiscal_date": row.get("fiscalDateEnding", ""),
+        "estimated_eps": estimated_eps,
+        "currency": row.get("currency", "USD"),
+    }
+    logger.info("AV forward estimate for %s: EPS $%.2f, reporting %s",
+                ticker, result["estimated_eps"], result["report_date"])
+    return result
+
+
+def persist_forward_estimate(session, ticker: str) -> Optional[EarningsEstimate]:
+    """Fetch forward estimate from AV and upsert into EarningsEstimate table.
+
+    This is the pre-earnings step: store what the Street expects BEFORE
+    the actual number drops. When earnings arrive, prior_context.py
+    compares actuals against this stored estimate.
+
+    Returns the EarningsEstimate row (new or updated), or None if unavailable.
+    """
+    from sqlalchemy import select
+
+    data = fetch_forward_estimates(ticker)
+    if not data:
+        return None
+
+    fiscal_date_str = data["fiscal_date"]
+    try:
+        fiscal_dt = date.fromisoformat(fiscal_date_str)
+    except (ValueError, TypeError):
+        logger.warning("Bad fiscal_date from AV: %s", fiscal_date_str)
+        return None
+
+    # Upsert: update if exists, insert if not
+    existing = session.scalars(
+        select(EarningsEstimate).where(
+            EarningsEstimate.ticker == ticker,
+            EarningsEstimate.fiscal_date == fiscal_dt,
+        )
+    ).first()
+
+    if existing:
+        existing.estimated_eps = data["estimated_eps"]
+        if data.get("report_date"):
+            try:
+                existing.earnings_date = date.fromisoformat(data["report_date"])
+            except (ValueError, TypeError):
+                pass
+        existing.source = "alphavantage"
+        existing.fetched_at = datetime.utcnow()
+        logger.info("Updated forward estimate for %s Q ending %s: EPS $%.2f",
+                     ticker, fiscal_dt, data["estimated_eps"])
+        return existing
+
+    est = EarningsEstimate(
+        ticker=ticker,
+        fiscal_date=fiscal_dt,
+        estimated_eps=data["estimated_eps"],
+        source="alphavantage",
+    )
+    if data.get("report_date"):
+        try:
+            est.earnings_date = date.fromisoformat(data["report_date"])
+        except (ValueError, TypeError):
+            pass
+
+    session.add(est)
+    logger.info("Stored forward estimate for %s Q ending %s: EPS $%.2f, reporting %s",
+                ticker, fiscal_dt, data["estimated_eps"], data.get("report_date", "?"))
+    return est

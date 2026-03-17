@@ -26,6 +26,7 @@ from models import (
     PortfolioReview, PortfolioDecision,
     ClaimCompanyLink, ClaimThemeLink, ThesisClaimLink,
     ThesisThemeLink, CompanyPeerGroupLink,
+    CompanyTagLink, CompanyRelationship, RelationshipType,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,11 @@ def build_full_graph(session: Session) -> ConsensusGraph:
     _sync_thesis_claim_links(session, cg)
     _sync_thesis_theme_links(session, cg)
     _sync_company_peer_group_links(session, cg)
+    _sync_company_tag_links(session, cg)
+    _sync_company_relationships(session, cg)
+
+    # Best-effort sync to Neo4j/Graphiti (non-blocking)
+    _sync_to_neo4j(session)
 
     summary = cg.summary()
     logger.info(
@@ -559,3 +565,75 @@ def _sync_company_peer_group_links(session: Session, cg: ConsensusGraph):
         if src in cg.g and dst in cg.g:
             cg.add_edge(src, dst, EdgeType.COMPANY_IN_PEERGROUP,
                         role=link.role)
+
+
+def _sync_company_tag_links(session: Session, cg: ConsensusGraph):
+    for link in session.query(CompanyTagLink).all():
+        src = node_id(NodeType.COMPANY, link.company_ticker)
+        dst = node_id(NodeType.THEME, link.theme_id)
+        if src in cg.g and dst in cg.g:
+            cg.add_edge(src, dst, EdgeType.COMPANY_HAS_TAG,
+                        weight=link.weight, source=link.source)
+
+
+_REL_TYPE_TO_EDGE = {
+    RelationshipType.SUPPLIER: EdgeType.COMPANY_SUPPLIES,
+    RelationshipType.CUSTOMER: EdgeType.COMPANY_CUSTOMER_OF,
+    RelationshipType.COMPETITOR: EdgeType.COMPANY_COMPETES_WITH,
+    RelationshipType.ECOSYSTEM: EdgeType.COMPANY_ECOSYSTEM,
+}
+
+
+def _sync_company_relationships(session: Session, cg: ConsensusGraph):
+    for rel in session.query(CompanyRelationship).all():
+        src = node_id(NodeType.COMPANY, rel.source_ticker)
+        dst = node_id(NodeType.COMPANY, rel.target_ticker)
+        edge_type = _REL_TYPE_TO_EDGE.get(rel.relationship_type)
+        if not edge_type:
+            continue
+        if src in cg.g and dst in cg.g:
+            cg.add_edge(src, dst, edge_type,
+                        strength=rel.strength,
+                        description=rel.description)
+            if rel.bidirectional:
+                cg.add_edge(dst, src, edge_type,
+                            strength=rel.strength,
+                            description=rel.description)
+
+
+# ---------------------------------------------------------------------------
+# Neo4j / Graphiti sync (best-effort)
+# ---------------------------------------------------------------------------
+
+def _sync_to_neo4j(session: Session):
+    """Sync company relationships from SQL to Neo4j via Graphiti.
+
+    Best-effort: if Graphiti is not configured, logs and continues.
+    """
+    try:
+        from graphiti_adapter import add_company_relationships_bulk
+    except Exception:
+        logger.debug("Graphiti adapter not available, skipping Neo4j sync")
+        return
+
+    # Sync company relationships as triplets
+    rels = session.query(CompanyRelationship).all()
+    if not rels:
+        return
+
+    # Build company name lookup
+    companies = {c.ticker: c.name for c in session.query(Company).all()}
+
+    triplets = []
+    for rel in rels:
+        src_name = companies.get(rel.source_ticker, rel.source_ticker)
+        tgt_name = companies.get(rel.target_ticker, rel.target_ticker)
+        rel_name = rel.relationship_type.value  # supplier, customer, competitor, ecosystem
+        triplets.append((src_name, rel_name, tgt_name))
+
+    if triplets:
+        try:
+            count = add_company_relationships_bulk(triplets)
+            logger.info("Synced %d/%d relationships to Neo4j", count, len(triplets))
+        except Exception as e:
+            logger.warning("Neo4j sync failed (non-critical): %s", e)

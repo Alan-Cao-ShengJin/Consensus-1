@@ -46,6 +46,8 @@ class YFinanceTickerInfoUpdater(NonDocumentUpdater):
             enrichment["primary_exchange"] = info["exchange"]
         if info.get("longName") or info.get("shortName"):
             enrichment["name"] = info.get("longName") or info.get("shortName")
+        if info.get("beta") is not None:
+            enrichment["beta"] = info["beta"]
 
         # Market cap bucket
         mc = info.get("marketCap")

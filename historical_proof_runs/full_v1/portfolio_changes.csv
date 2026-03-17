@@ -1,6 +1,0 @@
-review_date,ticker,event_type,prior_weight,new_weight,delta_weight,conviction_before,conviction_after,rationale_summary,forward_5d_pct,forward_20d_pct,forward_60d_pct
-2025-09-01,NVDA,initiate,0.0,2.04,2.04,0.0,50.0,"All entry gates passed — conviction 50, thesis stable",-4.11,1.44,16.26
-2025-09-01,AMD,initiate,0.0,2.0,2.0,0.0,50.0,"All entry gates passed — conviction 50, thesis stable",-7.07,-3.22,57.49
-2025-09-01,MSFT,initiate,0.0,2.0,2.0,0.0,50.0,"All entry gates passed — conviction 50, thesis stable",-2.31,2.22,2.19
-2025-09-01,AAPL,initiate,0.0,2.02,2.02,0.0,50.0,"All entry gates passed — conviction 50, thesis stable",3.25,5.76,16.47
-2025-09-01,META,initiate,0.0,2.01,2.01,0.0,50.0,"All entry gates passed — conviction 50, thesis stable",1.86,5.37,-12.17

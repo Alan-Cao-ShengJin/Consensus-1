@@ -377,11 +377,22 @@ def run_portfolio_review(
             snapshot = build_candidate_snapshot(session, cand, as_of)
             candidates.append(snapshot)
 
+    # Compute macro overlay (temporary conviction filter)
+    macro_overlay = None
+    try:
+        from macro_shock import run_macro_shock_scan
+        macro_overlay = run_macro_shock_scan(session)
+        if macro_overlay.active:
+            logger.warning("Macro overlay active at review time: %s", macro_overlay.summary())
+    except Exception as e:
+        logger.warning("Macro overlay computation failed (continuing without): %s", e)
+
     # Build engine input
     engine_input = DecisionInput(
         review_date=as_of,
         holdings=holdings,
         candidates=candidates,
+        macro_overlay=macro_overlay,
     )
 
     # Run decision engine

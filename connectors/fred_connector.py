@@ -29,6 +29,9 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from connectors.base import NonDocumentUpdater, NonDocumentResult
 

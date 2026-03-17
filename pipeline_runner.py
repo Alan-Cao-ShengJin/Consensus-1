@@ -111,10 +111,11 @@ class TickerRunSummary:
 
 def _build_document_connectors(source_filter: Optional[list[str]] = None) -> list[DocumentConnector]:
     """Instantiate enabled document connectors, optionally filtered by source key."""
+    # Note: PRRSSConnector is handled as a broadcast source in run_pipeline()
+    # (fetched once, matched against all tickers) — not per-ticker here.
     all_connectors: list[DocumentConnector] = [
         SECEdgarConnector(),
         GoogleRSSConnector(),
-        PRRSSConnector(),
     ]
 
     # NewsAPI: only if key is available
@@ -162,7 +163,7 @@ def _build_document_connectors(source_filter: Optional[list[str]] = None) -> lis
 
 def _build_non_document_updaters(source_filter: Optional[list[str]] = None) -> list[NonDocumentUpdater]:
     """Instantiate enabled non-document updaters, optionally filtered."""
-    from connectors.vix_connector import VIXUpdater, DXYUpdater
+    from connectors.vix_connector import VIXUpdater, DXYUpdater, OilUpdater, CreditSpreadUpdater
     from connectors.fred_connector import FREDMacroUpdater
 
     all_updaters: list[NonDocumentUpdater] = [
@@ -171,6 +172,8 @@ def _build_non_document_updaters(source_filter: Optional[list[str]] = None) -> l
         YFinanceTickerInfoUpdater(),
         VIXUpdater(),
         DXYUpdater(),
+        OilUpdater(),
+        CreditSpreadUpdater(),
     ]
     # FRED connector: only if API key available
     fred = FREDMacroUpdater()
@@ -195,6 +198,7 @@ def run_ticker_pipeline(
     use_llm: bool = True,
     documents_only: bool = False,
     non_documents_only: bool = False,
+    broadcast_payloads: Optional[list] = None,
 ) -> TickerRunSummary:
     """Run the full pipeline for one ticker.
 
@@ -240,10 +244,42 @@ def run_ticker_pipeline(
                 logger.error("Non-document updater %s failed for %s: %s", updater.source_key, ticker, e)
                 summary.errors.append(f"{updater.source_key}: {e}")
 
+    # --- Forward estimates: refresh consensus EPS before earnings season ---
+    if not dry_run and not documents_only:
+        try:
+            from connectors.alphavantage_connector import persist_forward_estimate
+            est = persist_forward_estimate(session, ticker)
+            if est:
+                logger.info("Forward estimate for %s: EPS $%.2f (reporting %s)",
+                            ticker, est.estimated_eps, est.earnings_date)
+        except Exception as e:
+            logger.debug("Forward estimate refresh skipped for %s: %s", ticker, e)
+
     # --- Lane 1: Document sources ---
     all_new_claim_ids: list[int] = []
 
     if not non_documents_only:
+        # Ingest broadcast payloads (PR RSS scanned at pipeline level)
+        if broadcast_payloads:
+            src_summary = SourceRunSummary(source="press_release_rss", ticker=ticker)
+            src_summary.docs_fetched = len(broadcast_payloads)
+            for payload in broadcast_payloads:
+                if is_duplicate_document(session, payload):
+                    src_summary.duplicates_skipped += 1
+                    continue
+                if dry_run:
+                    src_summary.docs_inserted += 1
+                    continue
+                try:
+                    result = ingest_document_payload(session, payload, ticker, use_llm=use_llm)
+                    src_summary.docs_inserted += 1
+                    src_summary.claims_extracted += len(result.claim_ids)
+                    all_new_claim_ids.extend(result.claim_ids)
+                except Exception as e:
+                    logger.error("Failed to ingest broadcast PR for %s: %s", ticker, e)
+                    src_summary.errors.append(str(e))
+            summary.source_summaries.append(src_summary)
+
         connectors = _build_document_connectors(source_filter)
         for connector in connectors:
             src_summary = SourceRunSummary(source=connector.source_key, ticker=ticker)
@@ -318,8 +354,52 @@ def run_pipeline(
     documents_only: bool = False,
     non_documents_only: bool = False,
 ) -> list[TickerRunSummary]:
-    """Run the pipeline for multiple tickers sequentially."""
+    """Run the pipeline for multiple tickers sequentially.
+
+    Broadcast sources (PR RSS) are scanned once upfront against the full
+    ticker universe, then results are injected into per-ticker runs.
+    """
+    # --- Broadcast sources: scan once, match all tickers ---
+    broadcast_docs: dict[str, list] = {}
+    if not non_documents_only and (not source_filter or "press_release_rss" in source_filter):
+        try:
+            from models import Company
+            pr_scanner = PRRSSConnector()
+            ticker_set = set(tickers)
+            # Build company name → ticker map for matching "NVIDIA" → NVDA
+            name_map: dict[str, str] = {}
+            companies = session.scalars(
+                select(Company).where(Company.ticker.in_(tickers))
+            ).all()
+            for co in companies:
+                if co.name and len(co.name) >= 4:  # skip very short names
+                    # Use the key part of the name (first word, or full if short)
+                    name_upper = co.name.upper()
+                    name_map[name_upper] = co.ticker
+                    # Also add first word for multi-word names (e.g., "NVIDIA CORPORATION" → "NVIDIA")
+                    first_word = name_upper.split()[0] if " " in name_upper else ""
+                    if first_word and len(first_word) >= 5:
+                        name_map[first_word] = co.ticker
+            broadcast_docs = pr_scanner.scan_all(ticker_set, days=days, name_to_ticker=name_map)
+            total = sum(len(v) for v in broadcast_docs.values())
+            if total:
+                logger.info("Broadcast PR scan: %d press releases for %d tickers", total, len(broadcast_docs))
+        except Exception as e:
+            logger.warning("Broadcast PR scan failed (continuing): %s", e)
+
+    # --- Macro shock scan: detect shocks and compute overlay ---
+    macro_overlay = None
+    if not dry_run:
+        try:
+            from macro_shock import run_macro_shock_scan
+            macro_overlay = run_macro_shock_scan(session)
+            if macro_overlay.active:
+                logger.warning("Macro shock scan: %s", macro_overlay.summary())
+        except Exception as e:
+            logger.warning("Macro shock scan failed (continuing): %s", e)
+
     summaries = []
+    tickers_with_new_claims = []
     for ticker in tickers:
         logger.info("=== Pipeline run: %s (days=%d, dry_run=%s) ===", ticker, days, dry_run)
         try:
@@ -328,13 +408,38 @@ def run_pipeline(
                 days=days, dry_run=dry_run, source_filter=source_filter,
                 use_llm=use_llm, documents_only=documents_only,
                 non_documents_only=non_documents_only,
+                broadcast_payloads=broadcast_docs.get(ticker),
             )
             summaries.append(s)
+            if s.total_claims_extracted > 0:
+                tickers_with_new_claims.append(ticker)
         except Exception as e:
             logger.error("Pipeline failed for %s: %s", ticker, e)
             err_summary = TickerRunSummary(ticker=ticker)
             err_summary.errors.append(str(e))
             err_summary.finalize()
             summaries.append(err_summary)
+
+    # --- Cascade: propagate derived signals to target tickers ---
+    # After all per-ticker runs complete, derived signals have been written.
+    # Now consume them: update conviction scores on tickers that received
+    # cross-ticker signals (e.g., NVDA earnings → AMD/TSMC/META get adjusted).
+    if not dry_run and tickers_with_new_claims and not non_documents_only:
+        try:
+            from knowledge_state import run_cascade_updates
+            total_cascaded = 0
+            for source_ticker in tickers_with_new_claims:
+                cascade_results = run_cascade_updates(session, source_ticker, use_llm=use_llm)
+                for r in cascade_results:
+                    if r.get("status") == "updated":
+                        total_cascaded += 1
+            if total_cascaded:
+                logger.info(
+                    "Cross-ticker cascade: %d thesis scores updated from %d source tickers",
+                    total_cascaded, len(tickers_with_new_claims),
+                )
+                session.flush()
+        except Exception as e:
+            logger.warning("Cross-ticker cascade failed (continuing): %s", e)
 
     return summaries

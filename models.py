@@ -35,6 +35,7 @@ class SourceType(str, Enum):
     PRESS_RELEASE = "press_release"
     POLICY_DOCUMENT = "policy_document"
     BROKER_REPORT = "broker_report"
+    THIRTEEN_F = "13f"
 
 
 class SourceTier(str, Enum):
@@ -121,6 +122,14 @@ class ValuationProvenance(str, Enum):
     MISSING = "missing"                                     # no defensible source
 
 
+class RelationshipType(str, Enum):
+    """Types of direct company-to-company relationships."""
+    SUPPLIER = "supplier"         # source supplies to target
+    CUSTOMER = "customer"         # source is a customer of target
+    COMPETITOR = "competitor"     # bidirectional competitive relationship
+    ECOSYSTEM = "ecosystem"       # same ecosystem / platform dependency
+
+
 # ---------- Core Tables ----------
 
 class Company(Base):
@@ -134,6 +143,7 @@ class Company(Base):
     country: Mapped[Optional[str]] = mapped_column(String(50))
     market_cap_bucket: Mapped[Optional[str]] = mapped_column(String(50))
     primary_exchange: Mapped[Optional[str]] = mapped_column(String(50))
+    beta: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     status_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     documents = relationship("Document", back_populates="primary_company")
@@ -428,6 +438,72 @@ class CompanyPeerGroupLink(Base):
     company_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
     peer_group_id: Mapped[int] = mapped_column(ForeignKey("peer_groups.id"), nullable=False, index=True)
     role: Mapped[Optional[str]] = mapped_column(String(50))  # current / target / alt
+
+
+class CompanyTagLink(Base):
+    """Links a company to a thematic tag with a relevance weight.
+
+    Weight indicates how central the tag is to this company's business.
+    E.g., NVDA + "AI" = 0.9, META + "AI" = 0.7, WMT + "AI" = 0.2.
+    """
+    __tablename__ = "company_tag_links"
+    __table_args__ = (UniqueConstraint("company_ticker", "theme_id", name="uq_company_tag"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
+    theme_id: Mapped[int] = mapped_column(ForeignKey("themes.id"), nullable=False, index=True)
+    weight: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)  # 0-1 relevance
+    source: Mapped[Optional[str]] = mapped_column(String(50))  # manual / llm_extracted / fmp
+
+
+class CompanyRelationship(Base):
+    """Direct company-to-company relationship (supplier, customer, competitor, ecosystem)."""
+    __tablename__ = "company_relationships"
+    __table_args__ = (
+        UniqueConstraint("source_ticker", "target_ticker", "relationship_type", name="uq_company_rel"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
+    target_ticker: Mapped[str] = mapped_column(ForeignKey("companies.ticker"), nullable=False, index=True)
+    relationship_type: Mapped[RelationshipType] = mapped_column(SAEnum(RelationshipType), nullable=False)
+    strength: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)  # 0-1 dependency weight
+    description: Mapped[Optional[str]] = mapped_column(Text)  # "TSMC manufactures NVDA GPUs on 4nm"
+    bidirectional: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source: Mapped[Optional[str]] = mapped_column(String(50))  # manual / 10k_extracted / fmp_peers
+
+
+class DerivedSignal(Base):
+    """Cross-ticker propagated impact from a source claim.
+
+    When a claim about ticker A is scored, signals propagate to related tickers
+    via tag overlap or direct relationships. These signals become part of
+    "what we already know" for the target ticker's next thesis update.
+    """
+    __tablename__ = "derived_signals"
+    __table_args__ = (
+        UniqueConstraint("source_claim_id", "target_ticker", name="uq_derived_signal"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_claim_id: Mapped[int] = mapped_column(ForeignKey("claims.id"), nullable=False, index=True)
+    source_ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    target_ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+
+    # How the signal was propagated
+    propagation_type: Mapped[str] = mapped_column(String(20), nullable=False)  # direct / tag
+    relationship_type: Mapped[Optional[str]] = mapped_column(String(30))  # supplier/customer/competitor/ecosystem or tag name
+    attenuation_factor: Mapped[float] = mapped_column(Float, nullable=False)  # 0-1, how much signal survives
+
+    # Derived impact
+    derived_direction: Mapped[Direction] = mapped_column(SAEnum(Direction), nullable=False)
+    derived_strength: Mapped[float] = mapped_column(Float, nullable=False)  # original strength * attenuation
+    rationale: Mapped[Optional[str]] = mapped_column(Text)  # why this propagation matters
+
+    # Lifecycle
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    consumed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 # ---------- Step 13.1: Evidence Assessment (persisted evidence state) ----------

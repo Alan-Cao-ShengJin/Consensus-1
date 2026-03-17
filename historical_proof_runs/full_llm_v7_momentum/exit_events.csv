@@ -1,2 +1,0 @@
-review_date,ticker,thesis_conviction,action_score,prior_action,prior_conviction,preceded_by_probation,probation_date,forward_5d_pct,forward_20d_pct,forward_60d_pct,premature_exit_20d,premature_exit_60d
-2026-02-05,AMD,97.4,86.0,hold,95.5,False,,10.95,9.54,,True,False
