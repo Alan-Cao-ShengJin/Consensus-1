@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--days", type=int, default=7, help="Backfill depth in days (default: 7)")
     parser.add_argument("--dry-run", action="store_true", help="Fetch and dedupe without persisting")
     parser.add_argument("--sources", nargs="+", help="Restrict to specific source keys")
-    parser.add_argument("--use-llm", action="store_true", help="Use LLM for claim extraction")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
     parser.add_argument("--documents-only", action="store_true", help="Only run document sources")
     parser.add_argument("--non-documents-only", action="store_true", help="Only run non-document sources")
     parser.add_argument("--db", type=str, default=None, help="Database URL override")
@@ -57,7 +57,7 @@ def main():
             days=args.days,
             dry_run=args.dry_run,
             source_filter=args.sources,
-            use_llm=args.use_llm,
+            use_llm=not args.no_llm,
             documents_only=args.documents_only,
             non_documents_only=args.non_documents_only,
         )

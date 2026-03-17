@@ -114,15 +114,19 @@ class TestConvictionScoring:
         rep_delta = compute_claim_delta("supports", 0.8, "repetitive", 0.85, 1.0)
         assert abs(rep_delta) < abs(new_delta)
 
-    def test_apply_conviction_dampened_at_extremes(self):
+    def test_apply_conviction_dampened_at_upper_extreme(self):
         # At 95, moving up is dampened (headroom=5, dampening=5/50=0.1)
         result_high = apply_conviction_update(95.0, [10.0, 10.0])
         assert result_high > 95.0  # still moves up
         assert result_high < 100.0  # but dampened, doesn't reach 100
-        # At 5, moving down is dampened
+
+    def test_no_dampening_at_lower_extreme(self):
+        # At 5, moving down is NOT dampened — theses must be able to reach 0
         result_low = apply_conviction_update(5.0, [-10.0, -10.0])
-        assert result_low < 5.0  # still moves down
-        assert result_low > 0.0  # but dampened, doesn't reach 0
+        assert result_low == 0.0  # full effect, clamped at 0
+        # Recovery from low scores is also undampened
+        result_up = apply_conviction_update(5.0, [10.0, 10.0])
+        assert result_up == 20.0  # full effect: 5 + 15 (capped at 15)
 
     def test_apply_conviction_per_doc_cap(self):
         # 20 deltas of +5 each = 100 raw, but capped at MAX_PER_DOCUMENT_DELTA (15)

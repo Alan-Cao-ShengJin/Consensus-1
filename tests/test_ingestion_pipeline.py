@@ -119,6 +119,7 @@ class TestIngestionPipelineE2E:
             os.path.join(FIXTURES, "nvda_earnings.txt"),
             SourceType.EARNINGS_TRANSCRIPT,
             ticker="NVDA",
+            extractor_type="stub",
         )
         assert result.document_id is not None
         assert result.num_claims >= 1
@@ -151,6 +152,7 @@ class TestIngestionPipelineE2E:
             os.path.join(FIXTURES, "nvda_news.html"),
             SourceType.NEWS,
             ticker="NVDA",
+            extractor_type="stub",
         )
         assert result.document_id is not None
         assert result.num_claims >= 1
@@ -166,6 +168,7 @@ class TestIngestionPipelineE2E:
             os.path.join(FIXTURES, "nvda_earnings.txt"),
             SourceType.EARNINGS_TRANSCRIPT,
             ticker="NVDA",
+            extractor_type="stub",
         )
         if result.themes_linked:
             theme_links = session.scalars(select(ClaimThemeLink)).all()
@@ -192,6 +195,7 @@ class TestIngestionPipelineE2E:
             SourceType.EARNINGS_TRANSCRIPT,
             ticker="NVDA",
             thesis_id=thesis.id,
+            extractor_type="stub",
         )
 
         thesis_links = session.scalars(select(ThesisClaimLink)).all()
@@ -205,6 +209,7 @@ class TestIngestionPipelineE2E:
             os.path.join(FIXTURES, "nvda_earnings.txt"),
             SourceType.EARNINGS_TRANSCRIPT,
             ticker="NVDA",
+            extractor_type="stub",
         )
         thesis_links = session.scalars(select(ThesisClaimLink)).all()
         assert len(thesis_links) == 0

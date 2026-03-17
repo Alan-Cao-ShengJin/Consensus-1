@@ -112,10 +112,10 @@ class TestHoldConviction:
         assert d.action_score == 0.0  # action_score is 0 for holds
         assert d.thesis_conviction == 67.5  # thesis conviction is preserved
 
-    def test_probation_has_thesis_conviction(self):
+    def test_trim_has_thesis_conviction(self):
         h = _make_holding(conviction=30.0)
         d = evaluate_holding(h, date(2025, 9, 1))
-        assert d.action == ActionType.PROBATION
+        assert d.action == ActionType.TRIM  # low conviction triggers trim
         assert d.thesis_conviction == 30.0
 
     def test_exit_has_thesis_conviction(self):
@@ -239,25 +239,21 @@ class TestPolicyVariants:
         assert d.action == ActionType.EXIT
 
     def test_patient_no_exit_at_24(self):
-        """Patient policy has exit ceiling at 20, so conviction 24 should not exit."""
+        """Patient policy has exit ceiling at 20, so conviction 24 should trim, not exit."""
         h = _make_holding(conviction=24.0)
         d = evaluate_holding(h, date(2025, 9, 1), exit_policy=PATIENT_POLICY)
-        assert d.action == ActionType.PROBATION  # 24 <= 35 (probation), but > 20 (exit)
+        assert d.action == ActionType.TRIM  # 24 <= 35 (trim), but > 20 (exit)
 
     def test_patient_exit_at_19(self):
         h = _make_holding(conviction=19.0)
         d = evaluate_holding(h, date(2025, 9, 1), exit_policy=PATIENT_POLICY)
         assert d.action == ActionType.EXIT
 
-    def test_patient_probation_3_reviews(self):
-        """Patient policy allows 3 reviews before forced exit."""
-        h = _make_holding(conviction=30.0, probation_flag=True, probation_reviews=2)
+    def test_patient_low_conviction_trims(self):
+        """Patient policy: conviction 30 triggers trim (probation replaced)."""
+        h = _make_holding(conviction=30.0)
         d = evaluate_holding(h, date(2025, 9, 1), exit_policy=PATIENT_POLICY)
-        assert d.action == ActionType.PROBATION  # still on probation (max=3)
-
-        h = _make_holding(conviction=30.0, probation_flag=True, probation_reviews=3)
-        d = evaluate_holding(h, date(2025, 9, 1), exit_policy=PATIENT_POLICY)
-        assert d.action == ActionType.EXIT  # forced exit after 3 reviews
+        assert d.action == ActionType.TRIM  # low conviction → trim
 
     def test_graduated_sharp_drop_exit(self):
         """Graduated policy: sharp conviction drop triggers immediate exit."""
@@ -272,19 +268,20 @@ class TestPolicyVariants:
         d = evaluate_holding(h, date(2025, 9, 1), exit_policy=GRADUATED_POLICY)
         assert d.action == ActionType.HOLD  # drop of 10 < threshold of 15
 
-    def test_baseline_probation_2_reviews(self):
-        h = _make_holding(conviction=30.0, probation_flag=True, probation_reviews=2)
+    def test_baseline_low_conviction_trims(self):
+        """Baseline: conviction 30 triggers trim."""
+        h = _make_holding(conviction=30.0)
         d = evaluate_holding(h, date(2025, 9, 1), exit_policy=BASELINE_POLICY)
-        assert d.action == ActionType.EXIT
+        assert d.action == ActionType.TRIM
 
     def test_policy_affects_outputs(self):
         """Different policies produce different actions for same holding."""
-        # Conviction 24: baseline exits, patient stays on probation
+        # Conviction 24: baseline exits (ceiling=25), patient trims (ceiling=20)
         h = _make_holding(conviction=24.0)
         d_baseline = evaluate_holding(h, date(2025, 9, 1), exit_policy=BASELINE_POLICY)
         d_patient = evaluate_holding(h, date(2025, 9, 1), exit_policy=PATIENT_POLICY)
         assert d_baseline.action == ActionType.EXIT
-        assert d_patient.action == ActionType.PROBATION
+        assert d_patient.action == ActionType.TRIM  # 24 > patient exit ceiling (20)
 
     def test_all_policies_list(self):
         assert len(ALL_POLICIES) == 3

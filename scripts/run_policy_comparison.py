@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--eval-start", type=str, default=None)
     parser.add_argument("--cadence", type=int, default=7)
     parser.add_argument("--tickers", type=str, default=None)
-    parser.add_argument("--use-llm", action="store_true")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
     parser.add_argument("--policies", type=str, default=None,
                         help="Comma-separated policy names (default: all)")
     parser.add_argument("--output-dir", type=str, default="historical_proof_runs")
@@ -77,7 +77,7 @@ def main():
         eval_start=eval_start,
         eval_end=backfill_end,
         cadence_days=args.cadence,
-        use_llm=args.use_llm,
+        use_llm=not args.no_llm,
         output_dir=args.output_dir,
     )
 
@@ -137,7 +137,7 @@ def main():
             eval_start=eval_start,
             eval_end=backfill_end,
             cadence_days=args.cadence,
-            use_llm=args.use_llm,
+            use_llm=not args.no_llm,
             output_dir=output_dir,
         )
         generate_proof_pack(policy_config, regen_result, eval_result)
@@ -147,7 +147,7 @@ def main():
     md_lines.append(f"Window: {backfill_start} to {backfill_end}")
     md_lines.append(f"Eval: {eval_start} to {backfill_end}")
     md_lines.append(f"Policies: {', '.join(p.label() for p in policies)}")
-    md_lines.append(f"Extractor: {'real_llm' if args.use_llm else 'stub'}")
+    md_lines.append(f"Extractor: {'real_llm' if not args.no_llm else 'stub'}")
     md_lines.append("")
     md_lines.extend(format_policy_comparison_section(comparison))
 

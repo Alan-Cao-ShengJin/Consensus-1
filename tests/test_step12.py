@@ -741,9 +741,16 @@ class TestEnvironmentConfig(unittest.TestCase):
         config = SystemConfig(environment=Environment.LIVE_DISABLED)
         self.assertEqual(config.environment, "live_disabled")
 
-    def test_live_still_raises(self):
-        with self.assertRaises(ValueError):
-            SystemConfig(environment=Environment.LIVE)
+    def test_live_environment_accepted(self):
+        """LIVE environment is now supported (no longer raises)."""
+        config = SystemConfig(environment=Environment.LIVE)
+        self.assertEqual(config.environment, "live")
+
+    def test_live_default_config(self):
+        config = get_default_config(Environment.LIVE)
+        self.assertEqual(config.environment, "live")
+        self.assertTrue(config.require_approval)
+        self.assertEqual(config.broker_mode, "alpaca")
 
     def test_live_readonly_default_config(self):
         config = get_default_config(Environment.LIVE_READONLY)

@@ -4,8 +4,8 @@ Usage:
     # Default 3 windows (automatic)
     python scripts/run_multi_window.py
 
-    # With real LLM
-    python scripts/run_multi_window.py --use-llm
+    # Without LLM (stub mode)
+    python scripts/run_multi_window.py --no-llm
 
     # Custom windows
     python scripts/run_multi_window.py --windows "2025-01-01:2025-07-01,2025-04-01:2025-10-01,2025-06-01:2026-01-01"
@@ -67,7 +67,7 @@ def main():
                         help="Window spec: 'start:end,start:end,...'")
     parser.add_argument("--cadence", type=int, default=7)
     parser.add_argument("--tickers", type=str, default=None)
-    parser.add_argument("--use-llm", action="store_true")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
     parser.add_argument("--output-dir", type=str, default="historical_proof_runs")
     parser.add_argument("--run-id", type=str, default="multi_window")
     parser.add_argument("--policy", type=str, default="baseline")
@@ -105,7 +105,7 @@ def main():
             eval_start=eval_start,
             eval_end=bf_end,
             cadence_days=args.cadence,
-            use_llm=args.use_llm,
+            use_llm=not args.no_llm,
             output_dir=args.output_dir,
         )
 
@@ -165,7 +165,7 @@ def main():
     # Write markdown
     md_lines = ["# Multi-Window Empirical Summary", ""]
     md_lines.append(f"Policy: {exit_policy.label()}")
-    md_lines.append(f"Extractor: {'real_llm' if args.use_llm else 'stub'}")
+    md_lines.append(f"Extractor: {'real_llm' if not args.no_llm else 'stub'}")
     md_lines.append("")
     md_lines.extend(format_multi_window_section(mw))
 

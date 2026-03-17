@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--file", required=True, help="Path to document file")
     parser.add_argument("--source-type", required=True, choices=list(SOURCE_TYPE_MAP.keys()))
     parser.add_argument("--ticker", default="NVDA", help="Primary company ticker")
-    parser.add_argument("--extractor", choices=["stub", "llm"], default="stub")
+    parser.add_argument("--extractor", choices=["stub", "llm"], default="llm")
     parser.add_argument("--thesis-title", default="AI Capex Thesis")
     parser.add_argument("--thesis-id", type=int, default=None, help="Existing thesis ID")
     parser.add_argument("--use-llm-update", action="store_true",

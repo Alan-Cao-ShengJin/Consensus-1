@@ -225,8 +225,8 @@ class TestStopLossGuard:
 
 class TestTrailingStopGuard:
     def test_trailing_stop_exit(self):
-        """25% below 90-day peak triggers EXIT."""
-        momentum = MomentumSignals(drawdown_from_peak_pct=-26.0, peak_price=135.0)
+        """31% below 90-day peak triggers EXIT (threshold is -30%)."""
+        momentum = MomentumSignals(drawdown_from_peak_pct=-31.0, peak_price=145.0)
         holding = _make_holding(momentum=momentum, current_price=100.0, avg_cost=90.0)
         decision = evaluate_holding(
             holding, date(2024, 6, 1), momentum_config=ENABLED_MOMENTUM_CONFIG,
@@ -235,7 +235,7 @@ class TestTrailingStopGuard:
         assert ReasonCode.TRAILING_STOP_TRIGGERED in decision.reason_codes
 
     def test_no_trailing_stop_above_threshold(self):
-        """15% below peak does NOT trigger trailing stop (threshold is -25%)."""
+        """15% below peak does NOT trigger trailing stop (threshold is -30%)."""
         momentum = MomentumSignals(drawdown_from_peak_pct=-15.0, peak_price=118.0)
         holding = _make_holding(momentum=momentum, current_price=100.0, avg_cost=90.0)
         decision = evaluate_holding(
@@ -362,23 +362,28 @@ class TestMarketRegimeGuard:
         assert decision.action == ActionType.INITIATE
 
 
-class TestBackwardCompatibility:
-    def test_disabled_config_no_change(self):
-        """With disabled config, decisions are identical to no-momentum baseline."""
+class TestDisabledConfig:
+    def test_disabled_config_bypasses_all_guards(self):
+        """With disabled config, momentum guards are bypassed entirely."""
+        momentum = MomentumSignals(
+            drawdown_from_cost_pct=-40.0,  # would trigger stop-loss if enabled
+            price_above_sma=False,          # would block adds if enabled
+        )
         holding = _make_holding(
             conviction=70.0,
             avg_cost=95.0,
             current_price=100.0,
             thesis_state=ThesisState.STRENGTHENING,
             zone=ZoneState.BUY,
+            momentum=momentum,
         )
-        d1 = evaluate_holding(holding, date(2024, 6, 1))
-        d2 = evaluate_holding(
+        d = evaluate_holding(
             holding, date(2024, 6, 1),
             momentum_config=DISABLED_MOMENTUM_CONFIG,
         )
-        assert d1.action == d2.action
-        assert d1.action_score == d2.action_score
+        # Disabled config means no stop-loss, no SMA blocking
+        assert d.action == ActionType.ADD
+        assert ReasonCode.STOP_LOSS_TRIGGERED not in d.reason_codes
 
 
 # ---------------------------------------------------------------------------

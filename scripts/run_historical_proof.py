@@ -67,7 +67,7 @@ def main():
     parser.add_argument("--output-dir", type=str, default="historical_proof_runs", help="Output directory")
     parser.add_argument("--benchmark", type=str, default="SPY", help="Benchmark ticker")
     parser.add_argument("--strict", action="store_true", help="Use strict replay mode")
-    parser.add_argument("--use-llm", action="store_true", help="Use LLM for claim extraction")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
 
     # Mode flags
     parser.add_argument("--usefulness-run", action="store_true",
@@ -154,7 +154,7 @@ def _build_config(args, tickers, backfill_start, backfill_end, eval_start, mode=
         backfill_news_rss=not args.no_news,
         backfill_pr_rss=not args.no_pr,
         backfill_finnhub=not getattr(args, 'no_finnhub', False),
-        use_llm=args.use_llm,
+        use_llm=not args.no_llm,
         strict_replay=args.strict,
         benchmark_ticker=args.benchmark,
         output_dir=args.output_dir,
@@ -249,8 +249,8 @@ def _run_usefulness_ablation(args, tickers, backfill_start, backfill_end, eval_s
     )
     config_on.output_dir = args.output_dir
     config_off.output_dir = args.output_dir
-    config_on.use_llm = args.use_llm
-    config_off.use_llm = args.use_llm
+    config_on.use_llm = not args.no_llm
+    config_off.use_llm = not args.no_llm
     # Override mode to usefulness run
     config_on.mode = HistoricalRunMode.USEFULNESS_RUN
     config_off.mode = HistoricalRunMode.USEFULNESS_RUN
@@ -280,7 +280,7 @@ def _run_usefulness_ablation(args, tickers, backfill_start, backfill_end, eval_s
         run_id="usefulness_ablation",
         output_dir=args.output_dir,
         mode=HistoricalRunMode.USEFULNESS_RUN,
-        use_llm=args.use_llm,
+        use_llm=not args.no_llm,
     )
     output_dir = generate_proof_pack(
         ablation_config, None,
@@ -406,8 +406,8 @@ def _run_memory_ablation(args, tickers, backfill_start, backfill_end, eval_start
     )
     config_on.output_dir = args.output_dir
     config_off.output_dir = args.output_dir
-    config_on.use_llm = args.use_llm
-    config_off.use_llm = args.use_llm
+    config_on.use_llm = not args.no_llm
+    config_off.use_llm = not args.no_llm
 
     # Backfill once (shared data)
     print("Step 1/3: Backfilling historical data...")

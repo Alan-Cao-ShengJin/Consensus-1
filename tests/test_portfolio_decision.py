@@ -33,8 +33,8 @@ from portfolio_decision_engine import (
     TickerDecision, PortfolioReviewResult, ReasonCode,
     evaluate_holding, evaluate_candidate, run_decision_engine,
     INITIATION_CONVICTION_FLOOR, RELATIVE_HURDLE_MARGIN,
-    PROBATION_MAX_REVIEWS, COOLDOWN_DAYS,
-    EXIT_CONVICTION_CEILING, PROBATION_CONVICTION_CEILING,
+    COOLDOWN_DAYS, TRIM_CONVICTION_THRESHOLD,
+    EXIT_CONVICTION_CEILING, TRIM_CONVICTION_CEILING,
     PRIORITY_FORCED_EXIT, PRIORITY_STRONG_EXIT, PRIORITY_DEFENSIVE,
     PRIORITY_CAPITAL_REDEPLOY, PRIORITY_GROWTH, PRIORITY_NEUTRAL,
 )
@@ -99,6 +99,7 @@ def _holding(
     valuation_gap=None, base_case=None,
     novel_7d=1, confirming_7d=1,
     has_checkpoint=True, price_change_5d=None,
+    sector=None,
 ) -> HoldingSnapshot:
     return HoldingSnapshot(
         ticker=ticker,
@@ -119,6 +120,7 @@ def _holding(
         novel_claim_count_7d=novel_7d,
         confirming_claim_count_7d=confirming_7d,
         price_change_pct_5d=price_change_5d,
+        sector=sector,
     )
 
 
@@ -129,6 +131,7 @@ def _candidate(
     has_checkpoint=True, novel_7d=2, confirming_7d=1,
     cooldown=False, cooldown_until=None,
     valuation_gap=15.0, base_case=1.3,
+    sector=None,
 ) -> CandidateSnapshot:
     return CandidateSnapshot(
         ticker=ticker,
@@ -145,6 +148,7 @@ def _candidate(
         confirming_claim_count_7d=confirming_7d,
         cooldown_flag=cooldown,
         cooldown_until=cooldown_until,
+        sector=sector,
     )
 
 
@@ -228,15 +232,17 @@ class TestEntryGates:
         assert d.action == ActionType.NO_ACTION
         assert ReasonCode.INSUFFICIENT_NOVEL_EVIDENCE in d.reason_codes
 
-    def test_bad_valuation_blocks_initiation(self):
+    def test_bad_valuation_no_longer_blocks_initiation(self):
+        """Valuation is advisory, not blocking — conviction + evidence are the gates."""
         c = _candidate(zone=ZoneState.HOLD, valuation_gap=-3.0)
         d = evaluate_candidate(c, None, TODAY)
-        assert d.action == ActionType.NO_ACTION
+        assert d.action == ActionType.INITIATE  # valuation is advisory
 
-    def test_no_checkpoint_blocks_initiation(self):
+    def test_no_checkpoint_no_longer_blocks_initiation(self):
+        """Checkpoint is advisory, not blocking."""
         c = _candidate(has_checkpoint=False)
         d = evaluate_candidate(c, None, TODAY)
-        assert d.action == ActionType.NO_ACTION
+        assert d.action == ActionType.INITIATE  # checkpoint is advisory
         assert ReasonCode.NO_CHECKPOINT_AHEAD in d.reason_codes
 
 
@@ -344,50 +350,28 @@ class TestThesisBroken:
 
 
 # ---------------------------------------------------------------------------
-# 7. Probation blocks adds
+# 7. Low conviction triggers trim (replaces probation system)
 # ---------------------------------------------------------------------------
 
-class TestProbation:
+class TestLowConvictionTrim:
 
-    def test_probation_blocks_adds(self):
+    def test_low_conviction_trims(self):
         h = _holding(
-            conviction=33.0, probation=True, probation_reviews=0,
-            valuation_gap=15.0,  # would be BUY
+            conviction=33.0, thesis_state=ThesisState.WEAKENING,
         )
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
-        assert ReasonCode.PROBATION_ACTIVE in d.reason_codes
-
-    def test_low_conviction_enters_probation(self):
-        h = _holding(conviction=33.0, thesis_state=ThesisState.WEAKENING)
-        d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
+        assert d.action == ActionType.TRIM
         assert ReasonCode.CONVICTION_LOW in d.reason_codes
 
-
-# ---------------------------------------------------------------------------
-# 8. Probation expiry triggers exit after two reviews
-# ---------------------------------------------------------------------------
-
-class TestProbationExpiry:
-
-    def test_probation_expired_forces_exit(self):
-        h = _holding(
-            conviction=30.0, probation=True,
-            probation_reviews=PROBATION_MAX_REVIEWS,
-        )
+    def test_conviction_at_threshold_trims(self):
+        h = _holding(conviction=35.0, thesis_state=ThesisState.WEAKENING)
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.EXIT
-        assert ReasonCode.PROBATION_EXPIRED in d.reason_codes
+        assert d.action == ActionType.TRIM
 
-    def test_probation_not_yet_expired(self):
-        h = _holding(
-            conviction=33.0, probation=True,
-            probation_reviews=1,
-        )
+    def test_conviction_above_threshold_no_trim(self):
+        h = _holding(conviction=36.0, thesis_state=ThesisState.STABLE)
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
-        assert d.action != ActionType.EXIT
+        assert d.action != ActionType.TRIM or ReasonCode.CONVICTION_LOW not in d.reason_codes
 
 
 # ---------------------------------------------------------------------------
@@ -491,9 +475,9 @@ class TestFullReview:
         broken_d = next(d for d in result.decisions if d.ticker == "BROKEN")
         assert broken_d.action == ActionType.EXIT
 
-        # WEAK should be probation
+        # WEAK should be trim (conviction 30 ≤ 35 threshold)
         weak_d = next(d for d in result.decisions if d.ticker == "WEAK")
-        assert weak_d.action == ActionType.PROBATION
+        assert weak_d.action == ActionType.TRIM
 
     def test_review_decisions_sorted_by_score(self):
         inputs = DecisionInput(
@@ -622,7 +606,8 @@ class TestSideEffects:
         assert len(exit_decisions) == 1
         assert exit_decisions[0].ticker == "NVDA"
 
-    def test_probation_entry_sets_flags(self, session):
+    def test_low_conviction_produces_trim_recommendation(self, session):
+        """Low conviction produces trim recommendation, position stays ACTIVE."""
         _make_company(session, "NVDA")
         thesis = _make_thesis(session, "NVDA", state=ThesisState.WEAKENING, conviction=33.0)
         pos = PortfolioPosition(
@@ -634,12 +619,15 @@ class TestSideEffects:
         session.add(pos)
         session.flush()
 
-        run_portfolio_review(session, as_of=TODAY, persist=True)
+        result = run_portfolio_review(session, as_of=TODAY, persist=True)
 
         refreshed = session.get(PortfolioPosition, pos.id)
-        assert refreshed.probation_flag is True
-        assert refreshed.probation_start_date == TODAY
-        assert refreshed.probation_reviews_count == 0
+        # Position stays active — trim is recommendation only
+        assert refreshed.status == PositionStatus.ACTIVE
+        assert refreshed.current_weight == 5.0
+        # Decision should be trim
+        trim_decisions = [d for d in result.decisions if d.action == ActionType.TRIM]
+        assert len(trim_decisions) >= 1
 
 
 # ---------------------------------------------------------------------------
@@ -693,9 +681,9 @@ class TestTextReport:
 # ---------------------------------------------------------------------------
 
 class TestConvictionPrecedence:
-    """Prove that critical conviction exits are not swallowed by probation."""
+    """Prove that conviction thresholds produce correct tiered responses."""
 
-    def test_conviction_20_returns_exit_not_probation(self):
+    def test_conviction_20_returns_exit(self):
         """Conviction 20 is below EXIT_CONVICTION_CEILING (25). Must EXIT."""
         h = _holding(conviction=20.0, thesis_state=ThesisState.WEAKENING)
         d = evaluate_holding(h, TODAY)
@@ -709,25 +697,26 @@ class TestConvictionPrecedence:
         d = evaluate_holding(h, TODAY)
         assert d.action == ActionType.EXIT
 
-    def test_conviction_30_returns_probation_not_exit(self):
-        """Conviction 30 is in probation band (25 < 30 ≤ 35). Must PROBATION."""
+    def test_conviction_30_returns_trim(self):
+        """Conviction 30 is in trim band (25 < 30 ≤ 35). Must TRIM."""
         h = _holding(conviction=30.0, thesis_state=ThesisState.WEAKENING)
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
+        assert d.action == ActionType.TRIM
         assert d.recommendation_priority == PRIORITY_DEFENSIVE
         assert ReasonCode.CONVICTION_LOW in d.reason_codes
 
-    def test_conviction_35_returns_probation(self):
-        """Conviction exactly at PROBATION_CONVICTION_CEILING. Must PROBATION."""
+    def test_conviction_35_returns_trim(self):
+        """Conviction exactly at TRIM_CONVICTION_THRESHOLD. Must TRIM."""
         h = _holding(conviction=35.0, thesis_state=ThesisState.WEAKENING)
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
+        assert d.action == ActionType.TRIM
 
-    def test_conviction_36_does_not_enter_probation(self):
-        """Conviction 36 is above probation ceiling. Should not enter probation."""
+    def test_conviction_36_does_not_trim_on_conviction(self):
+        """Conviction 36 is above trim threshold. Should not trigger conviction-based trim."""
         h = _holding(conviction=36.0, thesis_state=ThesisState.STABLE)
         d = evaluate_holding(h, TODAY)
-        assert d.action != ActionType.PROBATION
+        # Should not be trimmed due to conviction alone
+        assert d.action != ActionType.TRIM or ReasonCode.CONVICTION_LOW not in d.reason_codes
 
 
 # ---------------------------------------------------------------------------
@@ -769,21 +758,21 @@ class TestCooldownBlocksValid:
 
 
 # ---------------------------------------------------------------------------
-# 19. Step 7.1 Hardening: probation blocks otherwise valid add
+# 19. Low conviction blocks add (replaces probation test)
 # ---------------------------------------------------------------------------
 
-class TestProbationBlocksAdd:
+class TestLowConvictionBlocksAdd:
 
-    def test_probation_blocks_add_even_with_buy_zone(self):
-        """Holding on probation in BUY zone with high conviction cannot add."""
+    def test_low_conviction_trims_instead_of_add(self):
+        """Low conviction triggers trim, not add, even in BUY zone."""
         h = _holding(
-            conviction=60.0, probation=True, probation_reviews=0,
+            conviction=33.0,
             valuation_gap=20.0,  # BUY zone
-            thesis_state=ThesisState.STRENGTHENING,
+            thesis_state=ThesisState.WEAKENING,
             avg_cost=90.0, current_price=110.0,
         )
         d = evaluate_holding(h, TODAY)
-        assert d.action == ActionType.PROBATION
+        assert d.action == ActionType.TRIM
         assert d.action != ActionType.ADD
 
 
@@ -968,3 +957,109 @@ class TestRecommendationBoundary:
         ).first()
         assert cand.cooldown_flag is False
         assert cand.cooldown_until is None
+
+
+# ---------------------------------------------------------------------------
+# Sector concentration cap tests
+# ---------------------------------------------------------------------------
+
+class TestSectorConcentrationCap:
+
+    def test_sector_cap_blocks_initiation(self):
+        """Candidate blocked when its sector is already at cap."""
+        holdings = [
+            _holding(ticker="AAPL", conviction=70.0, weight=12.0, sector="Technology"),
+            _holding(ticker="MSFT", conviction=75.0, weight=12.0, sector="Technology"),
+            _holding(ticker="GOOG", conviction=65.0, weight=8.0, sector="Technology"),
+        ]
+        candidates = [
+            _candidate(ticker="AMD", conviction=70.0, sector="Technology"),
+        ]
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=holdings,
+            candidates=candidates,
+            max_sector_weight=30.0,  # Tech already at 32% → blocked
+        )
+        result = run_decision_engine(inputs)
+        amd = next(d for d in result.decisions if d.ticker == "AMD")
+        assert amd.action == ActionType.NO_ACTION
+        assert ReasonCode.SECTOR_CAP_REACHED in amd.reason_codes
+
+    def test_sector_cap_allows_different_sector(self):
+        """Candidate in a different sector is not blocked."""
+        holdings = [
+            _holding(ticker="AAPL", conviction=50.0, weight=15.0, sector="Technology"),
+            _holding(ticker="MSFT", conviction=50.0, weight=15.0, sector="Technology"),
+        ]
+        candidates = [
+            _candidate(ticker="JNJ", conviction=80.0, sector="Healthcare"),
+        ]
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=holdings,
+            candidates=candidates,
+            max_sector_weight=30.0,
+        )
+        result = run_decision_engine(inputs)
+        jnj = next(d for d in result.decisions if d.ticker == "JNJ")
+        assert jnj.action == ActionType.INITIATE
+
+    def test_sector_cap_allows_under_limit(self):
+        """Candidate allowed when sector is under the cap."""
+        holdings = [
+            _holding(ticker="AAPL", conviction=50.0, weight=10.0, sector="Technology"),
+        ]
+        candidates = [
+            _candidate(ticker="AMD", conviction=80.0, sector="Technology"),
+        ]
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=holdings,
+            candidates=candidates,
+            max_sector_weight=30.0,  # Tech at 10% → allowed
+        )
+        result = run_decision_engine(inputs)
+        amd = next(d for d in result.decisions if d.ticker == "AMD")
+        assert amd.action == ActionType.INITIATE
+
+    def test_sector_cap_no_sector_data_passes(self):
+        """Candidate without sector data is not blocked by sector cap."""
+        holdings = [
+            _holding(ticker="AAPL", conviction=50.0, weight=15.0, sector="Technology"),
+            _holding(ticker="MSFT", conviction=50.0, weight=15.0, sector="Technology"),
+        ]
+        candidates = [
+            _candidate(ticker="XYZ", conviction=80.0),  # no sector
+        ]
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=holdings,
+            candidates=candidates,
+            max_sector_weight=30.0,
+        )
+        result = run_decision_engine(inputs)
+        xyz = next(d for d in result.decisions if d.ticker == "XYZ")
+        assert xyz.action == ActionType.INITIATE
+
+    def test_sector_cap_tracks_approved_initiations(self):
+        """Second candidate in same sector blocked after first fills the cap."""
+        holdings = [
+            _holding(ticker="AAPL", conviction=70.0, weight=25.0, sector="Technology"),
+        ]
+        candidates = [
+            _candidate(ticker="AMD", conviction=75.0, sector="Technology"),
+            _candidate(ticker="INTC", conviction=65.0, sector="Technology"),
+        ]
+        inputs = DecisionInput(
+            review_date=TODAY,
+            holdings=holdings,
+            candidates=candidates,
+            max_sector_weight=30.0,  # Tech at 25%, AMD adds ~4-5% → ~30%, INTC blocked
+        )
+        result = run_decision_engine(inputs)
+        amd = next(d for d in result.decisions if d.ticker == "AMD")
+        intc = next(d for d in result.decisions if d.ticker == "INTC")
+        assert amd.action == ActionType.INITIATE
+        assert intc.action == ActionType.NO_ACTION
+        assert ReasonCode.SECTOR_CAP_REACHED in intc.reason_codes

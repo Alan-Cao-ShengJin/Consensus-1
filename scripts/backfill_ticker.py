@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--sources", nargs="+", help="Restrict to specific source keys")
     parser.add_argument("--documents-only", action="store_true", help="Only backfill document sources")
     parser.add_argument("--non-documents-only", action="store_true", help="Only backfill non-document sources")
-    parser.add_argument("--use-llm", action="store_true", help="Use LLM for claim extraction")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
     parser.add_argument("--db", type=str, default=None, help="Database URL override")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
     args = parser.parse_args()
@@ -57,7 +57,7 @@ def main():
             days=args.days,
             dry_run=args.dry_run,
             source_filter=args.sources,
-            use_llm=args.use_llm,
+            use_llm=not args.no_llm,
             documents_only=args.documents_only,
             non_documents_only=args.non_documents_only,
         )

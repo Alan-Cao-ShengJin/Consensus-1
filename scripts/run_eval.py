@@ -396,8 +396,8 @@ def main():
     parser = argparse.ArgumentParser(description="Pipeline evaluation runner")
     parser.add_argument("--extractor", choices=["stub", "llm"], default="llm",
                         help="Claim extractor type (default: llm)")
-    parser.add_argument("--use-llm-update", action="store_true", default=False,
-                        help="Use LLM for thesis update classification too")
+    parser.add_argument("--use-llm-update", action="store_true", default=True,
+                        help="Use LLM for thesis update classification (default: True)")
     parser.add_argument("--output", default="eval_output.json",
                         help="Output JSON file path")
     parser.add_argument("--db-url", default="sqlite:///eval.db",

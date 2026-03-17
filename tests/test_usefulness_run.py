@@ -265,7 +265,7 @@ class TestUsefulnessConfig:
         config = HistoricalEvalConfig()
         d = config.to_dict()
         assert "extractor_mode" in d
-        assert d["extractor_mode"] == "stub_heuristic"
+        assert d["extractor_mode"] == "real_llm"
 
     def test_is_usefulness_run(self):
         config = HistoricalEvalConfig(mode=HistoricalRunMode.USEFULNESS_RUN)
@@ -369,7 +369,7 @@ class TestCoverageDiagnostics:
             eval_result = run_historical_evaluation(regen_session, config)
             cd = eval_result.coverage_diagnostics
             assert cd is not None
-            assert cd.extractor_mode == "stub_heuristic"
+            assert cd.extractor_mode == "real_llm"
             assert isinstance(cd.docs_by_ticker, dict)
             assert isinstance(cd.docs_by_source_type, dict)
             assert isinstance(cd.docs_by_month, dict)
@@ -540,7 +540,8 @@ class TestManifest:
         with open(os.path.join(output_dir, "manifest.json")) as f:
             manifest = json.load(f)
 
-        assert "stub_extractor" in manifest["degraded_flags"]
+        # With use_llm=True (default), stub_extractor is NOT flagged
+        assert "stub_extractor" not in manifest["degraded_flags"]
         # All sources disabled in test config
         assert "no_sec_filings" in manifest["degraded_flags"]
 

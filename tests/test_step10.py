@@ -335,10 +335,10 @@ class TestConfigManagement:
         assert config.dry_run is False
         assert config.paper_execute is True
 
-    def test_live_config_raises(self):
-        """LIVE environment raises an error."""
-        with pytest.raises(ValueError, match="LIVE"):
-            SystemConfig(environment=Environment.LIVE)
+    def test_live_config_accepted(self):
+        """LIVE environment is now supported."""
+        config = SystemConfig(environment=Environment.LIVE)
+        assert config.environment == "live"
 
     def test_invalid_environment_raises(self):
         """Invalid environment raises an error."""
@@ -470,10 +470,10 @@ class TestEnvironmentSeparation:
         )
         assert config.environment == Environment.PAPER
 
-    def test_live_environment_blocked(self):
-        """LIVE environment raises immediately."""
-        with pytest.raises(ValueError, match="not implemented"):
-            SystemConfig(environment=Environment.LIVE)
+    def test_live_environment_accepted(self):
+        """LIVE environment is now supported (no longer blocked)."""
+        config = SystemConfig(environment=Environment.LIVE)
+        assert config.environment == "live"
 
     def test_demo_and_paper_produce_different_configs(self):
         """Demo and paper default configs are different."""

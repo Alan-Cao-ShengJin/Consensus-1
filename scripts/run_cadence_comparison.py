@@ -42,7 +42,7 @@ def main():
                         help="Eval end date")
     parser.add_argument("--output-dir", type=str, default="historical_proof_runs",
                         help="Output directory")
-    parser.add_argument("--use-llm", action="store_true")
+    parser.add_argument("--no-llm", action="store_true", help="Disable LLM, use stub extractor")
     parser.add_argument("--tickers", type=str, default=None)
     args = parser.parse_args()
 
@@ -65,7 +65,7 @@ def main():
             eval_start=eval_start,
             eval_end=eval_end,
             cadence_days=cadence,
-            use_llm=args.use_llm,
+            use_llm=not args.no_llm,
             output_dir=args.output_dir,
         )
 
