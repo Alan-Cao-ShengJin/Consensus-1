@@ -13,6 +13,9 @@ DEFAULT_MODEL = "gpt-4o-mini"
 MAX_RETRIES = 3
 RETRY_BACKOFF = 2  # seconds, doubled each retry
 
+# Models that only support temperature=1 (no custom temperature)
+_FIXED_TEMP_MODELS = {"gpt-5-nano", "o1-mini", "o1-preview", "o1", "o3-mini"}
+
 
 def get_openai_client():
     """Lazy-import and return an OpenAI client."""
@@ -47,14 +50,20 @@ def call_openai_json(
     model = model or os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
     backoff = RETRY_BACKOFF
 
+    # Some models (gpt-5-nano, o1, etc.) don't support custom temperature
+    extra_params = {}
+    model_base = model.split("-2")[0] if "-2" in model else model  # strip date suffix
+    if model_base not in _FIXED_TEMP_MODELS:
+        extra_params["temperature"] = temperature
+
     last_error: Exception | None = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=temperature,
                 response_format={"type": "json_object"},
+                **extra_params,
             )
             raw_text = response.choices[0].message.content or ""
             return _parse_json_array(raw_text)
@@ -94,14 +103,20 @@ def call_openai_json_object(
     model = model or os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
     backoff = RETRY_BACKOFF
 
+    # Some models don't support custom temperature
+    extra_params = {}
+    model_base = model.split("-2")[0] if "-2" in model else model
+    if model_base not in _FIXED_TEMP_MODELS:
+        extra_params["temperature"] = temperature
+
     last_error: Exception | None = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=temperature,
                 response_format={"type": "json_object"},
+                **extra_params,
             )
             raw_text = response.choices[0].message.content or ""
             data = json.loads(raw_text)

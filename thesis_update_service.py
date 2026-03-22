@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime
 from typing import List, Literal, Optional
 
@@ -384,25 +385,27 @@ def update_thesis_from_claims(
 
     # --- Retrieve temporal memory for context ---
     memory_context = ""
-    try:
-        from memory_retrieval import retrieve_memory
-        snapshot = retrieve_memory(
-            session, thesis_id, exclude_claim_ids=claim_ids,
-        )
-        memory_context = snapshot.to_prompt_text()
-    except Exception as e:
-        logger.warning("Memory retrieval failed (continuing without): %s", e)
+    if not os.environ.get("DISABLE_PROPAGATION"):
+        try:
+            from memory_retrieval import retrieve_memory
+            snapshot = retrieve_memory(
+                session, thesis_id, exclude_claim_ids=claim_ids,
+            )
+            memory_context = snapshot.to_prompt_text()
+        except Exception as e:
+            logger.warning("Memory retrieval failed (continuing without): %s", e)
 
     # --- Enrich with prior expectation context + cross-ticker signals ---
-    try:
-        from knowledge_state import get_prior_context
-        prior_ctx = get_prior_context(
-            session, claims, thesis.company_ticker, thesis_id=thesis_id,
-        )
-        if prior_ctx:
-            memory_context = memory_context + "\n\n" + prior_ctx
-    except Exception as e:
-        logger.warning("Prior context build failed (continuing without): %s", e)
+    if not os.environ.get("DISABLE_PROPAGATION"):
+        try:
+            from knowledge_state import get_prior_context
+            prior_ctx = get_prior_context(
+                session, claims, thesis.company_ticker, thesis_id=thesis_id,
+            )
+            if prior_ctx:
+                memory_context = memory_context + "\n\n" + prior_ctx
+        except Exception as e:
+            logger.warning("Prior context build failed (continuing without): %s", e)
 
     # --- LLM classification (or stub fallback) ---
     if use_llm:
@@ -591,18 +594,19 @@ def update_thesis_from_claims(
 
     # --- Cross-ticker propagation: write derived signals for related tickers ---
     propagated_count = 0
-    try:
-        from knowledge_state import propagate_claims, mark_signals_consumed
-        # Mark any incoming signals for this ticker as consumed (we just processed them)
-        consumed = mark_signals_consumed(session, thesis.company_ticker)
-        if consumed:
-            logger.info("Consumed %d derived signals for %s", consumed, thesis.company_ticker)
-        # Propagate outgoing signals to related tickers
-        derived = propagate_claims(session, claims, thesis.company_ticker)
-        propagated_count = len(derived)
-        session.flush()
-    except Exception as e:
-        logger.warning("Cross-ticker propagation failed (continuing): %s", e)
+    if not os.environ.get("DISABLE_PROPAGATION"):
+        try:
+            from knowledge_state import propagate_claims, mark_signals_consumed
+            # Mark any incoming signals for this ticker as consumed (we just processed them)
+            consumed = mark_signals_consumed(session, thesis.company_ticker)
+            if consumed:
+                logger.info("Consumed %d derived signals for %s", consumed, thesis.company_ticker)
+            # Propagate outgoing signals to related tickers
+            derived = propagate_claims(session, claims, thesis.company_ticker)
+            propagated_count = len(derived)
+            session.flush()
+        except Exception as e:
+            logger.warning("Cross-ticker propagation failed (continuing): %s", e)
 
     return {
         "thesis_id": thesis.id,

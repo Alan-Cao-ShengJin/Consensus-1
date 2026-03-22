@@ -17,6 +17,7 @@ source of truth.
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -416,7 +417,9 @@ def propagate_claims(
         )
 
     # Channel 3: Ingest claims into Graphiti/Neo4j for relationship discovery
-    _ingest_to_graphiti(claims, source_ticker)
+    # Skip during bulk ingestion (set SKIP_GRAPHITI=1 env var)
+    if not os.environ.get("SKIP_GRAPHITI"):
+        _ingest_to_graphiti(claims, source_ticker)
 
     return signals
 

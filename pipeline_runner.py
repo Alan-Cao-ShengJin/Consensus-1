@@ -339,6 +339,15 @@ def run_ticker_pipeline(
                 logger.error("Thesis update failed for %s: %s", ticker, e)
                 summary.errors.append(f"thesis_update: {e}")
 
+    # --- Valuation update: forward PE z-score + peer comparison ---
+    if not dry_run and not non_documents_only:
+        try:
+            from auto_valuation import update_thesis_valuation
+            from datetime import date as date_type
+            update_thesis_valuation(session, ticker, date_type.today())
+        except Exception as e:
+            logger.debug("Valuation update skipped for %s: %s", ticker, e)
+
     summary.finalize()
     return summary
 

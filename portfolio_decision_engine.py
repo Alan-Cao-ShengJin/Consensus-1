@@ -175,12 +175,13 @@ class DecisionInput:
     weekly_turnover_cap_pct: float = 20.0     # max % of portfolio that can change in one week
     max_position_weight: float = 10.0         # max single position weight %
     min_initiation_weight: float = 2.0        # minimum starting weight %
-    max_satellite_positions: int = 10         # max number of non-core positions
-    max_initiations_per_review: int = 3       # pace deployment: max new positions per review cycle
+    max_satellite_positions: int = 25         # max number of non-core positions
+    max_initiations_per_review: int = 10      # pace deployment: max new positions per review cycle
     zone_thresholds: ZoneThresholds = field(default_factory=lambda: DEFAULT_THRESHOLDS)
     relaxed_gates: bool = False               # relax entry gates for historical usefulness runs
     exit_policy: ExitPolicyConfig = field(default_factory=lambda: GRADUATED_POLICY)
     momentum_config: MomentumGuardConfig = field(default_factory=lambda: ENABLED_MOMENTUM_CONFIG)
+    cash_reserve_pct: float = 5.0                   # minimum cash reserve (% of portfolio)
     max_sector_weight: float = 30.0               # max % of portfolio in any single sector
     market_sentiment: Optional[MarketSentimentScore] = None  # macro risk-on/risk-off signal
     macro_overlay: Optional[MacroOverlay] = None               # macro shock conviction overlay (temporary filter)
@@ -980,12 +981,18 @@ def run_decision_engine(inputs: DecisionInput) -> PortfolioReviewResult:
         holding_decisions.append(d)
 
     # Step 2: Find weakest holding (lowest conviction among active, non-probation)
+    # Only enforce relative hurdle when portfolio is fully invested (no cash to fund new positions).
+    # If there's enough cash, skip the hurdle — no need to beat existing holdings.
     active_holdings = [
         h for h in inputs.holdings
         if not h.probation_flag and h.current_weight > 0
     ]
+    invested_weight = sum(h.current_weight for h in inputs.holdings)
+    cash_available = inputs.total_portfolio_weight - invested_weight
+    deployable_cash = cash_available - inputs.cash_reserve_pct  # keep reserve
     weakest_holding = None
-    if active_holdings:
+    if active_holdings and deployable_cash < inputs.min_initiation_weight:
+        # Not enough deployable cash for a new position → must beat weakest holding to swap
         weakest_holding = min(active_holdings, key=lambda h: h.conviction_score)
 
     # Step 3: Evaluate candidates (with market sentiment gating)

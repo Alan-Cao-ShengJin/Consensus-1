@@ -1,24 +1,33 @@
-"""Auto-valuation engine: compute valuation metrics from financial data.
+"""Auto-valuation engine: forward PE z-score + peer comparison.
 
-Problem: valuation_gap_pct is NULL for every thesis — the system has zero
-concept of whether a stock is cheap or expensive. It buys at all-time highs
-and holds through crashes because the zone is always HOLD.
+Two-signal approach:
+  1. **Historical self-comparison**: Current forward PE vs own 5-year history.
+     >1 SD above mean = expensive, >1 SD below mean = cheap.
+  2. **Peer comparison**: Current forward PE vs sector/industry peer median.
+     Trading at discount to peers = attractive, premium = harder to justify.
 
-Solution: Compute PE, PEG, EV/Revenue, and price-to-FCF from FMP financial
-data (already ingested). Compare current multiples against historical ranges
-and sector medians to estimate relative valuation.
+Output: valuation_gap_pct that feeds into zone classification
+(BUY/HOLD/TRIM/FULL_EXIT in valuation_policy.py).
 
-Output: a valuation_gap_pct that feeds into the existing zone classification
-(BUY/HOLD/TRIM/FULL_EXIT zones in valuation_policy.py).
-
-All functions are pure: operate on preloaded data, no DB or API access.
+Positive gap = undervalued (buy signal), negative = overvalued (avoid/trim).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
+import logging
+import math
+from dataclasses import dataclass, field
+from datetime import date, datetime
 from typing import Optional
 
+from sqlalchemy import select, and_
+from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Data structures
+# ---------------------------------------------------------------------------
 
 @dataclass
 class FinancialSnapshot:
@@ -41,275 +50,483 @@ class ValuationResult:
     ticker: str
     as_of: date
 
-    # Absolute multiples
-    pe_ratio: Optional[float] = None
-    pe_forward: Optional[float] = None  # using estimated EPS
-    peg_ratio: Optional[float] = None   # PE / earnings growth
-    ev_to_revenue: Optional[float] = None
-    price_to_fcf: Optional[float] = None
-    ev_to_ebitda: Optional[float] = None
+    # Forward PE
+    pe_forward: Optional[float] = None
 
-    # Historical comparison
-    pe_percentile: Optional[float] = None      # 0-100, where current PE sits in 2yr range
-    ev_rev_percentile: Optional[float] = None
+    # Historical self-comparison (z-score based)
+    pe_forward_mean_5y: Optional[float] = None
+    pe_forward_std_5y: Optional[float] = None
+    pe_forward_zscore: Optional[float] = None  # >0 = above avg (expensive), <0 = below (cheap)
+
+    # Peer comparison
+    peer_median_pe: Optional[float] = None
+    peer_premium_pct: Optional[float] = None  # +20 = 20% premium to peers, -10 = 10% discount
+    peer_count: int = 0
+
+    # Additional multiples (informational)
+    pe_trailing: Optional[float] = None
+    peg_ratio: Optional[float] = None
+    ev_to_ebitda: Optional[float] = None
 
     # Composite valuation gap (positive = undervalued, negative = overvalued)
     valuation_gap_pct: Optional[float] = None
-    valuation_method: str = "none"  # which method drove the gap
-    confidence: float = 0.0        # 0-1, how much data we had
+    valuation_signal: str = "neutral"  # cheap, fair, expensive, very_expensive
+    confidence: float = 0.0  # 0-1, how much data we had
+    method: str = "none"
 
 
 @dataclass(frozen=True)
 class ValuationConfig:
-    """Thresholds for valuation classification."""
-    enabled: bool = True
+    """Configuration for the valuation engine."""
+    # Weights for composite gap
+    historical_weight: float = 0.6  # own history is primary signal
+    peer_weight: float = 0.4        # peer comparison is secondary
 
-    # PE-based valuation
-    pe_fair_multiple: float = 25.0      # fair PE for growth tech stocks
-    pe_cheap_discount: float = 0.7      # below 70% of fair = cheap
-    pe_expensive_premium: float = 1.5   # above 150% of fair = expensive
+    # Z-score thresholds
+    zscore_cheap: float = -1.0      # 1 SD below mean = cheap
+    zscore_expensive: float = 1.0   # 1 SD above mean = expensive
+    zscore_very_expensive: float = 2.0  # 2 SD above = very expensive
 
-    # Revenue multiple thresholds (EV/Revenue)
-    ev_rev_fair: float = 8.0
-    ev_rev_cheap: float = 5.0
-    ev_rev_expensive: float = 15.0
+    # Peer premium thresholds
+    peer_discount_attractive: float = -15.0  # 15%+ discount to peers = attractive
+    peer_premium_unattractive: float = 20.0  # 20%+ premium = unattractive
 
-    # PEG ratio thresholds
-    peg_fair: float = 1.5
-    peg_cheap: float = 1.0
-    peg_expensive: float = 2.5
+    # Gap scaling: how much to move valuation_gap_pct per unit of signal
+    gap_per_zscore: float = 15.0    # each 1 SD = ~15% gap
+    gap_per_peer_pct: float = 0.5   # each 1% peer premium/discount = 0.5% gap
 
-    # How much to weight each signal in composite
-    pe_weight: float = 0.4
-    peg_weight: float = 0.3
-    ev_rev_weight: float = 0.2
-    historical_weight: float = 0.1
+    # Minimum data requirements
+    min_historical_points: int = 8   # need at least 8 quarterly forward PE data points
 
 
-DISABLED_VALUATION_CONFIG = ValuationConfig(enabled=False)
-DEFAULT_VALUATION_CONFIG = ValuationConfig(enabled=True)
+DEFAULT_CONFIG = ValuationConfig()
 
 
-def compute_pe_ratio(
-    current_price: float,
-    ttm_eps: float,
-) -> Optional[float]:
-    """Compute trailing PE ratio."""
-    if current_price <= 0 or ttm_eps <= 0:
+# ---------------------------------------------------------------------------
+# Core computation (pure functions, no DB access)
+# ---------------------------------------------------------------------------
+
+def compute_forward_pe(price: float, forward_eps: float) -> Optional[float]:
+    """Compute forward PE from price and consensus EPS estimate."""
+    if price <= 0 or forward_eps <= 0:
         return None
-    return current_price / ttm_eps
-
-
-def compute_ev_to_revenue(
-    market_cap: float,
-    total_debt: float,
-    cash: float,
-    ttm_revenue: float,
-) -> Optional[float]:
-    """Compute enterprise value to revenue."""
-    if ttm_revenue <= 0:
+    pe = price / forward_eps
+    # Sanity cap: PE > 200 or < 0 is noise
+    if pe > 200:
         return None
-    ev = market_cap + total_debt - cash
-    if ev <= 0:
-        return None
-    return ev / ttm_revenue
+    return round(pe, 2)
 
 
-def compute_peg_ratio(
-    pe_ratio: float,
-    earnings_growth_pct: float,
-) -> Optional[float]:
-    """Compute PEG ratio (PE / earnings growth rate)."""
-    if pe_ratio <= 0 or earnings_growth_pct <= 0:
-        return None
-    return pe_ratio / earnings_growth_pct
+def compute_zscore(current: float, history: list[float]) -> Optional[tuple[float, float, float]]:
+    """Compute z-score of current value vs history.
 
-
-def compute_price_to_fcf(
-    market_cap: float,
-    ttm_fcf: float,
-) -> Optional[float]:
-    """Compute price to free cash flow."""
-    if market_cap <= 0 or ttm_fcf <= 0:
-        return None
-    return market_cap / ttm_fcf
-
-
-def _compute_percentile(current: float, history: list[float]) -> Optional[float]:
-    """Where does current value sit in historical range? 0=cheapest, 100=most expensive."""
-    if not history or len(history) < 4:
-        return None
-    sorted_hist = sorted(history)
-    count_below = sum(1 for h in sorted_hist if h < current)
-    return (count_below / len(sorted_hist)) * 100.0
-
-
-def _signal_to_gap(
-    current: float,
-    fair: float,
-    cheap: float,
-    expensive: float,
-) -> float:
-    """Convert a valuation multiple into a gap percentage.
-
-    Returns positive for undervalued, negative for overvalued.
+    Returns (zscore, mean, std) or None if insufficient data.
     """
-    if current <= 0 or fair <= 0:
-        return 0.0
+    if len(history) < 4:
+        return None
 
-    if current <= cheap:
-        # Very cheap: large positive gap
-        return ((fair - current) / fair) * 100.0
-    elif current >= expensive:
-        # Very expensive: large negative gap
-        return ((fair - current) / fair) * 100.0
-    else:
-        # Linear interpolation between cheap and expensive
-        return ((fair - current) / fair) * 100.0
+    # Filter outliers: drop values > 3x median (likely data errors)
+    median = sorted(history)[len(history) // 2]
+    filtered = [x for x in history if 0 < x < median * 3]
+    if len(filtered) < 4:
+        return None
+
+    mean = sum(filtered) / len(filtered)
+    variance = sum((x - mean) ** 2 for x in filtered) / len(filtered)
+    std = math.sqrt(variance)
+
+    if std < 0.01:  # near-zero std means all values are identical
+        return (0.0, mean, std)
+
+    zscore = (current - mean) / std
+    return (round(zscore, 2), round(mean, 2), round(std, 2))
+
+
+def compute_peer_premium(
+    current_pe: float,
+    peer_pes: list[float],
+) -> Optional[tuple[float, float, int]]:
+    """Compute premium/discount vs peer median forward PE.
+
+    Returns (premium_pct, peer_median, peer_count) or None.
+    Premium > 0 means trading above peers (expensive relative to peers).
+    """
+    valid = [p for p in peer_pes if p and 0 < p < 200]
+    if len(valid) < 3:
+        return None
+
+    valid.sort()
+    n = len(valid)
+    median = valid[n // 2] if n % 2 else (valid[n // 2 - 1] + valid[n // 2]) / 2
+
+    if median <= 0:
+        return None
+
+    premium_pct = ((current_pe - median) / median) * 100
+    return (round(premium_pct, 1), round(median, 1), n)
 
 
 def compute_valuation(
     ticker: str,
     as_of: date,
     current_price: float,
-    financials: list[FinancialSnapshot],
-    estimated_eps: Optional[float] = None,
-    shares_outstanding: Optional[float] = None,
-    historical_pe_ratios: Optional[list[float]] = None,
-    config: ValuationConfig = DEFAULT_VALUATION_CONFIG,
+    forward_eps: Optional[float],
+    historical_forward_pes: list[float],
+    peer_forward_pes: list[float],
+    config: ValuationConfig = DEFAULT_CONFIG,
 ) -> ValuationResult:
-    """Compute composite valuation for a stock.
+    """Compute valuation using historical z-score + peer comparison.
 
     Args:
         ticker: Stock ticker.
         as_of: Valuation date.
         current_price: Current stock price.
-        financials: List of FinancialSnapshot objects (most recent first).
-        estimated_eps: Forward EPS estimate (from analyst consensus).
-        shares_outstanding: Diluted shares outstanding.
-        historical_pe_ratios: Historical PE values for percentile ranking.
+        forward_eps: Consensus forward EPS estimate.
+        historical_forward_pes: List of historical forward PE values (5 years).
+        peer_forward_pes: List of current forward PEs for sector/industry peers.
         config: Valuation thresholds.
-
-    Returns:
-        ValuationResult with computed metrics and composite gap.
     """
     result = ValuationResult(ticker=ticker, as_of=as_of)
 
-    if not config.enabled or not financials or current_price <= 0:
+    if current_price <= 0:
         return result
 
-    # Compute TTM metrics from most recent 4 quarters
-    recent = financials[:4]
-    ttm_eps = sum(f.eps_diluted or 0 for f in recent)
-    ttm_revenue = sum(f.revenue or 0 for f in recent)
-    ttm_fcf = sum(f.free_cash_flow or 0 for f in recent)
-    ttm_ebitda = sum(f.ebitda or 0 for f in recent)
+    # Compute current forward PE
+    if forward_eps and forward_eps > 0:
+        result.pe_forward = compute_forward_pe(current_price, forward_eps)
 
-    # Use shares from most recent financial or parameter
-    shares = shares_outstanding
-    if not shares and recent[0].shares_outstanding:
-        shares = recent[0].shares_outstanding
-    if not shares:
-        shares = 1e9  # rough fallback for mega-cap
+    if result.pe_forward is None:
+        result.method = "insufficient_data"
+        return result
 
-    market_cap = current_price * shares
+    # --- Signal 1: Historical z-score ---
+    hist_signal = 0.0
+    hist_weight = 0.0
 
-    # Get debt/cash from most recent quarter
-    total_debt = recent[0].total_debt or 0
-    cash = recent[0].cash_and_equivalents or 0
+    if len(historical_forward_pes) >= config.min_historical_points:
+        zresult = compute_zscore(result.pe_forward, historical_forward_pes)
+        if zresult:
+            zscore, mean, std = zresult
+            result.pe_forward_zscore = zscore
+            result.pe_forward_mean_5y = mean
+            result.pe_forward_std_5y = std
 
-    # --- Compute individual multiples ---
-    signals_used = 0
-    gap_components: list[tuple[float, float]] = []  # (gap, weight)
+            # Convert z-score to gap: negative zscore (cheap) → positive gap
+            hist_signal = -zscore * config.gap_per_zscore
+            hist_weight = config.historical_weight
 
-    # PE ratio
-    result.pe_ratio = compute_pe_ratio(current_price, ttm_eps)
-    if result.pe_ratio is not None:
-        gap = _signal_to_gap(
-            result.pe_ratio, config.pe_fair_multiple,
-            config.pe_fair_multiple * config.pe_cheap_discount,
-            config.pe_fair_multiple * config.pe_expensive_premium,
-        )
-        gap_components.append((gap, config.pe_weight))
-        signals_used += 1
+    # --- Signal 2: Peer comparison ---
+    peer_signal = 0.0
+    peer_weight = 0.0
 
-    # Forward PE
-    if estimated_eps and estimated_eps > 0:
-        result.pe_forward = current_price / estimated_eps
+    if peer_forward_pes:
+        peer_result = compute_peer_premium(result.pe_forward, peer_forward_pes)
+        if peer_result:
+            premium_pct, peer_median, peer_count = peer_result
+            result.peer_premium_pct = premium_pct
+            result.peer_median_pe = peer_median
+            result.peer_count = peer_count
 
-    # PEG ratio
-    earnings_growth = None
-    if len(financials) >= 8:
-        # Compare TTM EPS to prior-year TTM EPS
-        prior_ttm_eps = sum(f.eps_diluted or 0 for f in financials[4:8])
-        if prior_ttm_eps > 0 and ttm_eps > 0:
-            earnings_growth = ((ttm_eps - prior_ttm_eps) / prior_ttm_eps) * 100
-    # Fallback: use revenue growth as proxy
-    if earnings_growth is None and recent[0].revenue_growth_pct is not None:
-        earnings_growth = recent[0].revenue_growth_pct
-
-    if result.pe_ratio and earnings_growth and earnings_growth > 0:
-        result.peg_ratio = compute_peg_ratio(result.pe_ratio, earnings_growth)
-        if result.peg_ratio is not None:
-            gap = _signal_to_gap(
-                result.peg_ratio, config.peg_fair,
-                config.peg_cheap, config.peg_expensive,
-            )
-            gap_components.append((gap, config.peg_weight))
-            signals_used += 1
-
-    # EV/Revenue
-    if ttm_revenue > 0:
-        result.ev_to_revenue = compute_ev_to_revenue(
-            market_cap, total_debt, cash, ttm_revenue,
-        )
-        if result.ev_to_revenue is not None:
-            gap = _signal_to_gap(
-                result.ev_to_revenue, config.ev_rev_fair,
-                config.ev_rev_cheap, config.ev_rev_expensive,
-            )
-            gap_components.append((gap, config.ev_rev_weight))
-            signals_used += 1
-
-    # Price/FCF
-    if ttm_fcf > 0:
-        result.price_to_fcf = compute_price_to_fcf(market_cap, ttm_fcf)
-
-    # EV/EBITDA
-    if ttm_ebitda > 0:
-        ev = market_cap + total_debt - cash
-        if ev > 0:
-            result.ev_to_ebitda = ev / ttm_ebitda
-
-    # Historical PE percentile
-    if historical_pe_ratios and result.pe_ratio:
-        result.pe_percentile = _compute_percentile(result.pe_ratio, historical_pe_ratios)
-        if result.pe_percentile is not None:
-            # Percentile-based gap: 50th percentile = fair, below = cheap, above = expensive
-            hist_gap = (50.0 - result.pe_percentile) * 0.6  # scale factor
-            gap_components.append((hist_gap, config.historical_weight))
-            signals_used += 1
+            # Convert peer premium to gap: premium (expensive) → negative gap
+            peer_signal = -premium_pct * config.gap_per_peer_pct
+            peer_weight = config.peer_weight
 
     # --- Composite gap ---
-    if gap_components:
-        total_weight = sum(w for _, w in gap_components)
-        if total_weight > 0:
-            weighted_gap = sum(g * w for g, w in gap_components) / total_weight
-            result.valuation_gap_pct = round(weighted_gap, 2)
-            result.confidence = min(1.0, signals_used / 4.0)
-            result.valuation_method = "composite"
+    total_weight = hist_weight + peer_weight
+    if total_weight > 0:
+        weighted_gap = (hist_signal * hist_weight + peer_signal * peer_weight) / total_weight
+        result.valuation_gap_pct = round(weighted_gap, 1)
+        result.confidence = min(1.0, total_weight / (config.historical_weight + config.peer_weight))
+
+        # Classify signal
+        if result.pe_forward_zscore is not None:
+            z = result.pe_forward_zscore
+            if z >= config.zscore_very_expensive:
+                result.valuation_signal = "very_expensive"
+            elif z >= config.zscore_expensive:
+                result.valuation_signal = "expensive"
+            elif z <= config.zscore_cheap:
+                result.valuation_signal = "cheap"
+            else:
+                result.valuation_signal = "fair"
+        else:
+            # Fall back to peer signal only
+            if result.peer_premium_pct and result.peer_premium_pct > config.peer_premium_unattractive:
+                result.valuation_signal = "expensive"
+            elif result.peer_premium_pct and result.peer_premium_pct < config.peer_discount_attractive:
+                result.valuation_signal = "cheap"
+            else:
+                result.valuation_signal = "fair"
+
+        methods = []
+        if hist_weight > 0:
+            methods.append("historical_zscore")
+        if peer_weight > 0:
+            methods.append("peer_comparison")
+        result.method = "+".join(methods)
 
     return result
 
 
+# ---------------------------------------------------------------------------
+# DB-backed valuation: loads data from our tables
+# ---------------------------------------------------------------------------
+
+def run_valuation_for_ticker(
+    session: Session,
+    ticker: str,
+    as_of_date: date,
+    config: ValuationConfig = DEFAULT_CONFIG,
+) -> Optional[ValuationResult]:
+    """Run valuation for a single ticker using DB data.
+
+    Loads forward EPS estimates, historical prices, and peer data from DB.
+    Returns ValuationResult or None if insufficient data.
+    """
+    from models import (
+        Company, EarningsEstimate, Price, Thesis,
+        CompanyRelationship,
+    )
+
+    # 1. Get current price
+    price_row = session.execute(
+        select(Price.close).where(
+            Price.ticker == ticker,
+            Price.date <= as_of_date,
+        ).order_by(Price.date.desc()).limit(1)
+    ).scalar()
+
+    if not price_row:
+        return None
+    current_price = float(price_row)
+
+    # 2. Get forward EPS estimate (most recent for next fiscal period)
+    estimate = session.execute(
+        select(EarningsEstimate).where(
+            EarningsEstimate.ticker == ticker,
+            EarningsEstimate.estimated_eps.isnot(None),
+        ).order_by(EarningsEstimate.fiscal_period.desc()).limit(1)
+    ).scalars().first()
+
+    forward_eps = estimate.estimated_eps if estimate else None
+
+    # 3. Get historical forward PE data points
+    # We reconstruct from historical prices + estimates at those times
+    # For now, use a simpler approach: get all historical estimates and pair with prices
+    historical_forward_pes = _build_historical_forward_pes(
+        session, ticker, as_of_date, lookback_years=5,
+    )
+
+    # 4. Get peer forward PEs
+    peer_forward_pes = _get_peer_forward_pes(session, ticker, as_of_date)
+
+    # 5. Compute
+    result = compute_valuation(
+        ticker=ticker,
+        as_of=as_of_date,
+        current_price=current_price,
+        forward_eps=forward_eps,
+        historical_forward_pes=historical_forward_pes,
+        peer_forward_pes=peer_forward_pes,
+        config=config,
+    )
+
+    return result
+
+
+def _build_historical_forward_pes(
+    session: Session,
+    ticker: str,
+    as_of: date,
+    lookback_years: int = 5,
+) -> list[float]:
+    """Build list of historical forward PE values from estimates + prices.
+
+    For each historical estimate period, pair the estimated EPS with the
+    stock price at that time to compute what the forward PE was.
+    """
+    from models import EarningsEstimate, Price
+    from datetime import timedelta
+
+    cutoff = date(as_of.year - lookback_years, as_of.month, as_of.day)
+
+    estimates = session.execute(
+        select(EarningsEstimate).where(
+            EarningsEstimate.ticker == ticker,
+            EarningsEstimate.estimated_eps.isnot(None),
+            EarningsEstimate.estimated_eps > 0,
+        ).order_by(EarningsEstimate.fiscal_period.asc())
+    ).scalars().all()
+
+    forward_pes = []
+    for est in estimates:
+        # Use the fiscal period start as the "when" for this estimate
+        # Try to find a price near the estimate date
+        est_date = est.fiscal_period  # this is a string like "2024-Q3"
+        # Parse to approximate date
+        approx_date = _fiscal_period_to_date(est_date)
+        if approx_date and approx_date >= cutoff and approx_date <= as_of:
+            # Find price closest to this date
+            price_row = session.execute(
+                select(Price.close).where(
+                    Price.ticker == ticker,
+                    Price.date <= approx_date,
+                ).order_by(Price.date.desc()).limit(1)
+            ).scalar()
+            if price_row and est.estimated_eps > 0:
+                pe = float(price_row) / est.estimated_eps
+                if 0 < pe < 200:  # sanity filter
+                    forward_pes.append(round(pe, 2))
+
+    return forward_pes
+
+
+def _fiscal_period_to_date(fiscal_period: str) -> Optional[date]:
+    """Convert fiscal period string to approximate date.
+
+    Handles formats like '2024-Q3', '2024Q3', 'FY2024', '2024-12-31'.
+    """
+    if not fiscal_period:
+        return None
+    try:
+        # Try ISO date first
+        return date.fromisoformat(fiscal_period)
+    except (ValueError, TypeError):
+        pass
+    try:
+        fp = fiscal_period.upper().replace(" ", "")
+        if "Q1" in fp:
+            year = int("".join(c for c in fp if c.isdigit())[:4])
+            return date(year, 3, 31)
+        elif "Q2" in fp:
+            year = int("".join(c for c in fp if c.isdigit())[:4])
+            return date(year, 6, 30)
+        elif "Q3" in fp:
+            year = int("".join(c for c in fp if c.isdigit())[:4])
+            return date(year, 9, 30)
+        elif "Q4" in fp or "FY" in fp:
+            year = int("".join(c for c in fp if c.isdigit())[:4])
+            return date(year, 12, 31)
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def _get_peer_forward_pes(
+    session: Session,
+    ticker: str,
+    as_of: date,
+) -> list[float]:
+    """Get forward PEs for sector/industry peers.
+
+    Uses the company's sector + industry to find peers, then computes
+    their current forward PE from latest estimate + price.
+    """
+    from models import Company, EarningsEstimate, Price
+
+    # Get this company's sector/industry
+    company = session.execute(
+        select(Company).where(Company.ticker == ticker)
+    ).scalars().first()
+
+    if not company or (not company.industry and not company.sector):
+        return []
+
+    # Find peers in same industry (narrower = better comparison)
+    peer_tickers = []
+    if company.industry:
+        peer_tickers = session.execute(
+            select(Company.ticker).where(
+                Company.industry == company.industry,
+                Company.ticker != ticker,
+            )
+        ).scalars().all()
+
+    # If too few industry peers, widen to sector
+    if len(peer_tickers) < 5 and company.sector:
+        peer_tickers = session.execute(
+            select(Company.ticker).where(
+                Company.sector == company.sector,
+                Company.ticker != ticker,
+            )
+        ).scalars().all()
+
+    peer_pes = []
+    for pt in peer_tickers:
+        # Get latest forward EPS
+        est = session.execute(
+            select(EarningsEstimate.estimated_eps).where(
+                EarningsEstimate.ticker == pt,
+                EarningsEstimate.estimated_eps.isnot(None),
+                EarningsEstimate.estimated_eps > 0,
+            ).order_by(EarningsEstimate.fiscal_period.desc()).limit(1)
+        ).scalar()
+
+        if not est:
+            continue
+
+        # Get latest price
+        price = session.execute(
+            select(Price.close).where(
+                Price.ticker == pt,
+                Price.date <= as_of,
+            ).order_by(Price.date.desc()).limit(1)
+        ).scalar()
+
+        if price and est > 0:
+            pe = float(price) / est
+            if 0 < pe < 200:
+                peer_pes.append(round(pe, 2))
+
+    return peer_pes
+
+
+def update_thesis_valuation(
+    session: Session,
+    ticker: str,
+    as_of_date: date,
+) -> Optional[ValuationResult]:
+    """Compute valuation and write valuation_gap_pct to the active Thesis.
+
+    Returns the ValuationResult or None.
+    """
+    from models import Thesis
+
+    result = run_valuation_for_ticker(session, ticker, as_of_date)
+    if not result or result.valuation_gap_pct is None:
+        return result
+
+    thesis = session.execute(
+        select(Thesis).where(
+            Thesis.company_ticker == ticker,
+            Thesis.status_active == True,
+        ).order_by(Thesis.updated_at.desc()).limit(1)
+    ).scalars().first()
+
+    if thesis:
+        thesis.valuation_gap_pct = result.valuation_gap_pct
+        session.flush()
+        logger.info(
+            "Valuation %s: fwd PE=%.1f, zscore=%.2f, peer_prem=%.1f%%, gap=%.1f%% [%s]",
+            ticker,
+            result.pe_forward or 0,
+            result.pe_forward_zscore or 0,
+            result.peer_premium_pct or 0,
+            result.valuation_gap_pct,
+            result.valuation_signal,
+        )
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Legacy compatibility
+# ---------------------------------------------------------------------------
+
 def financials_from_fmp_metadata(
     metadata_list: list[dict],
 ) -> list[FinancialSnapshot]:
-    """Convert FMP connector metadata dicts into FinancialSnapshot objects.
-
-    The FMP financials connector stores key metrics in DocumentPayload.metadata.
-    This function extracts them for valuation computation.
-    """
+    """Convert FMP connector metadata dicts into FinancialSnapshot objects."""
     snapshots = []
     for meta in metadata_list:
         if not meta:

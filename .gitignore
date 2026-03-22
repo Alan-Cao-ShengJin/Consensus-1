@@ -11,3 +11,13 @@ build/
 .claude/
 eval_output*.json
 execution_outputs/
+
+# Logs
+*.log
+
+# Generated artifacts
+_sec_review/
+replay_outputs/
+backtests/*.pkl
+backtests/*.png
+backtests/*.txt

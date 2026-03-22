@@ -92,6 +92,7 @@ def apply_recommendations(
     result: PortfolioReviewResult,
     prices_by_ticker: dict[str, list[tuple[date, float]]],
     target_initiation_weight_pct: float = 3.0,
+    cash_reserve_pct: float = 5.0,
 ) -> ExecutionResult:
     """Apply one review's recommendations to the shadow portfolio.
 
@@ -140,7 +141,7 @@ def apply_recommendations(
 
         trades = _execute_decision(
             portfolio, decision, prices_by_ticker, result.review_date,
-            target_initiation_weight_pct, exec_result,
+            target_initiation_weight_pct, exec_result, cash_reserve_pct,
         )
         exec_result.trades_applied.extend(trades)
 
@@ -183,6 +184,7 @@ def _execute_decision(
     review_date: date,
     target_initiation_weight_pct: float,
     exec_result: ExecutionResult,
+    cash_reserve_pct: float = 5.0,
 ) -> list[ShadowTrade]:
     """Execute a single decision against the shadow portfolio."""
     trades: list[ShadowTrade] = []
@@ -268,6 +270,22 @@ def _execute_decision(
         conviction = decision.thesis_conviction or 50.0
         target_weight = decision.suggested_weight or conviction_based_weight(conviction)
         target_notional = (target_weight / 100.0) * total_val
+
+        # Enforce cash reserve: cap buy notional so cash stays above reserve floor
+        cash_reserve_amount = (cash_reserve_pct / 100.0) * total_val
+        max_spend = max(0.0, portfolio.cash - cash_reserve_amount)
+        if not portfolio.is_core_satellite and target_notional > max_spend:
+            if max_spend < exec_price:
+                # Can't even buy 1 share while maintaining reserve
+                exec_result.trades_skipped.append({
+                    "ticker": ticker,
+                    "action": "initiate",
+                    "reason": f"Cash reserve: need ${cash_reserve_amount:,.0f} reserve, only ${portfolio.cash:,.0f} cash",
+                })
+                return trades
+            target_notional = max_spend
+            target_weight = (target_notional / total_val) * 100.0
+
         logger.info(
             "Initiate sizing: %s conviction=%.1f -> target_weight=%.1f%%",
             ticker, conviction, target_weight,
@@ -314,6 +332,21 @@ def _execute_decision(
             exec_result.fallback_count += 1
 
         add_cost = abs(add_shares * exec_price)
+
+        # Enforce cash reserve for ADD actions
+        if not portfolio.is_core_satellite:
+            cash_reserve_amount = (cash_reserve_pct / 100.0) * total_val
+            max_spend = max(0.0, portfolio.cash - cash_reserve_amount)
+            if add_cost > max_spend:
+                if max_spend < exec_price:
+                    exec_result.trades_skipped.append({
+                        "ticker": ticker,
+                        "action": "add",
+                        "reason": f"Cash reserve: insufficient cash after reserve",
+                    })
+                    return trades
+                add_shares = max_spend / exec_price
+                add_cost = max_spend
 
         # Core-satellite: sell core to fund the add if cash is insufficient
         if portfolio.is_core_satellite and portfolio.cash < add_cost:

@@ -1,0 +1,3523 @@
+[
+  {
+    "ticker": "MMM",
+    "sector": "Industrials",
+    "price": 141.1,
+    "fwd_eps": 8.20671,
+    "fwd_pe": 17.19324796416591
+  },
+  {
+    "ticker": "AOS",
+    "sector": "Industrials",
+    "price": 64.09,
+    "fwd_eps": 2.00319,
+    "fwd_pe": 31.99396961845856
+  },
+  {
+    "ticker": "ABT",
+    "sector": "Health Care",
+    "price": 105.56,
+    "fwd_eps": 5.09928,
+    "fwd_pe": 20.700961704397482
+  },
+  {
+    "ticker": "ABBV",
+    "sector": "Health Care",
+    "price": 205.07,
+    "fwd_eps": 12.67965,
+    "fwd_pe": 16.17315935376765
+  },
+  {
+    "ticker": "ACN",
+    "sector": "Information Technology",
+    "price": 199.99,
+    "fwd_eps": 8.79468,
+    "fwd_pe": 22.73988365693806
+  },
+  {
+    "ticker": "ADBE",
+    "sector": "Information Technology",
+    "price": 248.15,
+    "fwd_eps": 12.47427,
+    "fwd_pe": 19.892947643429235
+  },
+  {
+    "ticker": "AMD",
+    "sector": "Information Technology",
+    "price": 201.33,
+    "fwd_eps": 2.64582,
+    "fwd_pe": 76.09361181032723
+  },
+  {
+    "ticker": "AES",
+    "sector": "Utilities",
+    "price": 14.1,
+    "fwd_eps": 1.3429,
+    "fwd_pe": 10.499664904311564
+  },
+  {
+    "ticker": "AFL",
+    "sector": "Financials",
+    "price": 106.22,
+    "fwd_eps": 4.90827,
+    "fwd_pe": 21.641026267911098
+  },
+  {
+    "ticker": "A",
+    "sector": "Health Care",
+    "price": 111.3,
+    "fwd_eps": 4.31267,
+    "fwd_pe": 25.807678306014605
+  },
+  {
+    "ticker": "APD",
+    "sector": "Materials",
+    "price": 281.01,
+    "fwd_eps": 9.00283,
+    "fwd_pe": 31.213518415875896
+  },
+  {
+    "ticker": "ABNB",
+    "sector": "Consumer Discretionary",
+    "price": 128.52,
+    "fwd_eps": 2.5898,
+    "fwd_pe": 49.62545370298865
+  },
+  {
+    "ticker": "AKAM",
+    "sector": "Information Technology",
+    "price": 110.48,
+    "fwd_eps": 5.67061,
+    "fwd_pe": 19.482912773052636
+  },
+  {
+    "ticker": "ALB",
+    "sector": "Materials",
+    "price": 156.7,
+    "fwd_eps": 4.04826,
+    "fwd_pe": 38.70798812329247
+  },
+  {
+    "ticker": "ARE",
+    "sector": "Real Estate",
+    "price": 47.39,
+    "fwd_eps": 1.90015,
+    "fwd_pe": 24.94013630502855
+  },
+  {
+    "ticker": "ALGN",
+    "sector": "Health Care",
+    "price": 173.18,
+    "fwd_eps": 4.75099,
+    "fwd_pe": 36.451350139655105
+  },
+  {
+    "ticker": "ALLE",
+    "sector": "Industrials",
+    "price": 142.49,
+    "fwd_eps": 4.82155,
+    "fwd_pe": 29.552737190322613
+  },
+  {
+    "ticker": "LNT",
+    "sector": "Utilities",
+    "price": 68.71,
+    "fwd_eps": 2.63083,
+    "fwd_pe": 26.117232964501696
+  },
+  {
+    "ticker": "ALL",
+    "sector": "Financials",
+    "price": 205.62,
+    "fwd_eps": 10.50077,
+    "fwd_pe": 19.5814211719712
+  },
+  {
+    "ticker": "GOOGL",
+    "sector": "Communication Services",
+    "price": 301,
+    "fwd_eps": 5.42868,
+    "fwd_pe": 55.44625949586271
+  },
+  {
+    "ticker": "GOOG",
+    "sector": "Communication Services",
+    "price": 298.79,
+    "fwd_eps": 5.43313,
+    "fwd_pe": 54.994082600637206
+  },
+  {
+    "ticker": "MO",
+    "sector": "Consumer Staples",
+    "price": 64.47,
+    "fwd_eps": 4.38477,
+    "fwd_pe": 14.70316573047161
+  },
+  {
+    "ticker": "AMZN",
+    "sector": "Consumer Discretionary",
+    "price": 205.37,
+    "fwd_eps": 2.04996,
+    "fwd_pe": 100.18244258424555
+  },
+  {
+    "ticker": "AMCR",
+    "sector": "Materials",
+    "price": 38.28,
+    "fwd_eps": 0.63516,
+    "fwd_pe": 60.26827885887021
+  },
+  {
+    "ticker": "AEE",
+    "sector": "Utilities",
+    "price": 106.06,
+    "fwd_eps": 3.84531,
+    "fwd_pe": 27.5816514143203
+  },
+  {
+    "ticker": "AEP",
+    "sector": "Utilities",
+    "price": 125.66,
+    "fwd_eps": 4.69126,
+    "fwd_pe": 26.78598073865017
+  },
+  {
+    "ticker": "AXP",
+    "sector": "Financials",
+    "price": 295.08,
+    "fwd_eps": 9.67757,
+    "fwd_pe": 30.49112535481531
+  },
+  {
+    "ticker": "AIG",
+    "sector": "Financials",
+    "price": 74.39,
+    "fwd_eps": 4.57787,
+    "fwd_pe": 16.249915353647
+  },
+  {
+    "ticker": "AMT",
+    "sector": "Real Estate",
+    "price": 176.79,
+    "fwd_eps": 5.81838,
+    "fwd_pe": 30.38474626958019
+  },
+  {
+    "ticker": "AWK",
+    "sector": "Utilities",
+    "price": 135.79,
+    "fwd_eps": 4.24604,
+    "fwd_pe": 31.980386430650675
+  },
+  {
+    "ticker": "AMP",
+    "sector": "Financials",
+    "price": 438.94,
+    "fwd_eps": 14.47397,
+    "fwd_pe": 30.3261648324544
+  },
+  {
+    "ticker": "AME",
+    "sector": "Industrials",
+    "price": 209.37,
+    "fwd_eps": 4.78453,
+    "fwd_pe": 43.759784137626895
+  },
+  {
+    "ticker": "AMGN",
+    "sector": "Health Care",
+    "price": 347.8,
+    "fwd_eps": 16.82256,
+    "fwd_pe": 20.674617894066067
+  },
+  {
+    "ticker": "APH",
+    "sector": "Information Technology",
+    "price": 126.74,
+    "fwd_eps": 0.90703,
+    "fwd_pe": 139.73076965480743
+  },
+  {
+    "ticker": "ADI",
+    "sector": "Information Technology",
+    "price": 309.43,
+    "fwd_eps": 5.17822,
+    "fwd_pe": 59.75605516953703
+  },
+  {
+    "ticker": "AON",
+    "sector": "Financials",
+    "price": 325.63,
+    "fwd_eps": 9.11908,
+    "fwd_pe": 35.70864604762761
+  },
+  {
+    "ticker": "APA",
+    "sector": "Energy",
+    "price": 39.11,
+    "fwd_eps": 4.04671,
+    "fwd_pe": 9.664641152936582
+  },
+  {
+    "ticker": "APO",
+    "sector": "Financials",
+    "price": 112,
+    "fwd_eps": 1.81154,
+    "fwd_pe": 61.8258498294269
+  },
+  {
+    "ticker": "AAPL",
+    "sector": "Information Technology",
+    "price": 247.99,
+    "fwd_eps": 5.60786,
+    "fwd_pe": 44.22186003216914
+  },
+  {
+    "ticker": "AMAT",
+    "sector": "Information Technology",
+    "price": 357.06,
+    "fwd_eps": 4.09969,
+    "fwd_pe": 87.09439006363897
+  },
+  {
+    "ticker": "APP",
+    "sector": "Information Technology",
+    "price": 442.39,
+    "fwd_eps": 0.14769,
+    "fwd_pe": 2995.395761392105
+  },
+  {
+    "ticker": "APTV",
+    "sector": "Consumer Discretionary",
+    "price": 68.1,
+    "fwd_eps": 2.56751,
+    "fwd_pe": 26.52375258518954
+  },
+  {
+    "ticker": "ACGL",
+    "sector": "Financials",
+    "price": 92.3,
+    "fwd_eps": 2.76179,
+    "fwd_pe": 33.420354190579296
+  },
+  {
+    "ticker": "ADM",
+    "sector": "Consumer Staples",
+    "price": 66.17,
+    "fwd_eps": 5.00188,
+    "fwd_pe": 13.229025886266765
+  },
+  {
+    "ticker": "ARES",
+    "sector": "Financials",
+    "price": 105.87,
+    "fwd_eps": 1.76697,
+    "fwd_pe": 59.916127608278586
+  },
+  {
+    "ticker": "ANET",
+    "sector": "Information Technology",
+    "price": 131.22,
+    "fwd_eps": 0.55884,
+    "fwd_pe": 234.80781619068068
+  },
+  {
+    "ticker": "AJG",
+    "sector": "Financials",
+    "price": 214.82,
+    "fwd_eps": 3.59713,
+    "fwd_pe": 59.71983219955909
+  },
+  {
+    "ticker": "AIZ",
+    "sector": "Financials",
+    "price": 212.81,
+    "fwd_eps": 8.63594,
+    "fwd_pe": 24.642366667670224
+  },
+  {
+    "ticker": "T",
+    "sector": "Communication Services",
+    "price": 28.34,
+    "fwd_eps": 2.55251,
+    "fwd_pe": 11.102796854860511
+  },
+  {
+    "ticker": "ATO",
+    "sector": "Utilities",
+    "price": 180.49,
+    "fwd_eps": 5.10636,
+    "fwd_pe": 35.3461173908616
+  },
+  {
+    "ticker": "ADSK",
+    "sector": "Information Technology",
+    "price": 247.99,
+    "fwd_eps": 3.94732,
+    "fwd_pe": 62.824903985488895
+  },
+  {
+    "ticker": "ADP",
+    "sector": "Industrials",
+    "price": 208.69,
+    "fwd_eps": 5.43896,
+    "fwd_pe": 38.36946769235295
+  },
+  {
+    "ticker": "AZO",
+    "sector": "Consumer Discretionary",
+    "price": 3282.9,
+    "fwd_eps": 89.5007,
+    "fwd_pe": 36.680160043441006
+  },
+  {
+    "ticker": "AVB",
+    "sector": "Real Estate",
+    "price": 161.37,
+    "fwd_eps": 5.59089,
+    "fwd_pe": 28.863025385940343
+  },
+  {
+    "ticker": "AVY",
+    "sector": "Materials",
+    "price": 161.16,
+    "fwd_eps": 6.54742,
+    "fwd_pe": 24.614275546703894
+  },
+  {
+    "ticker": "AXON",
+    "sector": "Industrials",
+    "price": 496.27,
+    "fwd_eps": 1.00273,
+    "fwd_pe": 494.9188714808573
+  },
+  {
+    "ticker": "BKR",
+    "sector": "Energy",
+    "price": 60.35,
+    "fwd_eps": 0.69085,
+    "fwd_pe": 87.35615546066441
+  },
+  {
+    "ticker": "BALL",
+    "sector": "Materials",
+    "price": 57.06,
+    "fwd_eps": 2.49867,
+    "fwd_pe": 22.836148831178186
+  },
+  {
+    "ticker": "BAC",
+    "sector": "Financials",
+    "price": 47.16,
+    "fwd_eps": 1.81211,
+    "fwd_pe": 26.02491018757139
+  },
+  {
+    "ticker": "BAX",
+    "sector": "Health Care",
+    "price": 16.15,
+    "fwd_eps": 3.41378,
+    "fwd_pe": 4.730826239535061
+  },
+  {
+    "ticker": "BDX",
+    "sector": "Health Care",
+    "price": 154.13,
+    "fwd_eps": 12.59883,
+    "fwd_pe": 12.233675666708734
+  },
+  {
+    "ticker": "BRK-B",
+    "sector": "Financials",
+    "price": 481.11,
+    "fwd_eps": 10.4272,
+    "fwd_pe": 46.13990332975296
+  },
+  {
+    "ticker": "BBY",
+    "sector": "Consumer Discretionary",
+    "price": 62.8,
+    "fwd_eps": 10.01999,
+    "fwd_pe": 6.267471324821681
+  },
+  {
+    "ticker": "TECH",
+    "sector": "Health Care",
+    "price": 51.48,
+    "fwd_eps": 1.64004,
+    "fwd_pe": 31.389478305407184
+  },
+  {
+    "ticker": "BIIB",
+    "sector": "Health Care",
+    "price": 181.46,
+    "fwd_eps": 19.19171,
+    "fwd_pe": 9.455124113484416
+  },
+  {
+    "ticker": "BLK",
+    "sector": "Financials",
+    "price": 957.91,
+    "fwd_eps": 32.61371,
+    "fwd_pe": 29.37139013010173
+  },
+  {
+    "ticker": "BX",
+    "sector": "Financials",
+    "price": 110.46,
+    "fwd_eps": 2.38835,
+    "fwd_pe": 46.2495027948165
+  },
+  {
+    "ticker": "XYZ",
+    "sector": "Financials",
+    "price": 59.35,
+    "fwd_eps": 1.66311,
+    "fwd_pe": 35.68615425317628
+  },
+  {
+    "ticker": "BK",
+    "sector": "Financials",
+    "price": 114.94,
+    "fwd_eps": 3.92021,
+    "fwd_pe": 29.319857864757246
+  },
+  {
+    "ticker": "BA",
+    "sector": "Industrials",
+    "price": 195.12,
+    "fwd_eps": 1.30982,
+    "fwd_pe": 148.96703363820984
+  },
+  {
+    "ticker": "BKNG",
+    "sector": "Consumer Discretionary",
+    "price": 4324.04,
+    "fwd_eps": 43.71892,
+    "fwd_pe": 98.90546244051775
+  },
+  {
+    "ticker": "BSX",
+    "sector": "Health Care",
+    "price": 69.48,
+    "fwd_eps": 1.6134,
+    "fwd_pe": 43.06433618445519
+  },
+  {
+    "ticker": "BMY",
+    "sector": "Health Care",
+    "price": 57.48,
+    "fwd_eps": 7.47011,
+    "fwd_pe": 7.694665808134016
+  },
+  {
+    "ticker": "AVGO",
+    "sector": "Information Technology",
+    "price": 310.51,
+    "fwd_eps": 2.79449,
+    "fwd_pe": 111.11508718943348
+  },
+  {
+    "ticker": "BR",
+    "sector": "Industrials",
+    "price": 174.36,
+    "fwd_eps": 5.652,
+    "fwd_pe": 30.849256900212318
+  },
+  {
+    "ticker": "BRO",
+    "sector": "Financials",
+    "price": 67.05,
+    "fwd_eps": 1.38212,
+    "fwd_pe": 48.5124301797239
+  },
+  {
+    "ticker": "BF-B",
+    "sector": "Consumer Staples",
+    "price": 22.8,
+    "fwd_eps": 1.72476,
+    "fwd_pe": 13.21923050163501
+  },
+  {
+    "ticker": "BLDR",
+    "sector": "Industrials",
+    "price": 81.22,
+    "fwd_eps": 2.677,
+    "fwd_pe": 30.339932760552855
+  },
+  {
+    "ticker": "BG",
+    "sector": "Consumer Staples",
+    "price": 118.15,
+    "fwd_eps": 2.9175,
+    "fwd_pe": 40.49700085689803
+  },
+  {
+    "ticker": "BXP",
+    "sector": "Real Estate",
+    "price": 52.08,
+    "fwd_eps": 2.33968,
+    "fwd_pe": 22.259454284346578
+  },
+  {
+    "ticker": "CHRW",
+    "sector": "Industrials",
+    "price": 168.88,
+    "fwd_eps": 6.41056,
+    "fwd_pe": 26.34403234662806
+  },
+  {
+    "ticker": "CDNS",
+    "sector": "Information Technology",
+    "price": 283.9,
+    "fwd_eps": 2.70227,
+    "fwd_pe": 105.05982007719435
+  },
+  {
+    "ticker": "CPT",
+    "sector": "Real Estate",
+    "price": 97.36,
+    "fwd_eps": 1.38597,
+    "fwd_pe": 70.24683073948209
+  },
+  {
+    "ticker": "CPB",
+    "sector": "Consumer Staples",
+    "price": 21.07,
+    "fwd_eps": 2.90657,
+    "fwd_pe": 7.249094293273515
+  },
+  {
+    "ticker": "COF",
+    "sector": "Financials",
+    "price": 181.46,
+    "fwd_eps": 11.59176,
+    "fwd_pe": 15.654223344858762
+  },
+  {
+    "ticker": "CAH",
+    "sector": "Health Care",
+    "price": 207.83,
+    "fwd_eps": 5.99231,
+    "fwd_pe": 34.6827851029069
+  },
+  {
+    "ticker": "CCL",
+    "sector": "Consumer Discretionary",
+    "price": 24.12,
+    "fwd_eps": 0.32066,
+    "fwd_pe": 75.2198590407285
+  },
+  {
+    "ticker": "CARR",
+    "sector": "Industrials",
+    "price": 58.07,
+    "fwd_eps": 1.71168,
+    "fwd_pe": 33.92573378201533
+  },
+  {
+    "ticker": "CVNA",
+    "sector": "Consumer Discretionary",
+    "price": 281.34,
+    "fwd_eps": 6.20484,
+    "fwd_pe": 45.34202332372792
+  },
+  {
+    "ticker": "CAT",
+    "sector": "Industrials",
+    "price": 680.88,
+    "fwd_eps": 5.44327,
+    "fwd_pe": 125.08657479786966
+  },
+  {
+    "ticker": "CBOE",
+    "sector": "Financials",
+    "price": 284.17,
+    "fwd_eps": 5.89431,
+    "fwd_pe": 48.21090170011418
+  },
+  {
+    "ticker": "CBRE",
+    "sector": "Real Estate",
+    "price": 131.99,
+    "fwd_eps": 5.40969,
+    "fwd_pe": 24.398810283029157
+  },
+  {
+    "ticker": "CDW",
+    "sector": "Information Technology",
+    "price": 120.27,
+    "fwd_eps": 6.28529,
+    "fwd_pe": 19.13515525934364
+  },
+  {
+    "ticker": "COR",
+    "sector": "Health Care",
+    "price": 326.91,
+    "fwd_eps": 9.23098,
+    "fwd_pe": 35.41444137025538
+  },
+  {
+    "ticker": "CNC",
+    "sector": "Health Care",
+    "price": 34.37,
+    "fwd_eps": 5.12167,
+    "fwd_pe": 6.710701782816932
+  },
+  {
+    "ticker": "CNP",
+    "sector": "Utilities",
+    "price": 42.02,
+    "fwd_eps": 1.46129,
+    "fwd_pe": 28.755414736294647
+  },
+  {
+    "ticker": "CF",
+    "sector": "Materials",
+    "price": 124.88,
+    "fwd_eps": 5.726,
+    "fwd_pe": 21.809290953545233
+  },
+  {
+    "ticker": "CRL",
+    "sector": "Health Care",
+    "price": 153.6,
+    "fwd_eps": 10.26456,
+    "fwd_pe": 14.964109518576539
+  },
+  {
+    "ticker": "SCHW",
+    "sector": "Financials",
+    "price": 94.66,
+    "fwd_eps": 3.28031,
+    "fwd_pe": 28.857028756428505
+  },
+  {
+    "ticker": "CHTR",
+    "sector": "Communication Services",
+    "price": 213.01,
+    "fwd_eps": 22.36704,
+    "fwd_pe": 9.523387985178191
+  },
+  {
+    "ticker": "CVX",
+    "sector": "Energy",
+    "price": 201.79,
+    "fwd_eps": 8.5646,
+    "fwd_pe": 23.56093687971417
+  },
+  {
+    "ticker": "CMG",
+    "sector": "Consumer Discretionary",
+    "price": 33.355,
+    "fwd_eps": 0.50192,
+    "fwd_pe": 66.45481351609817
+  },
+  {
+    "ticker": "CB",
+    "sector": "Financials",
+    "price": 322.58,
+    "fwd_eps": 9.97763,
+    "fwd_pe": 32.33032293239978
+  },
+  {
+    "ticker": "CHD",
+    "sector": "Consumer Staples",
+    "price": 94.69,
+    "fwd_eps": 2.97715,
+    "fwd_pe": 31.805585879112574
+  },
+  {
+    "ticker": "CIEN",
+    "sector": "Information Technology",
+    "price": 383.89,
+    "fwd_eps": 2.16011,
+    "fwd_pe": 177.7178014082616
+  },
+  {
+    "ticker": "CI",
+    "sector": "Health Care",
+    "price": 262.84,
+    "fwd_eps": 20.41984,
+    "fwd_pe": 12.871795273616247
+  },
+  {
+    "ticker": "CINF",
+    "sector": "Financials",
+    "price": 158.43,
+    "fwd_eps": 3.21792,
+    "fwd_pe": 49.23366646778043
+  },
+  {
+    "ticker": "CTAS",
+    "sector": "Industrials",
+    "price": 179.34,
+    "fwd_eps": 2.51074,
+    "fwd_pe": 71.42914041278667
+  },
+  {
+    "ticker": "CSCO",
+    "sector": "Information Technology",
+    "price": 77.65,
+    "fwd_eps": 3.07912,
+    "fwd_pe": 25.218244173660008
+  },
+  {
+    "ticker": "C",
+    "sector": "Financials",
+    "price": 109.55,
+    "fwd_eps": 10.12168,
+    "fwd_pe": 10.823302060527501
+  },
+  {
+    "ticker": "CFG",
+    "sector": "Financials",
+    "price": 57.02,
+    "fwd_eps": 3.78375,
+    "fwd_pe": 15.069705979517675
+  },
+  {
+    "ticker": "CLX",
+    "sector": "Consumer Staples",
+    "price": 106.15,
+    "fwd_eps": 7.69531,
+    "fwd_pe": 13.794116156464133
+  },
+  {
+    "ticker": "CME",
+    "sector": "Financials",
+    "price": 307.32,
+    "fwd_eps": 6.67947,
+    "fwd_pe": 46.00963848928133
+  },
+  {
+    "ticker": "CMS",
+    "sector": "Utilities",
+    "price": 74.43,
+    "fwd_eps": 2.64955,
+    "fwd_pe": 28.09156271819743
+  },
+  {
+    "ticker": "KO",
+    "sector": "Consumer Staples",
+    "price": 74.75,
+    "fwd_eps": 2.29107,
+    "fwd_pe": 32.62667661834863
+  },
+  {
+    "ticker": "CTSH",
+    "sector": "Information Technology",
+    "price": 62.07,
+    "fwd_eps": 3.64934,
+    "fwd_pe": 17.0085549715839
+  },
+  {
+    "ticker": "COIN",
+    "sector": "Financials",
+    "price": 197.5,
+    "fwd_eps": 13.29597,
+    "fwd_pe": 14.854124971701951
+  },
+  {
+    "ticker": "CL",
+    "sector": "Consumer Staples",
+    "price": 85.12,
+    "fwd_eps": 3.20235,
+    "fwd_pe": 26.580479960029354
+  },
+  {
+    "ticker": "CMCSA",
+    "sector": "Communication Services",
+    "price": 29.02,
+    "fwd_eps": 3.20234,
+    "fwd_pe": 9.062123322320552
+  },
+  {
+    "ticker": "FIX",
+    "sector": "Industrials",
+    "price": 1356.75,
+    "fwd_eps": 2.948,
+    "fwd_pe": 460.22727272727275
+  },
+  {
+    "ticker": "CAG",
+    "sector": "Consumer Staples",
+    "price": 15.16,
+    "fwd_eps": 2.63151,
+    "fwd_pe": 5.760950936914547
+  },
+  {
+    "ticker": "COP",
+    "sector": "Energy",
+    "price": 126.92,
+    "fwd_eps": 5.94712,
+    "fwd_pe": 21.34142240277647
+  },
+  {
+    "ticker": "ED",
+    "sector": "Utilities",
+    "price": 109.45,
+    "fwd_eps": 4.239,
+    "fwd_pe": 25.81976881339939
+  },
+  {
+    "ticker": "STZ",
+    "sector": "Consumer Staples",
+    "price": 149.62,
+    "fwd_eps": 9.77058,
+    "fwd_pe": 15.313318144879833
+  },
+  {
+    "ticker": "CEG",
+    "sector": "Utilities",
+    "price": 281.99,
+    "fwd_eps": 1.93896,
+    "fwd_pe": 145.43363452572513
+  },
+  {
+    "ticker": "COO",
+    "sector": "Health Care",
+    "price": 69.96,
+    "fwd_eps": 2.39445,
+    "fwd_pe": 29.2175656204974
+  },
+  {
+    "ticker": "CPRT",
+    "sector": "Industrials",
+    "price": 32.86,
+    "fwd_eps": 0.55523,
+    "fwd_pe": 59.18268105109594
+  },
+  {
+    "ticker": "GLW",
+    "sector": "Information Technology",
+    "price": 124.78,
+    "fwd_eps": 1.73983,
+    "fwd_pe": 71.71965077047757
+  },
+  {
+    "ticker": "CPAY",
+    "sector": "Financials",
+    "price": 287.46,
+    "fwd_eps": 11.7562,
+    "fwd_pe": 24.451778635953794
+  },
+  {
+    "ticker": "CTVA",
+    "sector": "Materials",
+    "price": 77.345,
+    "fwd_eps": 1.41197,
+    "fwd_pe": 54.778076021445216
+  },
+  {
+    "ticker": "CSGP",
+    "sector": "Real Estate",
+    "price": 42.9,
+    "fwd_eps": 1.07364,
+    "fwd_pe": 39.957527662903765
+  },
+  {
+    "ticker": "COST",
+    "sector": "Consumer Staples",
+    "price": 972.33,
+    "fwd_eps": 10.83061,
+    "fwd_pe": 89.77610679361551
+  },
+  {
+    "ticker": "CTRA",
+    "sector": "Energy",
+    "price": 33.97,
+    "fwd_eps": 2.60304,
+    "fwd_pe": 13.050126006515459
+  },
+  {
+    "ticker": "CRH",
+    "sector": "Materials",
+    "price": 100.47,
+    "fwd_eps": 3.13936,
+    "fwd_pe": 32.00333826002752
+  },
+  {
+    "ticker": "CRWD",
+    "sector": "Information Technology",
+    "price": 409,
+    "fwd_eps": 0.58107,
+    "fwd_pe": 703.8738878276283
+  },
+  {
+    "ticker": "CCI",
+    "sector": "Real Estate",
+    "price": 82.36,
+    "fwd_eps": 2.58036,
+    "fwd_pe": 31.918026941977086
+  },
+  {
+    "ticker": "CSX",
+    "sector": "Industrials",
+    "price": 38.17,
+    "fwd_eps": 1.54832,
+    "fwd_pe": 24.652526609486415
+  },
+  {
+    "ticker": "CMI",
+    "sector": "Industrials",
+    "price": 533.54,
+    "fwd_eps": 14.83465,
+    "fwd_pe": 35.96579629448622
+  },
+  {
+    "ticker": "CVS",
+    "sector": "Health Care",
+    "price": 71.48,
+    "fwd_eps": 8.25368,
+    "fwd_pe": 8.660379370171851
+  },
+  {
+    "ticker": "DHR",
+    "sector": "Health Care",
+    "price": 189.35,
+    "fwd_eps": 8.77203,
+    "fwd_pe": 21.58565349183712
+  },
+  {
+    "ticker": "DRI",
+    "sector": "Consumer Discretionary",
+    "price": 203.05,
+    "fwd_eps": 4.06268,
+    "fwd_pe": 49.97932399302923
+  },
+  {
+    "ticker": "DDOG",
+    "sector": "Information Technology",
+    "price": 125.08,
+    "fwd_eps": 0.39891,
+    "fwd_pe": 313.55443583765765
+  },
+  {
+    "ticker": "DVA",
+    "sector": "Health Care",
+    "price": 149.31,
+    "fwd_eps": 7.45361,
+    "fwd_pe": 20.031904003563373
+  },
+  {
+    "ticker": "DECK",
+    "sector": "Consumer Discretionary",
+    "price": 100.43,
+    "fwd_eps": 2.1839,
+    "fwd_pe": 45.98653784513943
+  },
+  {
+    "ticker": "DE",
+    "sector": "Industrials",
+    "price": 559.73,
+    "fwd_eps": 9.91261,
+    "fwd_pe": 56.46646039741299
+  },
+  {
+    "ticker": "DELL",
+    "sector": "Information Technology",
+    "price": 158.36,
+    "fwd_eps": 7.43571,
+    "fwd_pe": 21.297226492157442
+  },
+  {
+    "ticker": "DAL",
+    "sector": "Industrials",
+    "price": 63.44,
+    "fwd_eps": 3.04389,
+    "fwd_pe": 20.841751837287152
+  },
+  {
+    "ticker": "DVN",
+    "sector": "Energy",
+    "price": 48.66,
+    "fwd_eps": 3.38984,
+    "fwd_pe": 14.35465980695254
+  },
+  {
+    "ticker": "DXCM",
+    "sector": "Health Care",
+    "price": 66.95,
+    "fwd_eps": 0.70659,
+    "fwd_pe": 94.75084561060869
+  },
+  {
+    "ticker": "FANG",
+    "sector": "Energy",
+    "price": 192.54,
+    "fwd_eps": 10.97447,
+    "fwd_pe": 17.544355217153992
+  },
+  {
+    "ticker": "DLR",
+    "sector": "Real Estate",
+    "price": 173.3,
+    "fwd_eps": 2.51431,
+    "fwd_pe": 68.92547060624983
+  },
+  {
+    "ticker": "DG",
+    "sector": "Consumer Staples",
+    "price": 124.48,
+    "fwd_eps": 10.16604,
+    "fwd_pe": 12.244689180841311
+  },
+  {
+    "ticker": "DLTR",
+    "sector": "Consumer Staples",
+    "price": 105.92,
+    "fwd_eps": 5.57194,
+    "fwd_pe": 19.009537073263534
+  },
+  {
+    "ticker": "D",
+    "sector": "Utilities",
+    "price": 59.38,
+    "fwd_eps": 3.86376,
+    "fwd_pe": 15.368449386090234
+  },
+  {
+    "ticker": "DPZ",
+    "sector": "Consumer Discretionary",
+    "price": 373.35,
+    "fwd_eps": 13.62066,
+    "fwd_pe": 27.410566007814598
+  },
+  {
+    "ticker": "DASH",
+    "sector": "Consumer Discretionary",
+    "price": 156.64,
+    "fwd_eps": 0.3004,
+    "fwd_pe": 521.4380825565912
+  },
+  {
+    "ticker": "DOV",
+    "sector": "Industrials",
+    "price": 209.37,
+    "fwd_eps": 5.85102,
+    "fwd_pe": 35.78350441461489
+  },
+  {
+    "ticker": "DOW",
+    "sector": "Materials",
+    "price": 36.65,
+    "fwd_eps": 3.48359,
+    "fwd_pe": 10.520755886886803
+  },
+  {
+    "ticker": "DHI",
+    "sector": "Consumer Discretionary",
+    "price": 133.12,
+    "fwd_eps": 4.18842,
+    "fwd_pe": 31.78286800273134
+  },
+  {
+    "ticker": "DTE",
+    "sector": "Utilities",
+    "price": 141.57,
+    "fwd_eps": 5.90522,
+    "fwd_pe": 23.973704620657653
+  },
+  {
+    "ticker": "DUK",
+    "sector": "Utilities",
+    "price": 126.86,
+    "fwd_eps": 5.24035,
+    "fwd_pe": 24.20830669707176
+  },
+  {
+    "ticker": "DD",
+    "sector": "Materials",
+    "price": 42.46,
+    "fwd_eps": 1.58641,
+    "fwd_pe": 26.764833807149476
+  },
+  {
+    "ticker": "ETN",
+    "sector": "Industrials",
+    "price": 356.8,
+    "fwd_eps": 6.62041,
+    "fwd_pe": 53.893943124368434
+  },
+  {
+    "ticker": "EBAY",
+    "sector": "Consumer Discretionary",
+    "price": 88.98,
+    "fwd_eps": 3.96837,
+    "fwd_pe": 22.422304371820168
+  },
+  {
+    "ticker": "ECL",
+    "sector": "Materials",
+    "price": 256.48,
+    "fwd_eps": 5.86655,
+    "fwd_pe": 43.71905123113244
+  },
+  {
+    "ticker": "EIX",
+    "sector": "Utilities",
+    "price": 69.75,
+    "fwd_eps": 4.47622,
+    "fwd_pe": 15.58234403134788
+  },
+  {
+    "ticker": "EW",
+    "sector": "Health Care",
+    "price": 82.5,
+    "fwd_eps": 2.26274,
+    "fwd_pe": 36.46022079425829
+  },
+  {
+    "ticker": "EA",
+    "sector": "Communication Services",
+    "price": 200.51,
+    "fwd_eps": 5.60235,
+    "fwd_pe": 35.790337983167774
+  },
+  {
+    "ticker": "ELV",
+    "sector": "Health Care",
+    "price": 291.48,
+    "fwd_eps": 25.94211,
+    "fwd_pe": 11.235786140757249
+  },
+  {
+    "ticker": "EME",
+    "sector": "Industrials",
+    "price": 724.93,
+    "fwd_eps": 7.05429,
+    "fwd_pe": 102.76441711355784
+  },
+  {
+    "ticker": "EMR",
+    "sector": "Industrials",
+    "price": 128.15,
+    "fwd_eps": 3.29337,
+    "fwd_pe": 38.911510094523244
+  },
+  {
+    "ticker": "ETR",
+    "sector": "Utilities",
+    "price": 99.9,
+    "fwd_eps": 2.99665,
+    "fwd_pe": 33.33722656966947
+  },
+  {
+    "ticker": "EOG",
+    "sector": "Energy",
+    "price": 138.73,
+    "fwd_eps": 8.6814,
+    "fwd_pe": 15.980141451839565
+  },
+  {
+    "ticker": "EPAM",
+    "sector": "Information Technology",
+    "price": 137.43,
+    "fwd_eps": 5.36328,
+    "fwd_pe": 25.624244865082563
+  },
+  {
+    "ticker": "EQT",
+    "sector": "Energy",
+    "price": 64.71,
+    "fwd_eps": 1.05562,
+    "fwd_pe": 61.30046797142911
+  },
+  {
+    "ticker": "EFX",
+    "sector": "Industrials",
+    "price": 178.02,
+    "fwd_eps": 7.60735,
+    "fwd_pe": 23.40105292907517
+  },
+  {
+    "ticker": "EQIX",
+    "sector": "Real Estate",
+    "price": 959.16,
+    "fwd_eps": 5.54198,
+    "fwd_pe": 173.07171805022753
+  },
+  {
+    "ticker": "EQR",
+    "sector": "Real Estate",
+    "price": 57.98,
+    "fwd_eps": 2.20158,
+    "fwd_pe": 26.335631682700605
+  },
+  {
+    "ticker": "ERIE",
+    "sector": "Financials",
+    "price": 240.37,
+    "fwd_eps": 4.0528,
+    "fwd_pe": 59.309613106987754
+  },
+  {
+    "ticker": "ESS",
+    "sector": "Real Estate",
+    "price": 240.19,
+    "fwd_eps": 6.41705,
+    "fwd_pe": 37.42997171597541
+  },
+  {
+    "ticker": "EL",
+    "sector": "Consumer Staples",
+    "price": 85.92,
+    "fwd_eps": 6.17878,
+    "fwd_pe": 13.90565775120655
+  },
+  {
+    "ticker": "EG",
+    "sector": "Financials",
+    "price": 316.02,
+    "fwd_eps": 20.76379,
+    "fwd_pe": 15.219764792458408
+  },
+  {
+    "ticker": "EVRG",
+    "sector": "Utilities",
+    "price": 78.7,
+    "fwd_eps": 3.54401,
+    "fwd_pe": 22.206483616016886
+  },
+  {
+    "ticker": "ES",
+    "sector": "Utilities",
+    "price": 66.67,
+    "fwd_eps": 3.83637,
+    "fwd_pe": 17.37840719221556
+  },
+  {
+    "ticker": "EXC",
+    "sector": "Utilities",
+    "price": 46.44,
+    "fwd_eps": 1.9889,
+    "fwd_pe": 23.34959022575293
+  },
+  {
+    "ticker": "EXE",
+    "sector": "Energy",
+    "price": 107.32,
+    "fwd_eps": 9.34045,
+    "fwd_pe": 11.489810448104746
+  },
+  {
+    "ticker": "EXPE",
+    "sector": "Consumer Discretionary",
+    "price": 235.18,
+    "fwd_eps": 1.32872,
+    "fwd_pe": 176.99741104220604
+  },
+  {
+    "ticker": "EXPD",
+    "sector": "Industrials",
+    "price": 146.35,
+    "fwd_eps": 3.44918,
+    "fwd_pe": 42.430374755739045
+  },
+  {
+    "ticker": "EXR",
+    "sector": "Real Estate",
+    "price": 130.26,
+    "fwd_eps": 5.32084,
+    "fwd_pe": 24.481096969651407
+  },
+  {
+    "ticker": "XOM",
+    "sector": "Energy",
+    "price": 159.75,
+    "fwd_eps": 5.23946,
+    "fwd_pe": 30.48978329827883
+  },
+  {
+    "ticker": "FFIV",
+    "sector": "Information Technology",
+    "price": 284.28,
+    "fwd_eps": 9.34065,
+    "fwd_pe": 30.43471278765396
+  },
+  {
+    "ticker": "FDS",
+    "sector": "Financials",
+    "price": 209.27,
+    "fwd_eps": 11.04798,
+    "fwd_pe": 18.941924225061957
+  },
+  {
+    "ticker": "FICO",
+    "sector": "Information Technology",
+    "price": 1127.62,
+    "fwd_eps": 12.34833,
+    "fwd_pe": 91.31761136931065
+  },
+  {
+    "ticker": "FAST",
+    "sector": "Industrials",
+    "price": 43.76,
+    "fwd_eps": 0.74153,
+    "fwd_pe": 59.013121519021475
+  },
+  {
+    "ticker": "FRT",
+    "sector": "Real Estate",
+    "price": 103.15,
+    "fwd_eps": 2.35569,
+    "fwd_pe": 43.78759514197539
+  },
+  {
+    "ticker": "FDX",
+    "sector": "Industrials",
+    "price": 358.85,
+    "fwd_eps": 18.14229,
+    "fwd_pe": 19.779752170205636
+  },
+  {
+    "ticker": "FIS",
+    "sector": "Financials",
+    "price": 49.79,
+    "fwd_eps": 5.40932,
+    "fwd_pe": 9.20448411260565
+  },
+  {
+    "ticker": "FITB",
+    "sector": "Financials",
+    "price": 44.19,
+    "fwd_eps": 3.10283,
+    "fwd_pe": 14.241837290473535
+  },
+  {
+    "ticker": "FSLR",
+    "sector": "Information Technology",
+    "price": 192.82,
+    "fwd_eps": 4.22221,
+    "fwd_pe": 45.66802693376218
+  },
+  {
+    "ticker": "FE",
+    "sector": "Utilities",
+    "price": 48.54,
+    "fwd_eps": 2.61095,
+    "fwd_pe": 18.590934334246157
+  },
+  {
+    "ticker": "FISV",
+    "sector": "Financials",
+    "price": 57.07,
+    "fwd_eps": 5.56846,
+    "fwd_pe": 10.248794101062053
+  },
+  {
+    "ticker": "F",
+    "sector": "Consumer Discretionary",
+    "price": 11.515,
+    "fwd_eps": 1.85505,
+    "fwd_pe": 6.207379854990432
+  },
+  {
+    "ticker": "FTNT",
+    "sector": "Information Technology",
+    "price": 81.4,
+    "fwd_eps": 0.78112,
+    "fwd_pe": 104.20934043424826
+  },
+  {
+    "ticker": "FTV",
+    "sector": "Industrials",
+    "price": 55.22,
+    "fwd_eps": 2.06118,
+    "fwd_pe": 26.790479240046967
+  },
+  {
+    "ticker": "FOXA",
+    "sector": "Communication Services",
+    "price": 57.82,
+    "fwd_eps": 2.78204,
+    "fwd_pe": 20.78331008899944
+  },
+  {
+    "ticker": "FOX",
+    "sector": "Communication Services",
+    "price": 52.18,
+    "fwd_eps": 2.78186,
+    "fwd_pe": 18.75723436837224
+  },
+  {
+    "ticker": "BEN",
+    "sector": "Financials",
+    "price": 23.46,
+    "fwd_eps": 2.71453,
+    "fwd_pe": 8.642380080529595
+  },
+  {
+    "ticker": "FCX",
+    "sector": "Materials",
+    "price": 52.1,
+    "fwd_eps": 3.15013,
+    "fwd_pe": 16.538999977778698
+  },
+  {
+    "ticker": "GRMN",
+    "sector": "Consumer Discretionary",
+    "price": 232.36,
+    "fwd_eps": 4.24333,
+    "fwd_pe": 54.7588804076044
+  },
+  {
+    "ticker": "IT",
+    "sector": "Information Technology",
+    "price": 161.41,
+    "fwd_eps": 3.54735,
+    "fwd_pe": 45.5015715956982
+  },
+  {
+    "ticker": "GE",
+    "sector": "Industrials",
+    "price": 286.79,
+    "fwd_eps": 1.26808,
+    "fwd_pe": 226.16081004353038
+  },
+  {
+    "ticker": "GEHC",
+    "sector": "Health Care",
+    "price": 69.65,
+    "fwd_eps": 3.51119,
+    "fwd_pe": 19.836579621154083
+  },
+  {
+    "ticker": "GEV",
+    "sector": "Industrials",
+    "price": 851.07,
+    "fwd_eps": 3.02867,
+    "fwd_pe": 281.0045333430186
+  },
+  {
+    "ticker": "GEN",
+    "sector": "Information Technology",
+    "price": 20.97,
+    "fwd_eps": 1.59505,
+    "fwd_pe": 13.146923293940628
+  },
+  {
+    "ticker": "GNRC",
+    "sector": "Industrials",
+    "price": 199.31,
+    "fwd_eps": 9.59088,
+    "fwd_pe": 20.78120047378343
+  },
+  {
+    "ticker": "GD",
+    "sector": "Industrials",
+    "price": 345.78,
+    "fwd_eps": 11.52597,
+    "fwd_pe": 30.000078084534316
+  },
+  {
+    "ticker": "GIS",
+    "sector": "Consumer Staples",
+    "price": 37.01,
+    "fwd_eps": 3.72385,
+    "fwd_pe": 9.938638774386723
+  },
+  {
+    "ticker": "GM",
+    "sector": "Consumer Discretionary",
+    "price": 72.81,
+    "fwd_eps": 6.82908,
+    "fwd_pe": 10.6617582456202
+  },
+  {
+    "ticker": "GPC",
+    "sector": "Consumer Discretionary",
+    "price": 96.38,
+    "fwd_eps": 5.17923,
+    "fwd_pe": 18.608943800526333
+  },
+  {
+    "ticker": "GILD",
+    "sector": "Health Care",
+    "price": 137.21,
+    "fwd_eps": 8.20458,
+    "fwd_pe": 16.723586094595944
+  },
+  {
+    "ticker": "GPN",
+    "sector": "Financials",
+    "price": 68.5,
+    "fwd_eps": 8.16221,
+    "fwd_pe": 8.392334919096665
+  },
+  {
+    "ticker": "GL",
+    "sector": "Financials",
+    "price": 136.8,
+    "fwd_eps": 6.84582,
+    "fwd_pe": 19.982996923670214
+  },
+  {
+    "ticker": "GDDY",
+    "sector": "Information Technology",
+    "price": 84.89,
+    "fwd_eps": 1.3075,
+    "fwd_pe": 64.92543021032505
+  },
+  {
+    "ticker": "GS",
+    "sector": "Financials",
+    "price": 813.74,
+    "fwd_eps": 20.16086,
+    "fwd_pe": 40.36236549432911
+  },
+  {
+    "ticker": "HAL",
+    "sector": "Energy",
+    "price": 36.53,
+    "fwd_eps": 1.06418,
+    "fwd_pe": 34.326899584656736
+  },
+  {
+    "ticker": "HIG",
+    "sector": "Financials",
+    "price": 132.65,
+    "fwd_eps": 5.54552,
+    "fwd_pe": 23.920209466380072
+  },
+  {
+    "ticker": "HAS",
+    "sector": "Consumer Discretionary",
+    "price": 91.11,
+    "fwd_eps": 4.88322,
+    "fwd_pe": 18.657770897072016
+  },
+  {
+    "ticker": "HCA",
+    "sector": "Health Care",
+    "price": 493.88,
+    "fwd_eps": 17.84606,
+    "fwd_pe": 27.67445587429382
+  },
+  {
+    "ticker": "DOC",
+    "sector": "Real Estate",
+    "price": 17.05,
+    "fwd_eps": 0.080703,
+    "fwd_pe": 211.268478247401
+  },
+  {
+    "ticker": "HSIC",
+    "sector": "Health Care",
+    "price": 72.29,
+    "fwd_eps": 2.96256,
+    "fwd_pe": 24.40119356232448
+  },
+  {
+    "ticker": "HSY",
+    "sector": "Consumer Staples",
+    "price": 210.14,
+    "fwd_eps": 7.09572,
+    "fwd_pe": 29.61503554255241
+  },
+  {
+    "ticker": "HPE",
+    "sector": "Information Technology",
+    "price": 21.69,
+    "fwd_eps": 1.31651,
+    "fwd_pe": 16.47537808296177
+  },
+  {
+    "ticker": "HLT",
+    "sector": "Consumer Discretionary",
+    "price": 292.58,
+    "fwd_eps": 2.14178,
+    "fwd_pe": 136.6060006163098
+  },
+  {
+    "ticker": "HOLX",
+    "sector": "Health Care",
+    "price": 75.41,
+    "fwd_eps": 3.14402,
+    "fwd_pe": 23.985216379030668
+  },
+  {
+    "ticker": "HD",
+    "sector": "Consumer Discretionary",
+    "price": 320.75,
+    "fwd_eps": 15.48647,
+    "fwd_pe": 20.711627633669906
+  },
+  {
+    "ticker": "HON",
+    "sector": "Industrials",
+    "price": 221.5,
+    "fwd_eps": 6.62483,
+    "fwd_pe": 33.43482021425455
+  },
+  {
+    "ticker": "HRL",
+    "sector": "Consumer Staples",
+    "price": 22.14,
+    "fwd_eps": 1.7396,
+    "fwd_pe": 12.727063692802943
+  },
+  {
+    "ticker": "HST",
+    "sector": "Real Estate",
+    "price": 18.6,
+    "fwd_eps": 1.26357,
+    "fwd_pe": 14.720197535554025
+  },
+  {
+    "ticker": "HWM",
+    "sector": "Industrials",
+    "price": 231.21,
+    "fwd_eps": 0.98294,
+    "fwd_pe": 235.2229027204102
+  },
+  {
+    "ticker": "HPQ",
+    "sector": "Information Technology",
+    "price": 18.27,
+    "fwd_eps": 2.18978,
+    "fwd_pe": 8.343303893541817
+  },
+  {
+    "ticker": "HUBB",
+    "sector": "Industrials",
+    "price": 475.74,
+    "fwd_eps": 8.0648,
+    "fwd_pe": 58.98968356313858
+  },
+  {
+    "ticker": "HUM",
+    "sector": "Health Care",
+    "price": 169.9,
+    "fwd_eps": 20.53646,
+    "fwd_pe": 8.273090883238883
+  },
+  {
+    "ticker": "HBAN",
+    "sector": "Financials",
+    "price": 15.09,
+    "fwd_eps": 1.29473,
+    "fwd_pe": 11.654939639924926
+  },
+  {
+    "ticker": "HII",
+    "sector": "Industrials",
+    "price": 407.98,
+    "fwd_eps": 13.55169,
+    "fwd_pe": 30.105470240243097
+  },
+  {
+    "ticker": "IBM",
+    "sector": "Information Technology",
+    "price": 241.77,
+    "fwd_eps": 9.37734,
+    "fwd_pe": 25.782364721765447
+  },
+  {
+    "ticker": "IEX",
+    "sector": "Industrials",
+    "price": 184.11,
+    "fwd_eps": 5.12259,
+    "fwd_pe": 35.94080338266385
+  },
+  {
+    "ticker": "IDXX",
+    "sector": "Health Care",
+    "price": 577.26,
+    "fwd_eps": 8.38243,
+    "fwd_pe": 68.86547218408028
+  },
+  {
+    "ticker": "ITW",
+    "sector": "Industrials",
+    "price": 257.68,
+    "fwd_eps": 6.39044,
+    "fwd_pe": 40.32273208104606
+  },
+  {
+    "ticker": "INCY",
+    "sector": "Health Care",
+    "price": 90.78,
+    "fwd_eps": 2.58429,
+    "fwd_pe": 35.127636604251066
+  },
+  {
+    "ticker": "IR",
+    "sector": "Industrials",
+    "price": 81.39,
+    "fwd_eps": 1.41336,
+    "fwd_pe": 57.586177619290204
+  },
+  {
+    "ticker": "PODD",
+    "sector": "Health Care",
+    "price": 227.1,
+    "fwd_eps": 0.12928,
+    "fwd_pe": 1756.652227722772
+  },
+  {
+    "ticker": "INTC",
+    "sector": "Information Technology",
+    "price": 43.87,
+    "fwd_eps": 4.9136,
+    "fwd_pe": 8.928280690328883
+  },
+  {
+    "ticker": "IBKR",
+    "sector": "Financials",
+    "price": 65.47,
+    "fwd_eps": 0.58918,
+    "fwd_pe": 111.12054041209817
+  },
+  {
+    "ticker": "ICE",
+    "sector": "Financials",
+    "price": 158.43,
+    "fwd_eps": 5.12433,
+    "fwd_pe": 30.917212591694916
+  },
+  {
+    "ticker": "IFF",
+    "sector": "Materials",
+    "price": 66.62,
+    "fwd_eps": 5.60308,
+    "fwd_pe": 11.889889132405749
+  },
+  {
+    "ticker": "IP",
+    "sector": "Materials",
+    "price": 33.76,
+    "fwd_eps": 2.6344,
+    "fwd_pe": 12.8150622532645
+  },
+  {
+    "ticker": "INTU",
+    "sector": "Information Technology",
+    "price": 455.56,
+    "fwd_eps": 9.3485,
+    "fwd_pe": 48.730812429801574
+  },
+  {
+    "ticker": "ISRG",
+    "sector": "Health Care",
+    "price": 477.97,
+    "fwd_eps": 4.95989,
+    "fwd_pe": 96.36705652746332
+  },
+  {
+    "ticker": "IVZ",
+    "sector": "Financials",
+    "price": 23.21,
+    "fwd_eps": 1.78385,
+    "fwd_pe": 13.011183675757492
+  },
+  {
+    "ticker": "INVH",
+    "sector": "Real Estate",
+    "price": 24.39,
+    "fwd_eps": 0.23952,
+    "fwd_pe": 101.82865731462925
+  },
+  {
+    "ticker": "IQV",
+    "sector": "Health Care",
+    "price": 165.97,
+    "fwd_eps": 8.91445,
+    "fwd_pe": 18.61808636539551
+  },
+  {
+    "ticker": "IRM",
+    "sector": "Real Estate",
+    "price": 99.61,
+    "fwd_eps": 1.53271,
+    "fwd_pe": 64.98946310782861
+  },
+  {
+    "ticker": "JBHT",
+    "sector": "Industrials",
+    "price": 199.93,
+    "fwd_eps": 6.86994,
+    "fwd_pe": 29.102146452516326
+  },
+  {
+    "ticker": "JBL",
+    "sector": "Information Technology",
+    "price": 253.63,
+    "fwd_eps": 2.98249,
+    "fwd_pe": 85.03968160832056
+  },
+  {
+    "ticker": "JKHY",
+    "sector": "Financials",
+    "price": 165.38,
+    "fwd_eps": 3.48091,
+    "fwd_pe": 47.51056476611001
+  },
+  {
+    "ticker": "J",
+    "sector": "Industrials",
+    "price": 128.44,
+    "fwd_eps": 4.05679,
+    "fwd_pe": 31.660500050532562
+  },
+  {
+    "ticker": "JNJ",
+    "sector": "Health Care",
+    "price": 235.37,
+    "fwd_eps": 9.83192,
+    "fwd_pe": 23.939372981065752
+  },
+  {
+    "ticker": "JCI",
+    "sector": "Industrials",
+    "price": 129.7,
+    "fwd_eps": 2.65227,
+    "fwd_pe": 48.9015070109755
+  },
+  {
+    "ticker": "JPM",
+    "sector": "Financials",
+    "price": 286.56,
+    "fwd_eps": 10.49653,
+    "fwd_pe": 27.300450720380926
+  },
+  {
+    "ticker": "KVUE",
+    "sector": "Consumer Staples",
+    "price": 17.4,
+    "fwd_eps": 0.78644,
+    "fwd_pe": 22.1250190732923
+  },
+  {
+    "ticker": "KDP",
+    "sector": "Consumer Staples",
+    "price": 26.59,
+    "fwd_eps": 1.21979,
+    "fwd_pe": 21.798834225563418
+  },
+  {
+    "ticker": "KEY",
+    "sector": "Financials",
+    "price": 19.41,
+    "fwd_eps": 1.7663,
+    "fwd_pe": 10.989073203872502
+  },
+  {
+    "ticker": "KEYS",
+    "sector": "Information Technology",
+    "price": 277.53,
+    "fwd_eps": 4.7004,
+    "fwd_pe": 59.04391115649731
+  },
+  {
+    "ticker": "KMB",
+    "sector": "Consumer Staples",
+    "price": 98.2,
+    "fwd_eps": 6.14615,
+    "fwd_pe": 15.97748183822393
+  },
+  {
+    "ticker": "KIM",
+    "sector": "Real Estate",
+    "price": 22.34,
+    "fwd_eps": 1.27121,
+    "fwd_pe": 17.573807632098553
+  },
+  {
+    "ticker": "KMI",
+    "sector": "Energy",
+    "price": 32.84,
+    "fwd_eps": 1.30408,
+    "fwd_pe": 25.18250414085026
+  },
+  {
+    "ticker": "KKR",
+    "sector": "Financials",
+    "price": 90,
+    "fwd_eps": 1.69212,
+    "fwd_pe": 53.1877171831785
+  },
+  {
+    "ticker": "KLAC",
+    "sector": "Information Technology",
+    "price": 1498.67,
+    "fwd_eps": 14.11492,
+    "fwd_pe": 106.17630138888497
+  },
+  {
+    "ticker": "KHC",
+    "sector": "Consumer Staples",
+    "price": 21.57,
+    "fwd_eps": 2.77621,
+    "fwd_pe": 7.76958515386084
+  },
+  {
+    "ticker": "KR",
+    "sector": "Consumer Staples",
+    "price": 73.2,
+    "fwd_eps": 3.52258,
+    "fwd_pe": 20.780223586121537
+  },
+  {
+    "ticker": "LHX",
+    "sector": "Industrials",
+    "price": 352.85,
+    "fwd_eps": 12.92725,
+    "fwd_pe": 27.29505501943569
+  },
+  {
+    "ticker": "LH",
+    "sector": "Health Care",
+    "price": 263,
+    "fwd_eps": 23.83962,
+    "fwd_pe": 11.03205504114579
+  },
+  {
+    "ticker": "LRCX",
+    "sector": "Information Technology",
+    "price": 228.36,
+    "fwd_eps": 1.51924,
+    "fwd_pe": 150.31199810431534
+  },
+  {
+    "ticker": "LW",
+    "sector": "Consumer Staples",
+    "price": 40,
+    "fwd_eps": 2.13667,
+    "fwd_pe": 18.720719624462365
+  },
+  {
+    "ticker": "LVS",
+    "sector": "Consumer Discretionary",
+    "price": 52.93,
+    "fwd_eps": 3.2458,
+    "fwd_pe": 16.307227802082693
+  },
+  {
+    "ticker": "LDOS",
+    "sector": "Industrials",
+    "price": 165.87,
+    "fwd_eps": 4.99384,
+    "fwd_pe": 33.21492078240392
+  },
+  {
+    "ticker": "LEN",
+    "sector": "Consumer Discretionary",
+    "price": 90.55,
+    "fwd_eps": 5.33369,
+    "fwd_pe": 16.976989663816234
+  },
+  {
+    "ticker": "LII",
+    "sector": "Industrials",
+    "price": 467.88,
+    "fwd_eps": 12.2314,
+    "fwd_pe": 38.25236685906764
+  },
+  {
+    "ticker": "LLY",
+    "sector": "Health Care",
+    "price": 906.59,
+    "fwd_eps": 8.13166,
+    "fwd_pe": 111.48892108130444
+  },
+  {
+    "ticker": "LIN",
+    "sector": "Materials",
+    "price": 488.15,
+    "fwd_eps": 10.60029,
+    "fwd_pe": 46.05062691681077
+  },
+  {
+    "ticker": "LYV",
+    "sector": "Communication Services",
+    "price": 148.85,
+    "fwd_eps": 0.86775,
+    "fwd_pe": 171.53558052434457
+  },
+  {
+    "ticker": "LMT",
+    "sector": "Industrials",
+    "price": 627.43,
+    "fwd_eps": 22.46229,
+    "fwd_pe": 27.932592803316133
+  },
+  {
+    "ticker": "L",
+    "sector": "Financials",
+    "price": 105.6,
+    "fwd_eps": 2.70144,
+    "fwd_pe": 39.09026297085999
+  },
+  {
+    "ticker": "LOW",
+    "sector": "Consumer Discretionary",
+    "price": 224.71,
+    "fwd_eps": 11.9928,
+    "fwd_pe": 18.737075578680543
+  },
+  {
+    "ticker": "LULU",
+    "sector": "Consumer Discretionary",
+    "price": 162.82,
+    "fwd_eps": 4.59599,
+    "fwd_pe": 35.42653487061547
+  },
+  {
+    "ticker": "LYB",
+    "sector": "Materials",
+    "price": 73.32,
+    "fwd_eps": 9.95797,
+    "fwd_pe": 7.362946463988142
+  },
+  {
+    "ticker": "MTB",
+    "sector": "Financials",
+    "price": 198.15,
+    "fwd_eps": 13.64933,
+    "fwd_pe": 14.517196082152017
+  },
+  {
+    "ticker": "MPC",
+    "sector": "Energy",
+    "price": 232.53,
+    "fwd_eps": 1.7456,
+    "fwd_pe": 133.20921173235564
+  },
+  {
+    "ticker": "MAR",
+    "sector": "Consumer Discretionary",
+    "price": 319.76,
+    "fwd_eps": 2.90932,
+    "fwd_pe": 109.90884467848156
+  },
+  {
+    "ticker": "MRSH",
+    "sector": "Financials",
+    "price": 176.48,
+    "fwd_eps": 4.6478,
+    "fwd_pe": 37.970652781961356
+  },
+  {
+    "ticker": "MLM",
+    "sector": "Materials",
+    "price": 560.69,
+    "fwd_eps": 9.8775,
+    "fwd_pe": 56.76436345229057
+  },
+  {
+    "ticker": "MAS",
+    "sector": "Industrials",
+    "price": 58.84,
+    "fwd_eps": 3.07318,
+    "fwd_pe": 19.14629146356543
+  },
+  {
+    "ticker": "MA",
+    "sector": "Financials",
+    "price": 496.32,
+    "fwd_eps": 8.27903,
+    "fwd_pe": 59.94905200246888
+  },
+  {
+    "ticker": "MTCH",
+    "sector": "Communication Services",
+    "price": 31.06,
+    "fwd_eps": 2.15984,
+    "fwd_pe": 14.38069486628639
+  },
+  {
+    "ticker": "MKC",
+    "sector": "Consumer Staples",
+    "price": 53.23,
+    "fwd_eps": 3.01018,
+    "fwd_pe": 17.683327907301223
+  },
+  {
+    "ticker": "MCD",
+    "sector": "Consumer Discretionary",
+    "price": 308.85,
+    "fwd_eps": 9.40162,
+    "fwd_pe": 32.850721471406
+  },
+  {
+    "ticker": "MCK",
+    "sector": "Health Care",
+    "price": 885.84,
+    "fwd_eps": 17.23404,
+    "fwd_pe": 51.400600207496325
+  },
+  {
+    "ticker": "MDT",
+    "sector": "Health Care",
+    "price": 86.16,
+    "fwd_eps": 4.35567,
+    "fwd_pe": 19.781112894227523
+  },
+  {
+    "ticker": "MRK",
+    "sector": "Health Care",
+    "price": 114.18,
+    "fwd_eps": 5.79192,
+    "fwd_pe": 19.713670078316
+  },
+  {
+    "ticker": "META",
+    "sector": "Communication Services",
+    "price": 593.66,
+    "fwd_eps": 13.97264,
+    "fwd_pe": 42.48731807303415
+  },
+  {
+    "ticker": "MET",
+    "sector": "Financials",
+    "price": 68.56,
+    "fwd_eps": 5.67657,
+    "fwd_pe": 12.077715944663767
+  },
+  {
+    "ticker": "MTD",
+    "sector": "Health Care",
+    "price": 1204.48,
+    "fwd_eps": 33.45677,
+    "fwd_pe": 36.00108438441607
+  },
+  {
+    "ticker": "MGM",
+    "sector": "Consumer Discretionary",
+    "price": 35.37,
+    "fwd_eps": 0.60636,
+    "fwd_pe": 58.33168414803087
+  },
+  {
+    "ticker": "MCHP",
+    "sector": "Information Technology",
+    "price": 62.97,
+    "fwd_eps": 2.75703,
+    "fwd_pe": 22.839794996790026
+  },
+  {
+    "ticker": "MU",
+    "sector": "Information Technology",
+    "price": 422.9,
+    "fwd_eps": 5.98342,
+    "fwd_pe": 70.67864198067326
+  },
+  {
+    "ticker": "MSFT",
+    "sector": "Information Technology",
+    "price": 381.87,
+    "fwd_eps": 7.76866,
+    "fwd_pe": 49.155195361877084
+  },
+  {
+    "ticker": "MAA",
+    "sector": "Real Estate",
+    "price": 121.79,
+    "fwd_eps": 3.82667,
+    "fwd_pe": 31.82662732872184
+  },
+  {
+    "ticker": "MRNA",
+    "sector": "Health Care",
+    "price": 51.38,
+    "fwd_eps": 27.26715,
+    "fwd_pe": 1.8843186765026783
+  },
+  {
+    "ticker": "MOH",
+    "sector": "Health Care",
+    "price": 139.41,
+    "fwd_eps": 13.37647,
+    "fwd_pe": 10.422032120581887
+  },
+  {
+    "ticker": "TAP",
+    "sector": "Consumer Staples",
+    "price": 41.4,
+    "fwd_eps": 4.16318,
+    "fwd_pe": 9.944321408154345
+  },
+  {
+    "ticker": "MDLZ",
+    "sector": "Consumer Staples",
+    "price": 56.21,
+    "fwd_eps": 2.88559,
+    "fwd_pe": 19.479551842084287
+  },
+  {
+    "ticker": "MPWR",
+    "sector": "Information Technology",
+    "price": 1068.85,
+    "fwd_eps": 7.20447,
+    "fwd_pe": 148.35928250100284
+  },
+  {
+    "ticker": "MNST",
+    "sector": "Consumer Staples",
+    "price": 73.69,
+    "fwd_eps": 1.29113,
+    "fwd_pe": 57.074035922021785
+  },
+  {
+    "ticker": "MCO",
+    "sector": "Financials",
+    "price": 435.12,
+    "fwd_eps": 12.36609,
+    "fwd_pe": 35.18654643464507
+  },
+  {
+    "ticker": "MS",
+    "sector": "Financials",
+    "price": 161.46,
+    "fwd_eps": 5.89649,
+    "fwd_pe": 27.382391897552612
+  },
+  {
+    "ticker": "MOS",
+    "sector": "Materials",
+    "price": 23.6,
+    "fwd_eps": 5.06264,
+    "fwd_pe": 4.661599481693346
+  },
+  {
+    "ticker": "MSI",
+    "sector": "Information Technology",
+    "price": 452.35,
+    "fwd_eps": 7.81443,
+    "fwd_pe": 57.886499719109395
+  },
+  {
+    "ticker": "MSCI",
+    "sector": "Financials",
+    "price": 552.63,
+    "fwd_eps": 9.92978,
+    "fwd_pe": 55.65380099055569
+  },
+  {
+    "ticker": "NDAQ",
+    "sector": "Financials",
+    "price": 86.34,
+    "fwd_eps": 2.46341,
+    "fwd_pe": 35.04897682480789
+  },
+  {
+    "ticker": "NTAP",
+    "sector": "Information Technology",
+    "price": 101.11,
+    "fwd_eps": 4.55253,
+    "fwd_pe": 22.209628492288903
+  },
+  {
+    "ticker": "NFLX",
+    "sector": "Communication Services",
+    "price": 91.82,
+    "fwd_eps": 1.07243,
+    "fwd_pe": 85.61864177615321
+  },
+  {
+    "ticker": "NEM",
+    "sector": "Materials",
+    "price": 95.8,
+    "fwd_eps": 2.95535,
+    "fwd_pe": 32.41578831610469
+  },
+  {
+    "ticker": "NWSA",
+    "sector": "Communication Services",
+    "price": 24.05,
+    "fwd_eps": 0.53389,
+    "fwd_pe": 45.046732472981326
+  },
+  {
+    "ticker": "NWS",
+    "sector": "Communication Services",
+    "price": 27.39,
+    "fwd_eps": 0.53389,
+    "fwd_pe": 51.302702803948385
+  },
+  {
+    "ticker": "NEE",
+    "sector": "Utilities",
+    "price": 89.5,
+    "fwd_eps": 2.52798,
+    "fwd_pe": 35.40376110570495
+  },
+  {
+    "ticker": "NKE",
+    "sector": "Consumer Discretionary",
+    "price": 52.37,
+    "fwd_eps": 3.1427,
+    "fwd_pe": 16.664015018932762
+  },
+  {
+    "ticker": "NI",
+    "sector": "Utilities",
+    "price": 45.02,
+    "fwd_eps": 1.35625,
+    "fwd_pe": 33.194470046082955
+  },
+  {
+    "ticker": "NDSN",
+    "sector": "Industrials",
+    "price": 262.73,
+    "fwd_eps": 5.86875,
+    "fwd_pe": 44.76762513312034
+  },
+  {
+    "ticker": "NSC",
+    "sector": "Industrials",
+    "price": 281.09,
+    "fwd_eps": 12.01579,
+    "fwd_pe": 23.39338487107381
+  },
+  {
+    "ticker": "NTRS",
+    "sector": "Financials",
+    "price": 135.74,
+    "fwd_eps": 5.89264,
+    "fwd_pe": 23.035515490510196
+  },
+  {
+    "ticker": "NOC",
+    "sector": "Industrials",
+    "price": 706.95,
+    "fwd_eps": 25.58964,
+    "fwd_pe": 27.626414439593525
+  },
+  {
+    "ticker": "NCLH",
+    "sector": "Consumer Discretionary",
+    "price": 18.95,
+    "fwd_eps": 0.80583,
+    "fwd_pe": 23.51612623009816
+  },
+  {
+    "ticker": "NRG",
+    "sector": "Utilities",
+    "price": 145.8,
+    "fwd_eps": 4.20022,
+    "fwd_pe": 34.712467442181605
+  },
+  {
+    "ticker": "NUE",
+    "sector": "Materials",
+    "price": 158.58,
+    "fwd_eps": 23.53827,
+    "fwd_pe": 6.737113645140446
+  },
+  {
+    "ticker": "NVDA",
+    "sector": "Information Technology",
+    "price": 172.7,
+    "fwd_eps": 0.43252,
+    "fwd_pe": 399.2878942014242
+  },
+  {
+    "ticker": "NVR",
+    "sector": "Consumer Discretionary",
+    "price": 6363.5,
+    "fwd_eps": 218.356,
+    "fwd_pe": 29.14277601714631
+  },
+  {
+    "ticker": "NXPI",
+    "sector": "Information Technology",
+    "price": 191.37,
+    "fwd_eps": 7.59479,
+    "fwd_pe": 25.197536732417884
+  },
+  {
+    "ticker": "ORLY",
+    "sector": "Consumer Discretionary",
+    "price": 87.3,
+    "fwd_eps": 1.97117,
+    "fwd_pe": 44.28841753882212
+  },
+  {
+    "ticker": "OXY",
+    "sector": "Energy",
+    "price": 60.71,
+    "fwd_eps": 2.13977,
+    "fwd_pe": 28.37220822798712
+  },
+  {
+    "ticker": "ODFL",
+    "sector": "Industrials",
+    "price": 183.92,
+    "fwd_eps": 2.81933,
+    "fwd_pe": 65.23535733667218
+  },
+  {
+    "ticker": "OMC",
+    "sector": "Communication Services",
+    "price": 75.06,
+    "fwd_eps": 6.22085,
+    "fwd_pe": 12.065875242129291
+  },
+  {
+    "ticker": "ON",
+    "sector": "Information Technology",
+    "price": 59.26,
+    "fwd_eps": 1.50651,
+    "fwd_pe": 39.335948649527715
+  },
+  {
+    "ticker": "OKE",
+    "sector": "Energy",
+    "price": 89.21,
+    "fwd_eps": 3.40475,
+    "fwd_pe": 26.201630075629634
+  },
+  {
+    "ticker": "ORCL",
+    "sector": "Information Technology",
+    "price": 149.63,
+    "fwd_eps": 4.45937,
+    "fwd_pe": 33.55406705431485
+  },
+  {
+    "ticker": "OTIS",
+    "sector": "Industrials",
+    "price": 79.54,
+    "fwd_eps": 2.44811,
+    "fwd_pe": 32.49037012225758
+  },
+  {
+    "ticker": "PCAR",
+    "sector": "Industrials",
+    "price": 111.26,
+    "fwd_eps": 2.51735,
+    "fwd_pe": 44.19727093967863
+  },
+  {
+    "ticker": "PKG",
+    "sector": "Materials",
+    "price": 202.73,
+    "fwd_eps": 5.85751,
+    "fwd_pe": 34.61026955139641
+  },
+  {
+    "ticker": "PLTR",
+    "sector": "Information Technology",
+    "price": 150.68,
+    "fwd_eps": 0.15149,
+    "fwd_pe": 994.6531124166611
+  },
+  {
+    "ticker": "PANW",
+    "sector": "Information Technology",
+    "price": 162.95,
+    "fwd_eps": 0.99639,
+    "fwd_pe": 163.5403807745963
+  },
+  {
+    "ticker": "PSKY",
+    "sector": "Communication Services",
+    "price": 9.15,
+    "fwd_eps": 0.51545,
+    "fwd_pe": 17.751479289940832
+  },
+  {
+    "ticker": "PH",
+    "sector": "Industrials",
+    "price": 894.41,
+    "fwd_eps": 9.71477,
+    "fwd_pe": 92.06702783493587
+  },
+  {
+    "ticker": "PAYX",
+    "sector": "Industrials",
+    "price": 92.55,
+    "fwd_eps": 2.8585,
+    "fwd_pe": 32.3771208675879
+  },
+  {
+    "ticker": "PAYC",
+    "sector": "Industrials",
+    "price": 124.82,
+    "fwd_eps": 3.41493,
+    "fwd_pe": 36.55126166568568
+  },
+  {
+    "ticker": "PYPL",
+    "sector": "Financials",
+    "price": 44.01,
+    "fwd_eps": 4.60064,
+    "fwd_pe": 9.566060374208805
+  },
+  {
+    "ticker": "PNR",
+    "sector": "Industrials",
+    "price": 86.49,
+    "fwd_eps": 2.43874,
+    "fwd_pe": 35.46503522310701
+  },
+  {
+    "ticker": "PEP",
+    "sector": "Consumer Staples",
+    "price": 150.04,
+    "fwd_eps": 6.244,
+    "fwd_pe": 24.029468289557975
+  },
+  {
+    "ticker": "PFE",
+    "sector": "Health Care",
+    "price": 26.985,
+    "fwd_eps": 4.20822,
+    "fwd_pe": 6.412449919443375
+  },
+  {
+    "ticker": "PCG",
+    "sector": "Utilities",
+    "price": 17.32,
+    "fwd_eps": 1.00286,
+    "fwd_pe": 17.270606066649382
+  },
+  {
+    "ticker": "PM",
+    "sector": "Consumer Staples",
+    "price": 163.11,
+    "fwd_eps": 6.04365,
+    "fwd_pe": 26.988657516566974
+  },
+  {
+    "ticker": "PSX",
+    "sector": "Energy",
+    "price": 175.47,
+    "fwd_eps": 4.48003,
+    "fwd_pe": 39.16714843427388
+  },
+  {
+    "ticker": "PNW",
+    "sector": "Utilities",
+    "price": 97.27,
+    "fwd_eps": 5.27947,
+    "fwd_pe": 18.42419788349967
+  },
+  {
+    "ticker": "PNC",
+    "sector": "Financials",
+    "price": 201.71,
+    "fwd_eps": 11.36277,
+    "fwd_pe": 17.751833399778402
+  },
+  {
+    "ticker": "POOL",
+    "sector": "Consumer Discretionary",
+    "price": 200.34,
+    "fwd_eps": 6.34429,
+    "fwd_pe": 31.578001636116888
+  },
+  {
+    "ticker": "PPG",
+    "sector": "Materials",
+    "price": 97.22,
+    "fwd_eps": 5.68765,
+    "fwd_pe": 17.093175564600497
+  },
+  {
+    "ticker": "PPL",
+    "sector": "Utilities",
+    "price": 36.55,
+    "fwd_eps": 1.17264,
+    "fwd_pe": 31.168986219129486
+  },
+  {
+    "ticker": "PFG",
+    "sector": "Financials",
+    "price": 85.07,
+    "fwd_eps": 4.88045,
+    "fwd_pe": 17.430769703613397
+  },
+  {
+    "ticker": "PG",
+    "sector": "Consumer Staples",
+    "price": 144.415,
+    "fwd_eps": 5.60342,
+    "fwd_pe": 25.772653129695794
+  },
+  {
+    "ticker": "PGR",
+    "sector": "Financials",
+    "price": 206,
+    "fwd_eps": 5.26121,
+    "fwd_pe": 39.154491077147654
+  },
+  {
+    "ticker": "PLD",
+    "sector": "Real Estate",
+    "price": 128.01,
+    "fwd_eps": 3.03749,
+    "fwd_pe": 42.14334862007776
+  },
+  {
+    "ticker": "PRU",
+    "sector": "Financials",
+    "price": 93.03,
+    "fwd_eps": 9.90953,
+    "fwd_pe": 9.38793262647169
+  },
+  {
+    "ticker": "PEG",
+    "sector": "Utilities",
+    "price": 79.44,
+    "fwd_eps": 3.63308,
+    "fwd_pe": 21.865744767525072
+  },
+  {
+    "ticker": "PTC",
+    "sector": "Information Technology",
+    "price": 149.81,
+    "fwd_eps": 1.75624,
+    "fwd_pe": 85.30155331845306
+  },
+  {
+    "ticker": "PSA",
+    "sector": "Real Estate",
+    "price": 265.78,
+    "fwd_eps": 8.74107,
+    "fwd_pe": 30.405888523945006
+  },
+  {
+    "ticker": "PHM",
+    "sector": "Consumer Discretionary",
+    "price": 114.55,
+    "fwd_eps": 3.55333,
+    "fwd_pe": 32.2373660763284
+  },
+  {
+    "ticker": "PWR",
+    "sector": "Industrials",
+    "price": 555.39,
+    "fwd_eps": 4.78903,
+    "fwd_pe": 115.97129272524916
+  },
+  {
+    "ticker": "QCOM",
+    "sector": "Information Technology",
+    "price": 129.9,
+    "fwd_eps": 3.91898,
+    "fwd_pe": 33.14637992538875
+  },
+  {
+    "ticker": "DGX",
+    "sector": "Health Care",
+    "price": 195.26,
+    "fwd_eps": 10.799,
+    "fwd_pe": 18.081303824428186
+  },
+  {
+    "ticker": "Q",
+    "sector": "Information Technology",
+    "price": 107.59,
+    "fwd_eps": 2.54792,
+    "fwd_pe": 42.22660052120946
+  },
+  {
+    "ticker": "RL",
+    "sector": "Consumer Discretionary",
+    "price": 329.87,
+    "fwd_eps": 0.6013,
+    "fwd_pe": 548.5947114585066
+  },
+  {
+    "ticker": "RJF",
+    "sector": "Financials",
+    "price": 143.81,
+    "fwd_eps": 3.77578,
+    "fwd_pe": 38.08749450444676
+  },
+  {
+    "ticker": "RTX",
+    "sector": "Industrials",
+    "price": 198.16,
+    "fwd_eps": 4.21329,
+    "fwd_pe": 47.03212928613981
+  },
+  {
+    "ticker": "O",
+    "sector": "Real Estate",
+    "price": 60.95,
+    "fwd_eps": 1.306,
+    "fwd_pe": 46.669218989280246
+  },
+  {
+    "ticker": "REG",
+    "sector": "Real Estate",
+    "price": 74.87,
+    "fwd_eps": 2.12887,
+    "fwd_pe": 35.16889241710391
+  },
+  {
+    "ticker": "REGN",
+    "sector": "Health Care",
+    "price": 732.87,
+    "fwd_eps": 71.52002,
+    "fwd_pe": 10.247060892880063
+  },
+  {
+    "ticker": "RF",
+    "sector": "Financials",
+    "price": 25.36,
+    "fwd_eps": 1.5285,
+    "fwd_pe": 16.591429506051686
+  },
+  {
+    "ticker": "RSG",
+    "sector": "Industrials",
+    "price": 219.3,
+    "fwd_eps": 4.13355,
+    "fwd_pe": 53.053670573719934
+  },
+  {
+    "ticker": "RMD",
+    "sector": "Health Care",
+    "price": 225.99,
+    "fwd_eps": 5.29542,
+    "fwd_pe": 42.67650158061117
+  },
+  {
+    "ticker": "RVTY",
+    "sector": "Health Care",
+    "price": 85.94,
+    "fwd_eps": 11.03819,
+    "fwd_pe": 7.785696749195293
+  },
+  {
+    "ticker": "HOOD",
+    "sector": "Financials",
+    "price": 70.89,
+    "fwd_eps": 0.14343,
+    "fwd_pe": 494.24806525831417
+  },
+  {
+    "ticker": "ROK",
+    "sector": "Industrials",
+    "price": 355.11,
+    "fwd_eps": 9.26897,
+    "fwd_pe": 38.31170022127594
+  },
+  {
+    "ticker": "ROL",
+    "sector": "Industrials",
+    "price": 53.26,
+    "fwd_eps": 0.72667,
+    "fwd_pe": 73.29324177412029
+  },
+  {
+    "ticker": "ROP",
+    "sector": "Information Technology",
+    "price": 353.68,
+    "fwd_eps": 13.0053,
+    "fwd_pe": 27.19506662668297
+  },
+  {
+    "ticker": "ROST",
+    "sector": "Consumer Discretionary",
+    "price": 211.19,
+    "fwd_eps": 1.21803,
+    "fwd_pe": 173.3865339934156
+  },
+  {
+    "ticker": "RCL",
+    "sector": "Consumer Discretionary",
+    "price": 263.65,
+    "fwd_eps": 9.74659,
+    "fwd_pe": 27.050486375234826
+  },
+  {
+    "ticker": "SPGI",
+    "sector": "Financials",
+    "price": 424.43,
+    "fwd_eps": 13.67962,
+    "fwd_pe": 31.026446641061668
+  },
+  {
+    "ticker": "CRM",
+    "sector": "Information Technology",
+    "price": 195.38,
+    "fwd_eps": 4.64352,
+    "fwd_pe": 42.07583901867549
+  },
+  {
+    "ticker": "SNDK",
+    "sector": "Information Technology",
+    "price": 709.71,
+    "fwd_eps": 0.39583,
+    "fwd_pe": 1792.9666776141273
+  },
+  {
+    "ticker": "SBAC",
+    "sector": "Real Estate",
+    "price": 174.15,
+    "fwd_eps": 2.38539,
+    "fwd_pe": 73.00692968445411
+  },
+  {
+    "ticker": "SLB",
+    "sector": "Energy",
+    "price": 46.63,
+    "fwd_eps": 1.2792,
+    "fwd_pe": 36.452470293933715
+  },
+  {
+    "ticker": "STX",
+    "sector": "Information Technology",
+    "price": 411.23,
+    "fwd_eps": 5.62001,
+    "fwd_pe": 73.1724676646483
+  },
+  {
+    "ticker": "SRE",
+    "sector": "Utilities",
+    "price": 91.72,
+    "fwd_eps": 4.1344,
+    "fwd_pe": 22.18459752321981
+  },
+  {
+    "ticker": "NOW",
+    "sector": "Information Technology",
+    "price": 110.38,
+    "fwd_eps": 5.916,
+    "fwd_pe": 18.657876943881
+  },
+  {
+    "ticker": "SHW",
+    "sector": "Materials",
+    "price": 303.53,
+    "fwd_eps": 8.11869,
+    "fwd_pe": 37.38657344965751
+  },
+  {
+    "ticker": "SPG",
+    "sector": "Real Estate",
+    "price": 184.52,
+    "fwd_eps": 6.94254,
+    "fwd_pe": 26.578168797010893
+  },
+  {
+    "ticker": "SWKS",
+    "sector": "Information Technology",
+    "price": 54.44,
+    "fwd_eps": 6.1475,
+    "fwd_pe": 8.855632370882471
+  },
+  {
+    "ticker": "SJM",
+    "sector": "Consumer Staples",
+    "price": 99.37,
+    "fwd_eps": 8.8922,
+    "fwd_pe": 11.174962326533366
+  },
+  {
+    "ticker": "SW",
+    "sector": "Materials",
+    "price": 36.21,
+    "fwd_eps": 2.98293,
+    "fwd_pe": 12.139071315786827
+  },
+  {
+    "ticker": "SNA",
+    "sector": "Industrials",
+    "price": 356.9,
+    "fwd_eps": 12.26375,
+    "fwd_pe": 29.102028335541736
+  },
+  {
+    "ticker": "SOLV",
+    "sector": "Health Care",
+    "price": 65.78,
+    "fwd_eps": 7.46919,
+    "fwd_pe": 8.806845186693604
+  },
+  {
+    "ticker": "SO",
+    "sector": "Utilities",
+    "price": 93.39,
+    "fwd_eps": 3.39347,
+    "fwd_pe": 27.520502612370226
+  },
+  {
+    "ticker": "LUV",
+    "sector": "Industrials",
+    "price": 39.41,
+    "fwd_eps": 1.57283,
+    "fwd_pe": 25.056744848457875
+  },
+  {
+    "ticker": "SWK",
+    "sector": "Industrials",
+    "price": 67.28,
+    "fwd_eps": 8.745,
+    "fwd_pe": 7.693539165237279
+  },
+  {
+    "ticker": "SBUX",
+    "sector": "Consumer Discretionary",
+    "price": 92.55,
+    "fwd_eps": 0.97126,
+    "fwd_pe": 95.28859419722833
+  },
+  {
+    "ticker": "STT",
+    "sector": "Financials",
+    "price": 121.97,
+    "fwd_eps": 6.54685,
+    "fwd_pe": 18.630333671918557
+  },
+  {
+    "ticker": "STLD",
+    "sector": "Materials",
+    "price": 163.95,
+    "fwd_eps": 2.57699,
+    "fwd_pe": 63.62073581969662
+  },
+  {
+    "ticker": "STE",
+    "sector": "Health Care",
+    "price": 220.03,
+    "fwd_eps": 4.78571,
+    "fwd_pe": 45.97645908339619
+  },
+  {
+    "ticker": "SYK",
+    "sector": "Health Care",
+    "price": 335.67,
+    "fwd_eps": 9.10847,
+    "fwd_pe": 36.852512002564644
+  },
+  {
+    "ticker": "SMCI",
+    "sector": "Information Technology",
+    "price": 20.53,
+    "fwd_eps": 0.257,
+    "fwd_pe": 79.88326848249028
+  },
+  {
+    "ticker": "SYF",
+    "sector": "Financials",
+    "price": 66.19,
+    "fwd_eps": 2.01988,
+    "fwd_pe": 32.769273422183495
+  },
+  {
+    "ticker": "SNPS",
+    "sector": "Information Technology",
+    "price": 420.32,
+    "fwd_eps": 5.54052,
+    "fwd_pe": 75.86291539422292
+  },
+  {
+    "ticker": "SYY",
+    "sector": "Consumer Staples",
+    "price": 81.33,
+    "fwd_eps": 2.005,
+    "fwd_pe": 40.563591022443894
+  },
+  {
+    "ticker": "TMUS",
+    "sector": "Communication Services",
+    "price": 208.47,
+    "fwd_eps": 2.24459,
+    "fwd_pe": 92.87665007863352
+  },
+  {
+    "ticker": "TROW",
+    "sector": "Financials",
+    "price": 86.19,
+    "fwd_eps": 9.38304,
+    "fwd_pe": 9.18572232453448
+  },
+  {
+    "ticker": "TTWO",
+    "sector": "Communication Services",
+    "price": 200.63,
+    "fwd_eps": 6.26574,
+    "fwd_pe": 32.020160427978176
+  },
+  {
+    "ticker": "TPR",
+    "sector": "Consumer Discretionary",
+    "price": 140.88,
+    "fwd_eps": 2.58001,
+    "fwd_pe": 54.60443951767628
+  },
+  {
+    "ticker": "TRGP",
+    "sector": "Energy",
+    "price": 237.41,
+    "fwd_eps": 1.9451,
+    "fwd_pe": 122.05542131509948
+  },
+  {
+    "ticker": "TGT",
+    "sector": "Consumer Staples",
+    "price": 113.24,
+    "fwd_eps": 13.21994,
+    "fwd_pe": 8.565848256497382
+  },
+  {
+    "ticker": "TEL",
+    "sector": "Information Technology",
+    "price": 195.84,
+    "fwd_eps": 3.97802,
+    "fwd_pe": 49.230521716834005
+  },
+  {
+    "ticker": "TDY",
+    "sector": "Information Technology",
+    "price": 616.18,
+    "fwd_eps": 10.408,
+    "fwd_pe": 59.20253651037663
+  },
+  {
+    "ticker": "TER",
+    "sector": "Information Technology",
+    "price": 290.83,
+    "fwd_eps": 2.75305,
+    "fwd_pe": 105.63920015982274
+  },
+  {
+    "ticker": "TSLA",
+    "sector": "Consumer Discretionary",
+    "price": 367.96,
+    "fwd_eps": 2.14522,
+    "fwd_pe": 171.5255311809511
+  },
+  {
+    "ticker": "TXN",
+    "sector": "Information Technology",
+    "price": 187.19,
+    "fwd_eps": 7.93669,
+    "fwd_pe": 23.585398950948065
+  },
+  {
+    "ticker": "TPL",
+    "sector": "Energy",
+    "price": 519.41,
+    "fwd_eps": 9.65,
+    "fwd_pe": 53.82487046632124
+  },
+  {
+    "ticker": "TXT",
+    "sector": "Industrials",
+    "price": 88.77,
+    "fwd_eps": 3.31613,
+    "fwd_pe": 26.769155612114123
+  },
+  {
+    "ticker": "TMO",
+    "sector": "Health Care",
+    "price": 474.39,
+    "fwd_eps": 23.54148,
+    "fwd_pe": 20.151239429296712
+  },
+  {
+    "ticker": "TJX",
+    "sector": "Consumer Discretionary",
+    "price": 154.98,
+    "fwd_eps": 0.43273,
+    "fwd_pe": 358.1448016083932
+  },
+  {
+    "ticker": "TKO",
+    "sector": "Communication Services",
+    "price": 188.38,
+    "fwd_eps": 1.94244,
+    "fwd_pe": 96.98111653384403
+  },
+  {
+    "ticker": "TTD",
+    "sector": "Communication Services",
+    "price": 24.11,
+    "fwd_eps": 0.77286,
+    "fwd_pe": 31.195818130062364
+  },
+  {
+    "ticker": "TSCO",
+    "sector": "Consumer Discretionary",
+    "price": 45.77,
+    "fwd_eps": 1.70552,
+    "fwd_pe": 26.836390074581363
+  },
+  {
+    "ticker": "TT",
+    "sector": "Industrials",
+    "price": 410.36,
+    "fwd_eps": 4.96681,
+    "fwd_pe": 82.6204344438382
+  },
+  {
+    "ticker": "TDG",
+    "sector": "Industrials",
+    "price": 1177.39,
+    "fwd_eps": 11.60174,
+    "fwd_pe": 101.48391534373293
+  },
+  {
+    "ticker": "TRV",
+    "sector": "Financials",
+    "price": 296.6,
+    "fwd_eps": 9.56571,
+    "fwd_pe": 31.0065849790554
+  },
+  {
+    "ticker": "TRMB",
+    "sector": "Information Technology",
+    "price": 65.71,
+    "fwd_eps": 1.92923,
+    "fwd_pe": 34.06022091715347
+  },
+  {
+    "ticker": "TFC",
+    "sector": "Financials",
+    "price": 44.16,
+    "fwd_eps": 3.94151,
+    "fwd_pe": 11.203827974557973
+  },
+  {
+    "ticker": "TYL",
+    "sector": "Information Technology",
+    "price": 350.2,
+    "fwd_eps": 5.30364,
+    "fwd_pe": 66.03012270817779
+  },
+  {
+    "ticker": "TSN",
+    "sector": "Consumer Staples",
+    "price": 58.18,
+    "fwd_eps": 5.5539,
+    "fwd_pe": 10.47552170546823
+  },
+  {
+    "ticker": "USB",
+    "sector": "Financials",
+    "price": 51.25,
+    "fwd_eps": 4.33443,
+    "fwd_pe": 11.823930712919577
+  },
+  {
+    "ticker": "UBER",
+    "sector": "Industrials",
+    "price": 73.89,
+    "fwd_eps": 0.97187,
+    "fwd_pe": 76.02868696430592
+  },
+  {
+    "ticker": "UDR",
+    "sector": "Real Estate",
+    "price": 34.11,
+    "fwd_eps": 0.18409,
+    "fwd_pe": 185.28980390026618
+  },
+  {
+    "ticker": "ULTA",
+    "sector": "Consumer Discretionary",
+    "price": 529.97,
+    "fwd_eps": 17.1854,
+    "fwd_pe": 30.83838607189824
+  },
+  {
+    "ticker": "UNP",
+    "sector": "Industrials",
+    "price": 234.92,
+    "fwd_eps": 9.8841,
+    "fwd_pe": 23.767464918404304
+  },
+  {
+    "ticker": "UAL",
+    "sector": "Industrials",
+    "price": 89.95,
+    "fwd_eps": 2.13995,
+    "fwd_pe": 42.0336923759901
+  },
+  {
+    "ticker": "UPS",
+    "sector": "Industrials",
+    "price": 95.94,
+    "fwd_eps": 11.63,
+    "fwd_pe": 8.249355116079105
+  },
+  {
+    "ticker": "URI",
+    "sector": "Industrials",
+    "price": 710.47,
+    "fwd_eps": 18.72856,
+    "fwd_pe": 37.935110868107316
+  },
+  {
+    "ticker": "UNH",
+    "sector": "Health Care",
+    "price": 275.59,
+    "fwd_eps": 18.84129,
+    "fwd_pe": 14.626917795968321
+  },
+  {
+    "ticker": "UHS",
+    "sector": "Health Care",
+    "price": 185.82,
+    "fwd_eps": 10.32038,
+    "fwd_pe": 18.005150973123083
+  },
+  {
+    "ticker": "VLO",
+    "sector": "Energy",
+    "price": 239.86,
+    "fwd_eps": 1.76836,
+    "fwd_pe": 135.63980185030198
+  },
+  {
+    "ticker": "VTR",
+    "sector": "Real Estate",
+    "price": 82.5,
+    "fwd_eps": 0.95444,
+    "fwd_pe": 86.43812078286744
+  },
+  {
+    "ticker": "VLTO",
+    "sector": "Industrials",
+    "price": 88.63,
+    "fwd_eps": 3.20908,
+    "fwd_pe": 27.61850748501128
+  },
+  {
+    "ticker": "VRSN",
+    "sector": "Information Technology",
+    "price": 240.78,
+    "fwd_eps": 5.33026,
+    "fwd_pe": 45.17228052665349
+  },
+  {
+    "ticker": "VRSK",
+    "sector": "Industrials",
+    "price": 201.75,
+    "fwd_eps": 4.36791,
+    "fwd_pe": 46.18913851246935
+  },
+  {
+    "ticker": "VZ",
+    "sector": "Communication Services",
+    "price": 49.98,
+    "fwd_eps": 5.37915,
+    "fwd_pe": 9.291430802264298
+  },
+  {
+    "ticker": "VRTX",
+    "sector": "Health Care",
+    "price": 454,
+    "fwd_eps": 12.95899,
+    "fwd_pe": 35.0335944390728
+  },
+  {
+    "ticker": "VTRS",
+    "sector": "Health Care",
+    "price": 13.2,
+    "fwd_eps": 4.56155,
+    "fwd_pe": 2.893753219848516
+  },
+  {
+    "ticker": "VICI",
+    "sector": "Real Estate",
+    "price": 26.83,
+    "fwd_eps": 1.35376,
+    "fwd_pe": 19.818874837489656
+  },
+  {
+    "ticker": "V",
+    "sector": "Financials",
+    "price": 301.62,
+    "fwd_eps": 5.80312,
+    "fwd_pe": 51.975489047271125
+  },
+  {
+    "ticker": "VST",
+    "sector": "Utilities",
+    "price": 146.02,
+    "fwd_eps": 2.12154,
+    "fwd_pe": 68.8273612564458
+  },
+  {
+    "ticker": "VMC",
+    "sector": "Materials",
+    "price": 258.4,
+    "fwd_eps": 4.60511,
+    "fwd_pe": 56.11158039655947
+  },
+  {
+    "ticker": "WRB",
+    "sector": "Financials",
+    "price": 65.74,
+    "fwd_eps": 1.34883,
+    "fwd_pe": 48.738536361142614
+  },
+  {
+    "ticker": "GWW",
+    "sector": "Industrials",
+    "price": 1041.95,
+    "fwd_eps": 16.3972,
+    "fwd_pe": 63.54438562681433
+  },
+  {
+    "ticker": "WAB",
+    "sector": "Industrials",
+    "price": 236.06,
+    "fwd_eps": 3.82623,
+    "fwd_pe": 61.6951934410634
+  },
+  {
+    "ticker": "WMT",
+    "sector": "Consumer Staples",
+    "price": 119.02,
+    "fwd_eps": 2.13819,
+    "fwd_pe": 55.66390264663103
+  },
+  {
+    "ticker": "DIS",
+    "sector": "Communication Services",
+    "price": 99.5,
+    "fwd_eps": 2.46115,
+    "fwd_pe": 40.42825508400544
+  },
+  {
+    "ticker": "WBD",
+    "sector": "Communication Services",
+    "price": 27.42,
+    "fwd_eps": 2.87012,
+    "fwd_pe": 9.553607514668377
+  },
+  {
+    "ticker": "WM",
+    "sector": "Industrials",
+    "price": 231.24,
+    "fwd_eps": 4.85644,
+    "fwd_pe": 47.615125482863995
+  },
+  {
+    "ticker": "WAT",
+    "sector": "Health Care",
+    "price": 298.99,
+    "fwd_eps": 11.01879,
+    "fwd_pe": 27.134558331722452
+  },
+  {
+    "ticker": "WEC",
+    "sector": "Utilities",
+    "price": 112.18,
+    "fwd_eps": 4.073,
+    "fwd_pe": 27.542352074637858
+  },
+  {
+    "ticker": "WFC",
+    "sector": "Financials",
+    "price": 77.695,
+    "fwd_eps": 4.54887,
+    "fwd_pe": 17.08006603837876
+  },
+  {
+    "ticker": "WELL",
+    "sector": "Real Estate",
+    "price": 195.84,
+    "fwd_eps": 2.07888,
+    "fwd_pe": 94.20457169244979
+  },
+  {
+    "ticker": "WST",
+    "sector": "Health Care",
+    "price": 237.03,
+    "fwd_eps": 8.49116,
+    "fwd_pe": 27.914913863359068
+  },
+  {
+    "ticker": "WDC",
+    "sector": "Information Technology",
+    "price": 293.1,
+    "fwd_eps": 2.9355,
+    "fwd_pe": 99.84670413898824
+  },
+  {
+    "ticker": "WY",
+    "sector": "Real Estate",
+    "price": 22.47,
+    "fwd_eps": 0.40749,
+    "fwd_pe": 55.142457483619225
+  },
+  {
+    "ticker": "WSM",
+    "sector": "Consumer Discretionary",
+    "price": 178.42,
+    "fwd_eps": 2.36951,
+    "fwd_pe": 75.29826841836497
+  },
+  {
+    "ticker": "WMB",
+    "sector": "Energy",
+    "price": 72.41,
+    "fwd_eps": 1.20955,
+    "fwd_pe": 59.86523913852259
+  },
+  {
+    "ticker": "WTW",
+    "sector": "Financials",
+    "price": 291.25,
+    "fwd_eps": 10.92991,
+    "fwd_pe": 26.64706296758162
+  },
+  {
+    "ticker": "WDAY",
+    "sector": "Information Technology",
+    "price": 135.96,
+    "fwd_eps": 3.9062,
+    "fwd_pe": 34.80620551943065
+  },
+  {
+    "ticker": "WYNN",
+    "sector": "Consumer Discretionary",
+    "price": 99.98,
+    "fwd_eps": 4.02581,
+    "fwd_pe": 24.834753751418972
+  },
+  {
+    "ticker": "XEL",
+    "sector": "Utilities",
+    "price": 76.77,
+    "fwd_eps": 2.96354,
+    "fwd_pe": 25.90483003435081
+  },
+  {
+    "ticker": "XYL",
+    "sector": "Industrials",
+    "price": 120.44,
+    "fwd_eps": 1.93923,
+    "fwd_pe": 62.107124992909554
+  },
+  {
+    "ticker": "YUM",
+    "sector": "Consumer Discretionary",
+    "price": 156.41,
+    "fwd_eps": 4.54475,
+    "fwd_pe": 34.41553440783321
+  },
+  {
+    "ticker": "ZBRA",
+    "sector": "Information Technology",
+    "price": 203.62,
+    "fwd_eps": 12.14868,
+    "fwd_pe": 16.76066864877501
+  },
+  {
+    "ticker": "ZBH",
+    "sector": "Health Care",
+    "price": 87.87,
+    "fwd_eps": 7.17222,
+    "fwd_pe": 12.25143679362875
+  },
+  {
+    "ticker": "ZTS",
+    "sector": "Health Care",
+    "price": 115.64,
+    "fwd_eps": 4.66786,
+    "fwd_pe": 24.7736650199449
+  }
+]

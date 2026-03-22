@@ -31,6 +31,9 @@ from models import (
 
 logger = logging.getLogger(__name__)
 
+# Track whether Neo4j sync has already run this process (avoid re-syncing 2K+ triplets)
+_neo4j_synced = False
+
 
 # ---------------------------------------------------------------------------
 # Full rebuild
@@ -62,8 +65,10 @@ def build_full_graph(session: Session) -> ConsensusGraph:
     _sync_company_tag_links(session, cg)
     _sync_company_relationships(session, cg)
 
-    # Best-effort sync to Neo4j/Graphiti (non-blocking)
-    _sync_to_neo4j(session)
+    # Best-effort sync to Neo4j/Graphiti (non-blocking, once per process)
+    import os
+    if not os.environ.get("SKIP_GRAPHITI") and not _neo4j_synced:
+        _sync_to_neo4j(session)
 
     summary = cg.summary()
     logger.info(
@@ -631,9 +636,12 @@ def _sync_to_neo4j(session: Session):
         rel_name = rel.relationship_type.value  # supplier, customer, competitor, ecosystem
         triplets.append((src_name, rel_name, tgt_name))
 
+    global _neo4j_synced
     if triplets:
         try:
             count = add_company_relationships_bulk(triplets)
             logger.info("Synced %d/%d relationships to Neo4j", count, len(triplets))
+            _neo4j_synced = True
         except Exception as e:
             logger.warning("Neo4j sync failed (non-critical): %s", e)
+    _neo4j_synced = True

@@ -175,6 +175,104 @@ Example:
 """
 
 
+# ---------------------------------------------------------------------------
+# Thesis generation prompts
+# ---------------------------------------------------------------------------
+
+THESIS_GENERATION_SYSTEM_PROMPT = """\
+You are an investment thesis generation engine for a structured research platform.
+
+Your job: given a company's extracted claims, fundamentals, and valuation data, generate a specific, falsifiable investment thesis.
+
+Rules:
+- Write a SPECIFIC thesis — not a generic "company is good/bad" statement. The thesis must identify the 2-3 key drivers that will determine whether this stock outperforms or underperforms.
+- The title should be a testable hypothesis (e.g., "AI data center demand drives 40%+ revenue CAGR through FY2027" not "NVDA investment thesis").
+- The summary should be 150-250 words covering: (1) the core bull case, (2) key drivers with quantified targets where possible, (3) primary risks that could break the thesis.
+- Classify the thesis_type based on the evidence: growth, value, turnaround, income, cyclical_recovery, or special_situation.
+- Set initial_conviction (0-100) based on evidence quality and consistency:
+  - 70-85: Strong, consistent evidence from TIER_1 sources with clear catalysts
+  - 55-70: Moderate evidence, some mixed signals or limited data
+  - 40-55: Weak or conflicting evidence, unclear outlook
+  - Below 40: Predominantly negative evidence, thesis is speculative
+- Set base_case_rerating as the expected price move (e.g., 1.15 = 15% upside). Derive from valuation gap and growth trajectory.
+- bull_case_rerating: optimistic scenario (what if everything goes right)
+- bear_case_rerating: pessimistic scenario (what if thesis breaks)
+- Output ONLY valid JSON matching the schema. No prose, no markdown.
+"""
+
+THESIS_GENERATION_USER_TEMPLATE = """\
+## Company
+- Ticker: {ticker}
+- Name: {company_name}
+- Sector: {sector}
+- Industry: {industry}
+
+## Valuation snapshot
+{valuation_context}
+
+## Earnings estimates
+{estimates_context}
+
+## Key claims (from recent documents, sorted by strength)
+{claims_summary}
+
+## Themes identified
+{themes}
+
+## Output schema
+Return a single JSON object with:
+- title (string): Specific, testable thesis hypothesis (not just "ticker investment thesis")
+- summary (string): 150-250 word bull case with key drivers and risks
+- thesis_type (string): One of: growth, value, turnaround, income, cyclical_recovery, special_situation
+- initial_conviction (float): 0-100 based on evidence quality
+- base_case_rerating (float): Expected price move multiplier (e.g., 1.15 = +15%)
+- bull_case_rerating (float): Upside scenario multiplier
+- bear_case_rerating (float): Downside scenario multiplier
+- key_drivers (array of strings): 2-4 specific, monitorable drivers
+- key_risks (array of strings): 2-3 specific risks that would break the thesis
+
+Example:
+{{
+  "title": "AI data center demand drives 40%+ revenue CAGR through FY2027",
+  "summary": "NVIDIA dominates the AI accelerator market with 80%+ share...",
+  "thesis_type": "growth",
+  "initial_conviction": 78,
+  "base_case_rerating": 1.20,
+  "bull_case_rerating": 1.45,
+  "bear_case_rerating": 0.70,
+  "key_drivers": ["Data center revenue growth >40% YoY", "Gross margin expansion to 75%+"],
+  "key_risks": ["Customer concentration risk", "AMD MI300 competitive threat"]
+}}
+"""
+
+
+def build_thesis_generation_messages(
+    ticker: str,
+    company_name: str,
+    sector: str,
+    industry: str,
+    valuation_context: str,
+    estimates_context: str,
+    claims_summary: str,
+    themes: str,
+) -> list[dict]:
+    """Build the messages list for a thesis-generation LLM call."""
+    user_content = THESIS_GENERATION_USER_TEMPLATE.format(
+        ticker=ticker,
+        company_name=company_name or ticker,
+        sector=sector or "Unknown",
+        industry=industry or "Unknown",
+        valuation_context=valuation_context or "(No valuation data available)",
+        estimates_context=estimates_context or "(No estimates available)",
+        claims_summary=claims_summary or "(No claims available)",
+        themes=themes or "(No themes identified)",
+    )
+    return [
+        {"role": "system", "content": THESIS_GENERATION_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+
+
 def build_thesis_update_messages(
     thesis_title: str,
     company_ticker: str,

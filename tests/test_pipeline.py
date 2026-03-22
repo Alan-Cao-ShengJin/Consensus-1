@@ -32,6 +32,7 @@ from connectors.finnhub_connector import FinnhubNewsConnector
 from connectors.fmp_connector import FMPTranscriptConnector, FMPFinancialsConnector, FMPEstimatesConnector, FMPNewsConnector
 from connectors.alphavantage_connector import AlphaVantageEarningsConnector
 from connectors.defeatbeta_connector import DefeatBetaTranscriptConnector
+from connectors.macro_rss import MacroNewsRSSConnector
 from connectors.yfinance_prices import YFinancePriceUpdater
 from connectors.yfinance_calendar import YFinanceCalendarUpdater
 from connectors.yfinance_ticker_info import YFinanceTickerInfoUpdater
@@ -122,6 +123,7 @@ def _all_connector_patches(
         patch.object(AlphaVantageEarningsConnector, 'fetch', return_value=[]),
         patch.object(DefeatBetaTranscriptConnector, 'fetch', return_value=[]),
         patch.object(NewsAPIConnector, 'fetch', return_value=[]),
+        patch.object(MacroNewsRSSConnector, 'fetch', return_value=[]),
     ] + _nondoc_patches()
 
 
@@ -437,28 +439,19 @@ class TestSECUserAgent:
             ua = _get_user_agent()
             assert ua == "MyApp admin@test.com"
 
-    @patch("connectors.sec_edgar.requests.get")
-    def test_sec_fetch_includes_user_agent(self, mock_get, session):
-        """SEC connector sends User-Agent in requests."""
-        mock_cik_resp = MagicMock()
-        mock_cik_resp.json.return_value = {"0": {"ticker": "NVDA", "cik_str": "1045810"}}
-        mock_cik_resp.raise_for_status = MagicMock()
-
-        mock_sub_resp = MagicMock()
-        mock_sub_resp.json.return_value = {
-            "filings": {"recent": {"form": [], "filingDate": [], "accessionNumber": [], "primaryDocument": []}}
-        }
-        mock_sub_resp.raise_for_status = MagicMock()
-
-        mock_get.side_effect = [mock_cik_resp, mock_sub_resp]
+    @patch("connectors.sec_edgar.edgar.Company")
+    def test_sec_fetch_with_edgartools(self, mock_company_cls, session):
+        """SEC connector uses edgartools Company to fetch filings."""
+        mock_company = MagicMock()
+        mock_company.cik = 1045810
+        mock_company.get_filings.return_value = []
+        mock_company_cls.return_value = mock_company
 
         conn = SECEdgarConnector()
-        conn.fetch("NVDA", days=30)
+        result = conn.fetch("NVDA", days=30)
 
-        assert mock_get.call_count >= 1
-        for call in mock_get.call_args_list:
-            headers = call.kwargs.get("headers", {})
-            assert "User-Agent" in headers
+        mock_company_cls.assert_called_once_with("NVDA")
+        assert isinstance(result, list)
 
 
 # ---------------------------------------------------------------------------

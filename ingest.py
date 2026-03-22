@@ -36,17 +36,27 @@ def ingest_document_with_claims(
         session.add(claim)
         session.flush()
 
+        seen_tickers: set[str] = set()
         for ticker in item.affected_tickers:
-            get_or_create_company(session, ticker)
+            ticker_upper = ticker.strip().upper()
+            if ticker_upper in seen_tickers:
+                continue
+            seen_tickers.add(ticker_upper)
+            get_or_create_company(session, ticker_upper)
             session.add(
                 ClaimCompanyLink(
                     claim_id=claim.id,
-                    company_ticker=ticker,
+                    company_ticker=ticker_upper,
                     relation_type="affects",
                 )
             )
+        session.flush()  # flush company links before theme queries trigger autoflush
 
+        seen_themes: set[str] = set()
         for theme_name in item.themes:
+            if theme_name in seen_themes:
+                continue
+            seen_themes.add(theme_name)
             theme = get_or_create_theme(session, theme_name)
             session.add(ClaimThemeLink(claim_id=claim.id, theme_id=theme.id))
 

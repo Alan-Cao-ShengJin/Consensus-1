@@ -67,7 +67,7 @@ def main():
     start = date.fromisoformat(args.start)
     end = date.fromisoformat(args.end)
 
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///consensus.db")
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///consensus-1.db")
     engine = create_engine(db_url)
     Base.metadata.create_all(engine)
 
